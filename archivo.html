@@ -68,7 +68,7 @@ window.MathJax = {
 <main>
   <div class="wrap">
     <h1 class="page-title">Seminarios anteriores</h1>
-    <p class="subtitle">Seminario Dinámica Porteña &middot; 253 charlas registradas entre 2008 y 2026 &middot; <a href="seminario.html">&larr; Volver al seminario</a></p>
+    <p class="subtitle">Seminario Dinámica Porteña &middot; <span data-cifra="charlas">253</span> charlas registradas entre 2008 y <span data-cifra="anio">2026</span> &middot; <a href="seminario.html">&larr; Volver al seminario</a></p>
 
     <div class="archive-toolbar">
       <input type="search" id="archive-search" placeholder="Buscar por expositor, institución, país o palabra del título&hellip;" aria-label="Buscar en el archivo de charlas">
@@ -1901,12 +1901,13 @@ window.MathJax = {
       var input = document.getElementById('archive-search');
       var counter = document.getElementById('archive-count');
       var emptyMsg = document.getElementById('archive-empty');
-      var years = Array.prototype.slice.call(document.querySelectorAll('.archive-year'));
-      var total = document.querySelectorAll('.archive-entry').length;
-      var defaultYear = years.length ? years[0].getAttribute('data-year') : null;
+      var primero = document.querySelector('.archive-year');
+      var defaultYear = primero ? primero.getAttribute('data-year') : null;
       function render(){
         var q = input.value.trim().toLowerCase();
+        var total = document.querySelectorAll('.archive-entry').length;
         var visible = 0;
+        var years = Array.prototype.slice.call(document.querySelectorAll('.archive-year'));
         years.forEach(function(details){
           var entries = Array.prototype.slice.call(details.querySelectorAll('.archive-entry'));
           var yearVisible = 0;
@@ -1928,6 +1929,11 @@ window.MathJax = {
         emptyMsg.style.display = (q && visible === 0) ? 'block' : 'none';
       }
       input.addEventListener('input', render);
+      window.actualizarArchivo = function(){
+        var p = document.querySelector('.archive-year');
+        if(p) defaultYear = p.getAttribute('data-year');
+        render();
+      };
       render();
     })();
     </script>
@@ -1943,6 +1949,7 @@ window.MathJax = {
     <a href="mailto:dinamica.portena@pucv.cl">dinamica.portena@pucv.cl</a></p>
   </div>
 </footer>
+<script src="assets/charlas-dinamicas.js" defer></script>
 <script src="assets/site.js" defer></script>
 </body>
 </html>
