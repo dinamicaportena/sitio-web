@@ -2,128 +2,165 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
-<title>Panel de administración — Dinámica Porteña</title>
-<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dinámica Porteña — Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</title>
+<meta name="description" content="Grupo de investigación en Sistemas Dinámicos y Teoría Ergódica Diferenciable, Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#1a4269">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dinámica Porteña">
+<meta property="og:title" content="Dinámica Porteña — Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso">
+<meta property="og:description" content="Grupo de investigación en Sistemas Dinámicos y Teoría Ergódica Diferenciable, Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso.">
+<meta property="og:locale" content="es_CL">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="../assets/panel.css">
-<script src="../assets/mathjax-config.js"></script>
-<script src="../assets/mathjax.js" defer></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 <header class="site">
   <div class="wrap">
     <div class="brandblock">
-      <img src="../assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+      <img src="assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
       <div class="names">
         <span class="group-name">Dinámica Porteña</span>
-        <span class="inst-name">Panel de administración</span>
+        <span class="inst-name">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</span>
       </div>
     </div>
-    <div class="navblock">
-      <nav class="site"><a href="../index.html">Ver el sitio</a></nav>
+    <div class="lang-toggle lang-mobile">
+      <a href="#" class="active">ES</a>
+      <a href="index-en.html">EN</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menú"><span></span><span></span><span></span></button>
+    <div class="navblock" id="site-nav">
+      <nav class="site">
+      <a href="index.html" class="active">Inicio</a>
+<a href="el-grupo.html">Quiénes somos</a>
+<a href="seminario.html">Seminario</a>
+<a href="eventos.html">Eventos</a>
+<a href="contacto.html">Contacto</a>
+      </nav>
+      <div class="lang-toggle">
+        <a href="#" class="active">ES</a>
+        <a href="index-en.html">EN</a>
+      </div>
     </div>
   </div>
 </header>
 
+<div class="hero">
+  <div class="wrap">
+    <h1>Dinámica Porteña</h1>
+    <p class="lead">Grupo de investigación en Sistemas Dinámicos y Teoría Ergódica Diferenciable, del Instituto de Matemáticas de la Pontificia Universidad Católica de Valparaíso.</p>
+    <a class="btn" href="seminario.html">Conocer el seminario</a>
+    <a class="btn secondary" href="contacto.html" style="margin-left:10px">Contacto</a>
+  </div>
+</div>
 <main>
   <div class="wrap">
-
-    <!-- Acceso -->
-    <section id="acceso" class="oculto">
-      <div class="tarjeta centro">
-        <h1 style="margin-top:0;font-size:24px">Panel de administración</h1>
-        <p style="color:var(--texto-suave);font-size:15px">Ingrese con una cuenta de Google autorizada por el grupo.</p>
-        <div id="aviso-acceso"></div>
-        <div id="boton-google" style="display:flex;justify-content:center;min-height:44px"></div>
+    <section class="home-section">
+      <div class="section-head">
+        <h2 id="home-talk-label">Últimas charlas</h2>
+        <a href="seminario.html">Seminario y archivo de charlas &rarr;</a>
+      </div>
+      <div class="talk-grid">
+        <div class="seminar-card" data-seminar-date="2026-09-04">
+          <div class="fecha">Viernes 4 de septiembre de 2026 &middot; 11:00 hrs</div>
+          <h3>Recycle your heterodimensional cycle: an ergodic approach</h3>
+          <div class="expositor-foto">
+            <img class="foto-expositor" src="assets/fotos/katrin-gelfert.jpg" alt="Katrin Gelfert" loading="lazy">
+            <p class="expositor">Katrin Gelfert &mdash; UFRJ, Brasil</p>
+          </div>
+          <button type="button" class="resumen-toggle" aria-expanded="true" aria-controls="res-home-1" onclick="toggleResumen(this)">Ocultar resumen &#9652;</button>
+          <p class="archive-resumen" id="res-home-1" style="display:block">We define the concept of heterodimensional cycles between hyperbolic ergodic measures of different indices. We study what impact the existence of such a cycle has on the topological properties of the space of invariant measures and present some examples. This is joint work with L. Díaz and Ch. Bonatti.</p>
+          <p class="lugar">Sala 2-2, Instituto de Matemáticas</p>
+        </div>
+        <div class="seminar-card" data-seminar-date="2026-09-04">
+          <div class="fecha">Viernes 4 de septiembre de 2026 &middot; 12:20 hrs</div>
+          <h3>Cotas inferiores para la entropía del locus de no hiperbolicidad</h3>
+          <div class="expositor-foto">
+            <img class="foto-expositor" src="assets/fotos/lorenzo-diaz.jpg" alt="Lorenzo Díaz" loading="lazy">
+            <p class="expositor">Lorenzo Díaz &mdash; PUC-Rio, Brasil</p>
+          </div>
+          <button type="button" class="resumen-toggle" aria-expanded="true" aria-controls="res-home-2" onclick="toggleResumen(this)">Ocultar resumen &#9652;</button>
+          <p class="archive-resumen" id="res-home-2" style="display:block">En el contexto de dinámicas parcialmente hiperbólicas que admiten medidas ergódicas con exponentes de Lyapunov positivos, negativos y nulos, estudiaremos el conjunto de puntos que tienen algún exponente de Lyapunov nulo. En particular, presentaremos cotas inferiores de carácter dinámico para la entropía topológica de este conjunto. Trabajo en colaboración con R. Ures, D. Wang y J. Yang.</p>
+          <p class="lugar">Sala 2-2, Instituto de Matemáticas</p>
+        </div>
       </div>
     </section>
 
-    <!-- Panel -->
-    <section id="panel" class="oculto">
-      <div class="panel-top">
-        <h1>Charlas del seminario</h1>
-        <div class="panel-user"><span id="usuario"></span> <button class="boton sec peq" id="salir">Cerrar sesión</button></div>
+    <section class="home-section">
+      <div class="section-head">
+        <h2>Eventos recientes</h2>
+        <a href="eventos.html">Todos los eventos &rarr;</a>
       </div>
-      <div id="aviso-panel"></div>
-      <p><button class="boton" id="nueva">+ Nueva charla</button></p>
-      <p class="vacio">Puede ingresar todos los datos usted mismo, o crear la charla solo con fecha, hora y expositor y enviarle a este un enlace para que complete título, resumen, institución y foto. Nada enviado por un expositor se publica sin su revisión.</p>
-
-      <h2 class="grupo-titulo">Pendientes de revisión <span class="cuenta" id="n-pendiente"></span></h2>
-      <div id="lista-pendiente"></div>
-      <h2 class="grupo-titulo">Borradores e invitaciones <span class="cuenta" id="n-preparacion"></span></h2>
-      <div id="lista-preparacion"></div>
-      <h2 class="grupo-titulo">Publicadas <span class="cuenta" id="n-publicada"></span></h2>
-      <div id="lista-publicada"></div>
+      <div class="event-item">
+        <div class="fecha">Diciembre 2024</div>
+        <h3>2nd LESET Workshop — Lyapunov Exponents and Smooth Ergodic Theory II</h3>
+        <p><a href="https://ima.ucv.cl/congreso/2nd-leset-workshop/" target="_blank" rel="noopener">Ver página del evento &rarr;</a></p>
+      </div>
+      <div class="event-item">
+        <div class="fecha">Junio 2023</div>
+        <h3>Crossroad Between Dynamical Systems and Group Actions</h3>
+        <p><a href="https://ima.ucv.cl/congreso/crossroad-between-dynamical-systems/" target="_blank" rel="noopener">Ver página del evento &rarr;</a></p>
+      </div>
+      <div class="event-item">
+        <div class="fecha">Diciembre 2018</div>
+        <h3>Dynamics in Valparaíso</h3>
+        <p><a href="https://ima.ucv.cl/congreso/dynamics-in-valparaiso/" target="_blank" rel="noopener">Ver página del evento &rarr;</a></p>
+      </div>
     </section>
 
-    <p id="cargando" style="color:var(--texto-suave)">Cargando…</p>
+    <section class="home-section">
+      <div class="section-head">
+        <h2>Quiénes somos</h2>
+        <a href="el-grupo.html">Conocer más sobre el grupo &rarr;</a>
+      </div>
+      <p>El grupo tiene su origen en el seminario permanente Dinámica Porteña, iniciado en 2008 en el Instituto de Matemáticas de la Pontificia Universidad Católica de Valparaíso y consolidado a lo largo de cerca de veinte años como un espacio estable de colaboración científica. Sus principales intereses son la colaboración en investigación, la formación de investigadores y la diseminación científica en la sociedad.</p>
+      <div class="stats">
+        <div class="stat"><div class="n">253</div><div class="l">charlas desde 2008</div></div>
+        <div class="stat"><div class="n">166</div><div class="l">expositores distintos</div></div>
+        <div class="stat"><div class="n">23</div><div class="l">países de procedencia</div></div>
+      </div>
+    </section>
+    <script>
+    (function(){
+      try{
+        var cards = document.querySelectorAll('.talk-grid [data-seminar-date]');
+        var label = document.getElementById('home-talk-label');
+        if(!cards.length || !label) return;
+        var d = new Date(cards[0].getAttribute('data-seminar-date') + 'T23:59:59');
+        var L = ['Próximas charlas','Próxima charla','Últimas charlas','Última charla'];
+        var plural = cards.length > 1;
+        label.textContent = d.getTime() >= Date.now() ? L[plural ? 0 : 1] : L[plural ? 2 : 3];
+      }catch(e){}
+    })();
+    </script>
   </div>
 </main>
-
-<!-- Editor de charla -->
-<dialog class="modal" id="editor">
-  <form method="dialog" id="form-charla" novalidate>
-    <div class="cab"><h2 id="editor-titulo">Nueva charla</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
-    <div class="cuerpo">
-      <div id="aviso-editor"></div>
-      <div class="fila2">
-        <div class="campo"><label for="f-fecha">Fecha *</label><input type="date" id="f-fecha" required></div>
-        <div class="campo"><label for="f-hora">Hora *</label><input type="time" id="f-hora" required value="12:30"></div>
-      </div>
-      <div class="campo"><label for="f-sala">Sala</label><input type="text" id="f-sala" maxlength="120" value="Sala 2-2, Instituto de Matemáticas"></div>
-      <div class="fila2">
-        <div class="campo"><label for="f-expositor">Expositor *</label><input type="text" id="f-expositor" maxlength="120" required></div>
-        <div class="campo"><label for="f-institucion">Institución</label><input type="text" id="f-institucion" maxlength="200" placeholder="p. ej. UFRJ, Brasil"></div>
-      </div>
-      <div class="campo"><label for="f-titulo">Título de la charla</label><input type="text" id="f-titulo" maxlength="300"></div>
-      <div class="campo">
-        <label for="f-resumen">Resumen</label>
-        <textarea id="f-resumen" maxlength="5000"></textarea>
-        <div class="ayuda">Las fórmulas se escriben en LaTeX entre signos de dólar, por ejemplo <code>$f\colon M\to M$</code>.</div>
-      </div>
-      <div class="campo"><label>Vista previa del resumen</label><div class="vista-previa" id="f-vista"></div></div>
-      <div class="campo">
-        <label for="f-foto">Foto del expositor</label>
-        <div class="foto-campo">
-          <img id="f-foto-img" class="oculto" alt="">
-          <input type="file" id="f-foto" accept="image/jpeg,image/png,image/webp">
-          <button type="button" class="boton peligro oculto" id="f-foto-quitar">Quitar foto</button>
-        </div>
-        <div class="ayuda">JPG, PNG o WebP. Se reduce automáticamente antes de subirla.</div>
-      </div>
+<footer class="site">
+  <div class="wrap">
+    <div class="logos">
+      <img src="assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
     </div>
-    <div class="pie">
-      <button type="button" class="boton sec" data-cerrar>Cancelar</button>
-      <button type="submit" class="boton" id="guardar">Guardar</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- Invitación -->
-<dialog class="modal" id="invitacion">
-  <div class="cab"><h2>Invitación al expositor</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
-  <div class="cuerpo">
-    <p style="margin-top:0;font-size:14.5px">Copie el enlace o el mensaje sugerido y envíelo al expositor desde su correo. El enlace vence el <strong id="inv-vence"></strong> y deja de funcionar al publicar la charla. Si genera un enlace nuevo, el anterior queda anulado.</p>
-    <div class="campo"><label for="inv-enlace">Enlace</label>
-      <input class="copiable" id="inv-enlace" readonly>
-      <p><button class="boton sec peq" data-copiar="inv-enlace">Copiar enlace</button></p></div>
-    <div class="campo"><label for="inv-texto-es">Mensaje sugerido (español)</label>
-      <textarea class="copiable" id="inv-texto-es" readonly></textarea>
-      <p><button class="boton sec peq" data-copiar="inv-texto-es">Copiar mensaje en español</button></p></div>
-    <div class="campo"><label for="inv-texto-en">Suggested message (English)</label>
-      <textarea class="copiable" id="inv-texto-en" readonly></textarea>
-      <p><button class="boton sec peq" data-copiar="inv-texto-en">Copy English message</button></p></div>
+    <p>Instituto de Matemáticas, Facultad de Ciencias, Pontificia Universidad Católica de Valparaíso<br>
+    Blanco Viel 596, Cerro Barón, Valparaíso, Chile &middot;
+    <a href="mailto:dinamica.portena@pucv.cl">dinamica.portena@pucv.cl</a></p>
   </div>
-  <div class="pie"><button type="button" class="boton" data-cerrar>Listo</button></div>
-</dialog>
-
-<script src="../assets/panel-comun.js"></script>
-<script src="admin.js"></script>
+</footer>
+<script>
+    function toggleResumen(btn){
+      var p = document.getElementById(btn.getAttribute('aria-controls'));
+      if(!p) return;
+      var open = p.style.display === 'block';
+      p.style.display = open ? 'none' : 'block';
+      btn.setAttribute('aria-expanded', String(!open));
+      btn.innerHTML = open ? 'Ver resumen &#9662;' : 'Ocultar resumen &#9652;';
+    }
+    </script>
+<script src="assets/site.js" defer></script>
 </body>
 </html>
