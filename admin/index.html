@@ -74,12 +74,18 @@
       <div id="aviso-editor"></div>
       <div class="fila2">
         <div class="campo"><label for="f-fecha">Fecha *</label><input type="date" id="f-fecha" required></div>
-        <div class="campo"><label for="f-hora">Hora *</label><input type="time" id="f-hora" required value="11:00"></div>
+        <div class="campo"><label for="f-hora">Hora *</label><input type="time" id="f-hora" required value="12:30"></div>
       </div>
       <div class="campo"><label for="f-sala">Sala</label><input type="text" id="f-sala" maxlength="120" value="Sala 2-2, Instituto de Matemáticas"></div>
       <div class="fila2">
         <div class="campo"><label for="f-expositor">Expositor *</label><input type="text" id="f-expositor" maxlength="120" required></div>
         <div class="campo"><label for="f-institucion">Institución</label><input type="text" id="f-institucion" maxlength="200" placeholder="p. ej. UFRJ, Brasil"></div>
+      </div>
+      <div class="fila2">
+        <div class="campo"><label for="f-email">Correo del expositor</label><input type="email" id="f-email" maxlength="200" placeholder="para enviarle la invitación">
+          <div class="ayuda">No se publica en el sitio.</div></div>
+        <div class="campo"><label for="f-idioma">Idioma de la invitación</label>
+          <select id="f-idioma"><option value="es">Español</option><option value="en">English</option></select></div>
       </div>
       <div class="campo"><label for="f-titulo">Título de la charla</label><input type="text" id="f-titulo" maxlength="300"></div>
       <div class="campo">
@@ -100,7 +106,8 @@
     </div>
     <div class="pie">
       <button type="button" class="boton sec" data-cerrar>Cancelar</button>
-      <button type="submit" class="boton" id="guardar">Guardar</button>
+      <button type="submit" class="boton sec" id="guardar">Guardar</button>
+      <button type="button" class="boton" id="guardar-invitar">Guardar y enviar invitación</button>
     </div>
   </form>
 </dialog>
@@ -109,7 +116,8 @@
 <dialog class="modal" id="invitacion">
   <div class="cab"><h2>Invitación al expositor</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
   <div class="cuerpo">
-    <p style="margin-top:0;font-size:14.5px">Copie el enlace o el mensaje sugerido y envíelo al expositor desde su correo. El enlace vence el <strong id="inv-vence"></strong> y deja de funcionar al publicar la charla. Si genera un enlace nuevo, el anterior queda anulado.</p>
+    <div id="inv-estado"></div>
+    <p style="margin-top:0;font-size:14.5px">Si lo necesita, también puede copiar el enlace o el mensaje y enviarlo desde su correo. El enlace vence el <strong id="inv-vence"></strong> y deja de funcionar al publicar la charla. Si genera un enlace nuevo, el anterior queda anulado.</p>
     <div class="campo"><label for="inv-enlace">Enlace</label>
       <input class="copiable" id="inv-enlace" readonly>
       <p><button class="boton sec peq" data-copiar="inv-enlace">Copiar enlace</button></p></div>

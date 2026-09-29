@@ -45,7 +45,7 @@ dialog.modal::backdrop{background:rgba(20,30,45,.45)}
 .campo{margin-bottom:14px}
 .campo label{display:block;font-weight:600;font-size:14px;margin-bottom:4px;color:var(--texto)}
 .campo .ayuda{font-size:12.5px;color:var(--texto-suave);margin-top:3px}
-.campo input[type=text],.campo input[type=date],.campo input[type=time],.campo textarea{width:100%;font:15px 'Roboto',Arial,sans-serif;
+.campo input[type=text],.campo input[type=email],.campo input[type=date],.campo input[type=time],.campo select,.campo textarea{width:100%;font:15px 'Roboto',Arial,sans-serif;
   padding:8px 10px;border:1px solid #c5ccd4;border-radius:4px;background:#fff;color:var(--texto)}
 .campo textarea{min-height:150px;resize:vertical;line-height:1.5}
 .campo input:focus,.campo textarea:focus{outline:2px solid var(--azul);outline-offset:0;border-color:var(--azul)}

@@ -7,8 +7,9 @@
 //   POST   /api/admin/charlas/:id/publicar    publica ({publicar:true}) o retira ({publicar:false})
 import {
   json, error, leerJSON, sesion, charlas, invitaciones, listarCharlas, paraPanel, texto, fechaValida, horaValida,
-  guardarFoto, borrarFoto, nuevoId, tokenAleatorio, sha256, SALA_POR_DEFECTO, DURACION_INVITACION_DIAS,
+  guardarFoto, borrarFoto, nuevoId, tokenAleatorio, sha256, SALA_POR_DEFECTO, DURACION_INVITACION_DIAS, emailValido,
 } from "../lib/comun.mjs";
+import { textoInvitacion, enviarInvitacion, correoConfigurado } from "../lib/correo.mjs";
 
 function camposDesde(cuerpo, base = {}) {
   const c = { ...base };
@@ -19,12 +20,15 @@ function camposDesde(cuerpo, base = {}) {
   if ("institucion" in cuerpo) c.institucion = texto(cuerpo.institucion, 200);
   if ("titulo" in cuerpo) c.titulo = texto(cuerpo.titulo, 300);
   if ("resumen" in cuerpo) c.resumen = texto(cuerpo.resumen, 5000);
+  if ("email" in cuerpo) c.email = texto(cuerpo.email, 200).toLowerCase();
+  if ("idioma" in cuerpo) c.idioma = cuerpo.idioma === "en" ? "en" : "es";
   return c;
 }
 function validar(c) {
   if (!fechaValida(c.fecha || "")) return "Indique una fecha válida.";
   if (!horaValida(c.hora || "")) return "Indique una hora válida (HH:MM).";
   if (!c.expositor) return "Indique el nombre del expositor.";
+  if (c.email && !emailValido(c.email)) return "El correo del expositor no es válido.";
   return null;
 }
 async function anularInvitacion(c) {
@@ -81,17 +85,34 @@ export default async (req, context) => {
   }
 
   if (accion === "invitacion" && req.method === "POST") {
+    // {enviar: true} envía la invitación por correo al expositor (requiere su correo y Gmail configurado)
+    const cuerpo = (await leerJSON(req)) || {};
     if (c.estado === "publicada") return error("La charla ya está publicada; retírela antes de invitar al expositor.");
+    if (cuerpo.enviar) {
+      if (!c.email) return error("Indique el correo del expositor para enviarle la invitación.");
+      if (!correoConfigurado()) return error("El envío de correos no está configurado en Netlify (GMAIL_USER y GMAIL_APP_PASSWORD).");
+    }
     await anularInvitacion(c);
     const token = tokenAleatorio();
     const expira = new Date(Date.now() + DURACION_INVITACION_DIAS * 864e5).toISOString();
+    const enlace = `${new URL(req.url).origin}/charla/?invitacion=${token}`;
     c.invitacion = { hash: sha256(token), expira };
+    let envio = { enviado: false };
+    if (cuerpo.enviar) {
+      try {
+        await enviarInvitacion(c, enlace, c.idioma || "es", email);
+        c.invitacion.enviadaA = c.email; c.invitacion.enviadaEl = ahora;
+        envio = { enviado: true, a: c.email };
+      } catch (e) {
+        envio = { enviado: false, error: "No se pudo enviar el correo: " + e.message };
+      }
+    }
     if (c.estado === "borrador") c.estado = "invitada";
     c.actualizada = ahora; c.actualizadaPor = email;
     await invitaciones().setJSON(c.invitacion.hash, { charla: id, expira });
     await almacen.setJSON(id, c);
-    const enlace = `${new URL(req.url).origin}/charla/?invitacion=${token}`;
-    return json({ enlace, expira, charla: paraPanel(c) });
+    const textos = { es: textoInvitacion(c, enlace, "es").texto, en: textoInvitacion(c, enlace, "en").texto };
+    return json({ enlace, expira, textos, ...envio, charla: paraPanel(c) });
   }
 
   if (accion === "publicar" && req.method === "POST") {

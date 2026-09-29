@@ -70,7 +70,7 @@
       lista.forEach((c) => cont.appendChild(fila(c)));
     }
   }
-  const NOMBRE_ESTADO = { borrador: "Borrador", invitada: "Invitación enviada", pendiente: "Pendiente de revisión", publicada: "Publicada" };
+  const NOMBRE_ESTADO = { borrador: "Borrador", invitada: "Invitación generada", pendiente: "Pendiente de revisión", publicada: "Publicada" };
   function fila(c) {
     const d = document.createElement("div"); d.className = "charla-fila " + c.estado;
     if (c.foto) { const i = document.createElement("img"); i.src = c.foto; i.alt = ""; d.appendChild(i); }
@@ -81,12 +81,14 @@
     const t = document.createElement("div"); t.className = "titulo"; t.textContent = c.titulo || "(sin título aún)";
     const m = document.createElement("div"); m.className = "meta";
     m.textContent = [c.expositor, c.institucion].filter(Boolean).join(" — ") +
+      (c.estado === "invitada" && c.invitacionEnviadaA ? ` · invitación enviada a ${c.invitacionEnviadaA}` : "") +
       (c.estado === "invitada" && c.invitacionVence ? ` · enlace vigente hasta ${DP.fechaLarga(c.invitacionVence.slice(0, 10))}` : "") +
       (c.enviadaPorExpositor ? ` · completada por el expositor el ${DP.fechaLarga(c.enviadaPorExpositor.slice(0, 10))}` : "");
     const acc = document.createElement("div"); acc.className = "acciones";
     const boton = (texto, clase, fn) => { const b = document.createElement("button"); b.className = "boton " + clase; b.textContent = texto; b.onclick = fn; acc.appendChild(b); };
     boton(c.estado === "pendiente" ? "Revisar y editar" : "Editar", "sec peq", () => abrirEditor(c));
-    if (c.estado !== "publicada") boton(c.estado === "borrador" ? "Invitar al expositor" : "Nuevo enlace de invitación", "sec peq", () => invitar(c));
+    if (c.estado !== "publicada") boton(c.estado === "borrador" ? (c.email ? "Enviar invitación" : "Invitar al expositor")
+                                                               : (c.email ? "Reenviar invitación" : "Nuevo enlace de invitación"), "sec peq", () => invitar(c));
     if (c.estado === "publicada") boton("Retirar de la web", "sec peq", () => publicar(c, false));
     else boton("Publicar", "peq", () => publicar(c, true));
     boton("Eliminar", "peligro", () => eliminar(c));
@@ -95,12 +97,54 @@
   }
 
   // ---------- Editor ----------
-  const campos = ["fecha", "hora", "sala", "expositor", "institucion", "titulo", "resumen"];
+  // ---------- Fecha por defecto ----------
+  // Viernes de la semana próxima (semana de lunes a domingo); si es feriado en Chile, el viernes siguiente.
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  function pascua(a) {                       // Domingo de Resurrección (algoritmo de Meeus/Jones/Butcher)
+    const b = a % 19, c = Math.floor(a / 100), d = a % 100, e = Math.floor(c / 4), f = c % 4, g = Math.floor((c + 8) / 25);
+    const h = Math.floor((c - g + 1) / 3), i = (19 * b + c - e - h + 15) % 30, k = Math.floor(d / 4), l = d % 4;
+    const m = (32 + 2 * f + 2 * k - i - l) % 7, n = Math.floor((b + 11 * i + 22 * m) / 451);
+    const mes = Math.floor((i + m - 7 * n + 114) / 31), dia = ((i + m - 7 * n + 114) % 31) + 1;
+    return new Date(a, mes - 1, dia);
+  }
+  function solsticioInvierno(a) {            // día del solsticio de junio en hora de Chile (UTC-4), según Meeus
+    const Y = (a - 2000) / 1000;
+    const jde = 2451716.56767 + 365241.62603 * Y + 0.00325 * Y * Y + 0.00888 * Y ** 3 - 0.00030 * Y ** 4;
+    const ms = (jde - 2440587.5) * 864e5 - 4 * 36e5;
+    const d = new Date(ms); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+  function moverALunes(a, mes, dia) {        // Ley 19.668: mar-jue → lunes anterior; vie → lunes siguiente
+    const d = new Date(a, mes - 1, dia), w = d.getDay();
+    if (w >= 2 && w <= 4) d.setDate(d.getDate() - (w - 1)); else if (w === 5) d.setDate(d.getDate() + 3);
+    return d;
+  }
+  function feriadosChile(a) {
+    const f = new Set(["01-01", "05-01", "05-21", "07-16", "08-15", "09-18", "09-19", "11-01", "12-08", "12-25"].map((x) => `${a}-${x}`));
+    const p = pascua(a); const vs = new Date(p); vs.setDate(p.getDate() - 2); const ss = new Date(p); ss.setDate(p.getDate() - 1);
+    [vs, ss, solsticioInvierno(a), moverALunes(a, 6, 29), moverALunes(a, 10, 12)].forEach((d) => f.add(iso(d)));
+    const ev = new Date(a, 9, 31), w = ev.getDay();          // Iglesias Evangélicas: mar → vie anterior; mié → vie siguiente
+    if (w === 2) ev.setDate(27); else if (w === 3) ev.setDate(ev.getDate() + 2);
+    f.add(iso(ev));
+    if (new Date(a, 8, 17).getDay() === 1) f.add(`${a}-09-17`);   // 17 de septiembre cuando cae lunes
+    if (new Date(a, 8, 20).getDay() === 5) f.add(`${a}-09-20`);   // 20 de septiembre cuando cae viernes
+    return f;
+  }
+  function viernesPorDefecto(hoy = new Date()) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const w = d.getDay() || 7;                                 // lunes = 1, …, domingo = 7
+    d.setDate(d.getDate() + (8 - w) + 4);                      // lunes de la semana próxima + 4 días
+    for (let n = 0; n < 5 && feriadosChile(d.getFullYear()).has(iso(d)); n++) d.setDate(d.getDate() + 7);
+    return iso(d);
+  }
+
+  const campos = ["fecha", "hora", "sala", "expositor", "email", "idioma", "institucion", "titulo", "resumen"];
   function abrirEditor(c) {
     editando = c || null; fotoNueva = undefined;
     $("editor-titulo").textContent = c ? "Editar charla" : "Nueva charla";
     aviso("aviso-editor", "", "");
     campos.forEach((k) => { $("f-" + k).value = c ? (c[k] || "") : ($("f-" + k).defaultValue || ""); });
+    if (!c) $("f-fecha").value = viernesPorDefecto();
+    if (!$("f-idioma").value) $("f-idioma").value = "es";
     $("f-foto").value = "";
     ponerFoto(c && c.foto);
     DP.vistaPrevia($("f-vista"), $("f-resumen").value);
@@ -118,57 +162,43 @@
   });
   $("f-foto-quitar").addEventListener("click", () => { fotoNueva = null; $("f-foto").value = ""; ponerFoto(null); });
 
-  $("form-charla").addEventListener("submit", async (ev) => {
-    ev.preventDefault();
+  async function guardar(enviarInvitacion) {
     const datos = {}; campos.forEach((k) => (datos[k] = $("f-" + k).value));
     if (fotoNueva !== undefined) datos.foto = fotoNueva;
-    $("guardar").disabled = true;
+    if (enviarInvitacion && !datos.email.trim()) return aviso("aviso-editor", "error", "Indique el correo del expositor para enviarle la invitación.");
+    $("guardar").disabled = $("guardar-invitar").disabled = true;
     try {
-      if (editando) await DP.api("/api/admin/charlas/" + encodeURIComponent(editando.id), { method: "PUT", body: datos });
-      else { if (datos.foto === null) delete datos.foto; await DP.api("/api/admin/charlas", { method: "POST", body: datos }); }
-      $("editor").close(); aviso("aviso-panel", "ok", "Charla guardada."); cargar();
+      let c;
+      if (editando) c = await DP.api("/api/admin/charlas/" + encodeURIComponent(editando.id), { method: "PUT", body: datos });
+      else { if (datos.foto === null) delete datos.foto; c = await DP.api("/api/admin/charlas", { method: "POST", body: datos }); }
+      $("editor").close();
+      if (enviarInvitacion) await invitar(c, true);
+      else { aviso("aviso-panel", "ok", "Charla guardada."); cargar(); }
     } catch (e) { manejarError(e, "aviso-editor"); }
-    finally { $("guardar").disabled = false; }
-  });
+    finally { $("guardar").disabled = $("guardar-invitar").disabled = false; }
+  }
+  $("form-charla").addEventListener("submit", (ev) => { ev.preventDefault(); guardar(false); });
+  $("guardar-invitar").addEventListener("click", () => guardar(true));
 
   // ---------- Acciones ----------
-  async function invitar(c) {
-    if (c.estado !== "borrador" && !confirm("Se generará un enlace nuevo y el anterior dejará de funcionar. ¿Continuar?")) return;
+  // Genera el enlace; si la charla tiene correo, además envía la invitación al expositor.
+  async function invitar(c, sinPreguntar) {
+    const enviar = Boolean(c.email);
+    if (!sinPreguntar) {
+      const pregunta = (c.estado !== "borrador" ? "Se generará un enlace nuevo y el anterior dejará de funcionar. " : "") +
+        (enviar ? `La invitación se enviará por correo a ${c.email}. ¿Continuar?` : "¿Generar el enlace de invitación?");
+      if (!confirm(pregunta)) return;
+    }
     try {
-      const r = await DP.api(`/api/admin/charlas/${encodeURIComponent(c.id)}/invitacion`, { method: "POST", body: {} });
+      const r = await DP.api(`/api/admin/charlas/${encodeURIComponent(c.id)}/invitacion`, { method: "POST", body: { enviar } });
       $("inv-enlace").value = r.enlace;
       $("inv-vence").textContent = DP.fechaLarga(r.expira.slice(0, 10));
-      const fechaEs = DP.fechaLarga(c.fecha, c.hora, "es"), fechaEn = DP.fechaLarga(c.fecha, c.hora, "en");
-      $("inv-texto-es").value =
-`Estimado/a ${c.expositor}:
-
-Muchas gracias por aceptar dar una charla en el Seminario Dinámica Porteña, el ${fechaEs}, en ${c.sala}.
-
-Para preparar el anuncio, le pedimos completar el título, el resumen, su institución y, si lo desea, una foto, en el siguiente enlace:
-
-${r.enlace}
-
-El resumen admite fórmulas en LaTeX entre signos $…$.
-
-Saludos cordiales,
-Seminario Dinámica Porteña
-Instituto de Matemáticas, PUCV`;
-      $("inv-texto-en").value =
-`Dear ${c.expositor},
-
-Thank you very much for agreeing to give a talk at the Dinámica Porteña Seminar on ${fechaEn}, in ${c.sala}.
-
-To prepare the announcement, we kindly ask you to provide the title, abstract, your affiliation and, optionally, a photo, using the following link:
-
-${r.enlace}
-
-LaTeX formulas between $…$ are supported in the abstract.
-
-Best regards,
-Dinámica Porteña Seminar
-Institute of Mathematics, PUCV`;
+      $("inv-texto-es").value = r.textos.es; $("inv-texto-en").value = r.textos.en;
+      if (r.enviado) aviso("inv-estado", "ok", `Invitación enviada por correo a ${r.a}.`);
+      else if (r.error) aviso("inv-estado", "error", r.error + " Puede copiar el mensaje y enviarlo desde su correo.");
+      else aviso("inv-estado", "info", "La charla no tiene correo del expositor: copie el enlace o el mensaje y envíelo desde su correo.");
       $("invitacion").showModal(); cargar();
-    } catch (e) { manejarError(e, "aviso-panel"); }
+    } catch (e) { manejarError(e, "aviso-panel"); cargar(); }
   }
   async function publicar(c, si) {
     const pregunta = si ? `¿Publicar en el sitio la charla de ${c.expositor}?` : `¿Retirar del sitio la charla de ${c.expositor}? Quedará como borrador.`;

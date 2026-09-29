@@ -41,6 +41,19 @@ export function texto(valor, max) {
   return String(valor).replace(/\r\n/g, "\n").trim().slice(0, max);
 }
 export const fechaValida = (f) => /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNaN(Date.parse(f + "T00:00:00Z"));
+export const emailValido = (e) => /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(e);
+
+// Fecha legible, igual que en el panel: «viernes 9 de octubre de 2026 · 12:30 hrs»
+const MESES = { es: ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"],
+                en: ["January","February","March","April","May","June","July","August","September","October","November","December"] };
+const DIAS = { es: ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"],
+               en: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"] };
+export function fechaLarga(fecha, hora, idioma = "es") {
+  const [a, m, d] = fecha.split("-").map(Number);
+  const dia = DIAS[idioma][new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
+  const f = idioma === "es" ? `${dia} ${d} de ${MESES.es[m - 1]} de ${a}` : `${dia}, ${MESES.en[m - 1]} ${d}, ${a}`;
+  return hora ? `${f} · ${hora} ${idioma === "es" ? "hrs" : "h"}` : f;
+}
 export const horaValida = (h) => /^([01]\d|2[0-3]):[0-5]\d$/.test(h);
 
 export async function leerJSON(req) {
@@ -118,7 +131,9 @@ export function publica(c) {
 // Versión para el panel (incluye estado, sin el hash de la invitación)
 export function paraPanel(c) {
   return { ...publica(c), estado: c.estado, creada: c.creada, actualizada: c.actualizada,
-           invitacionVence: c.invitacion?.expira || null, enviadaPorExpositor: c.enviadaPorExpositor || null };
+           email: c.email || "", idioma: c.idioma || "es",
+           invitacionVence: c.invitacion?.expira || null, invitacionEnviadaA: c.invitacion?.enviadaA || null,
+           enviadaPorExpositor: c.enviadaPorExpositor || null };
 }
 export async function listarCharlas() {
   const almacenC = charlas();
