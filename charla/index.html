@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Seminario Dinámica Porteña — Datos de la charla</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/panel.css">
+<script src="../assets/mathjax-config.js"></script>
+<script src="../assets/mathjax.js" defer></script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <div class="brandblock">
+      <img src="../assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+      <div class="names">
+        <span class="group-name">Dinámica Porteña</span>
+        <span class="inst-name" data-t="inst">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</span>
+      </div>
+    </div>
+    <div class="lang-toggle lang-mobile" id="idiomas-m"><a href="#" data-idioma="es" class="active">ES</a><a href="#" data-idioma="en">EN</a></div>
+    <div class="navblock">
+      <div class="lang-toggle" id="idiomas"><a href="#" data-idioma="es" class="active">ES</a><a href="#" data-idioma="en">EN</a></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap" style="max-width:720px">
+    <h1 class="page-title" data-t="titulo">Datos de su charla</h1>
+    <p class="subtitle" data-t="subtitulo">Seminario Dinámica Porteña</p>
+    <p id="cargando" data-t="cargando" style="color:var(--texto-suave)">Cargando…</p>
+    <div id="aviso"></div>
+
+    <section id="contenido" class="oculto">
+      <div class="aviso info" id="datos-charla"></div>
+      <form id="form" novalidate>
+        <div class="fila2">
+          <div class="campo"><label for="f-expositor" data-t="nombre">Nombre *</label><input type="text" id="f-expositor" maxlength="120" required></div>
+          <div class="campo"><label for="f-institucion" data-t="institucion">Institución y país *</label><input type="text" id="f-institucion" maxlength="200" required></div>
+        </div>
+        <div class="campo"><label for="f-titulo" data-t="tituloCharla">Título de la charla *</label><input type="text" id="f-titulo" maxlength="300" required></div>
+        <div class="campo">
+          <label for="f-resumen" data-t="resumen">Resumen *</label>
+          <textarea id="f-resumen" maxlength="5000" required></textarea>
+          <div class="ayuda" data-t="ayudaLatex">Puede escribir fórmulas en LaTeX entre signos de dólar, por ejemplo $f\colon M\to M$.</div>
+        </div>
+        <div class="campo"><label data-t="vista">Vista previa del resumen</label><div class="vista-previa" id="f-vista"></div></div>
+        <div class="campo">
+          <label for="f-foto" data-t="foto">Foto (opcional)</label>
+          <div class="foto-campo"><img id="f-foto-img" class="oculto" alt=""><input type="file" id="f-foto" accept="image/jpeg,image/png,image/webp"></div>
+          <div class="ayuda" data-t="ayudaFoto">Una foto de rostro, en JPG, PNG o WebP. Se publicará junto al anuncio de su charla.</div>
+        </div>
+        <p><button type="submit" class="boton" id="enviar" data-t="enviar">Enviar</button></p>
+        <p class="vacio" data-t="nota">Sus datos serán revisados por los organizadores antes de publicarse en el sitio del seminario. Puede volver a este enlace para corregirlos mientras la charla no haya sido publicada.</p>
+      </form>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><span data-t="pie">Instituto de Matemáticas, Facultad de Ciencias, Pontificia Universidad Católica de Valparaíso</span><br>
+    Blanco Viel 596, Cerro Barón, Valparaíso, Chile &middot; <a href="mailto:dinamica.portena@pucv.cl">dinamica.portena@pucv.cl</a></p>
+  </div>
+</footer>
+
+<script src="../assets/panel-comun.js"></script>
+<script src="charla.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+/* Estilos del panel de administración y del formulario del expositor.
+   Usa los mismos colores y tipografías del sitio (assets/style.css). */
+.panel-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.panel-top h1{margin:0;font-size:28px}
+.panel-user{font-size:14px;color:var(--texto-suave)}
+.panel-user button{margin-left:10px}
+.boton{display:inline-flex;align-items:center;gap:6px;border:0;cursor:pointer;background:var(--rojo-texto);color:#fff;
+  font:600 14px 'Roboto',Arial,sans-serif;padding:9px 16px;border-radius:4px;text-decoration:none}
+.boton:hover{background:#a8231f}
+.boton.sec{background:transparent;color:var(--azul);border:1.5px solid var(--azul);padding:7.5px 14px}
+.boton.sec:hover{background:var(--azul);color:#fff}
+.boton.peq{font-size:13px;padding:6px 11px}
+.boton.sec.peq{padding:4.5px 10px}
+.boton.peligro{background:transparent;color:var(--rojo-texto);border:1.5px solid var(--rojo-texto);padding:4.5px 10px;font-size:13px}
+.boton.peligro:hover{background:var(--rojo-texto);color:#fff}
+.boton[disabled]{opacity:.55;cursor:default}
+.tarjeta{background:#fff;border:1px solid var(--borde);border-radius:6px;padding:22px 24px}
+.centro{max-width:460px;margin:30px auto;text-align:center}
+.grupo-titulo{font-family:'Roboto Condensed',Arial,sans-serif;color:var(--azul-oscuro);font-size:19px;margin:30px 0 10px;
+  padding-bottom:6px;border-bottom:1px solid var(--borde)}
+.grupo-titulo .cuenta{color:var(--texto-suave);font-weight:400;font-size:15px}
+.charla-fila{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--borde);border-left:4px solid var(--azul);
+  border-radius:6px;padding:14px 16px;margin-bottom:10px;background:#fff}
+.charla-fila.pendiente{border-left-color:#d08a00;background:#fffaf0}
+.charla-fila.publicada{border-left-color:#2e7d4f}
+.charla-fila img{width:56px;height:56px;border-radius:50%;object-fit:cover;flex:none;border:1px solid var(--borde)}
+.charla-fila .sin-foto{width:56px;height:56px;border-radius:50%;background:var(--gris-fondo);flex:none;border:1px solid var(--borde)}
+.charla-fila .info{flex:1;min-width:0}
+.charla-fila .fecha{font:700 12px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--rojo-texto)}
+.charla-fila .titulo{font-weight:600;color:var(--azul-oscuro);margin:2px 0}
+.charla-fila .meta{font-size:13.5px;color:var(--texto-suave)}
+.charla-fila .acciones{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.estado{display:inline-block;font:700 11px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:1px}
+.estado.borrador{background:#eceff3;color:#4a5159}.estado.invitada{background:#e6eef7;color:var(--azul)}
+.estado.pendiente{background:#fdecc8;color:#8a5a00}.estado.publicada{background:#dff1e6;color:#1f6b3f}
+.vacio{color:var(--texto-suave);font-size:14px;margin:4px 0 0}
+dialog.modal{border:0;border-radius:8px;padding:0;max-width:680px;width:calc(100% - 24px);box-shadow:0 10px 40px rgba(0,0,0,.25)}
+dialog.modal::backdrop{background:rgba(20,30,45,.45)}
+.modal .cab{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--borde)}
+.modal .cab h2{margin:0;font-size:21px}
+.modal .cuerpo{padding:18px 22px;max-height:70vh;overflow:auto}
+.modal .pie{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--borde);background:var(--gris-fondo)}
+.cerrar{background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:var(--texto-suave)}
+.campo{margin-bottom:14px}
+.campo label{display:block;font-weight:600;font-size:14px;margin-bottom:4px;color:var(--texto)}
+.campo .ayuda{font-size:12.5px;color:var(--texto-suave);margin-top:3px}
+.campo input[type=text],.campo input[type=date],.campo input[type=time],.campo textarea{width:100%;font:15px 'Roboto',Arial,sans-serif;
+  padding:8px 10px;border:1px solid #c5ccd4;border-radius:4px;background:#fff;color:var(--texto)}
+.campo textarea{min-height:150px;resize:vertical;line-height:1.5}
+.campo input:focus,.campo textarea:focus{outline:2px solid var(--azul);outline-offset:0;border-color:var(--azul)}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.fila2{grid-template-columns:1fr}}
+.vista-previa{border:1px dashed var(--borde);border-radius:4px;padding:10px 12px;font-size:14.5px;background:var(--gris-fondo);
+  white-space:pre-wrap;min-height:40px}
+.foto-campo{display:flex;align-items:center;gap:12px}
+.foto-campo img{width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid var(--borde)}
+.aviso{border-radius:6px;padding:12px 14px;font-size:14px;margin:0 0 16px}
+.aviso.error{background:#fdecec;color:#8f1f1b;border:1px solid #f3c1bf}
+.aviso.ok{background:#e6f4ec;color:#1f6b3f;border:1px solid #bfe3cd}
+.aviso.info{background:var(--gris-fondo);color:var(--texto-suave);border:1px solid var(--borde)}
+.copiable{width:100%;font:13px ui-monospace,Menlo,monospace;padding:8px;border:1px solid #c5ccd4;border-radius:4px;background:var(--gris-fondo)}
+textarea.copiable{min-height:170px;font:13.5px 'Roboto',Arial,sans-serif;line-height:1.5}
+.oculto{display:none!important}

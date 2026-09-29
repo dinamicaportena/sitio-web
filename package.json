@@ -1,0 +1,9 @@
+{
+  "name": "sitio-web-dinamica-portena",
+  "private": true,
+  "type": "module",
+  "description": "Sitio del grupo de investigación Dinámica Porteña (IMA-PUCV) y su panel de administración.",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.1"
+  }
+}

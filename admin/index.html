@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel de administración — Dinámica Porteña</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/panel.css">
+<script src="../assets/mathjax-config.js"></script>
+<script src="../assets/mathjax.js" defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <div class="brandblock">
+      <img src="../assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+      <div class="names">
+        <span class="group-name">Dinámica Porteña</span>
+        <span class="inst-name">Panel de administración</span>
+      </div>
+    </div>
+    <div class="navblock">
+      <nav class="site"><a href="../index.html">Ver el sitio</a></nav>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <!-- Acceso -->
+    <section id="acceso" class="oculto">
+      <div class="tarjeta centro">
+        <h1 style="margin-top:0;font-size:24px">Panel de administración</h1>
+        <p style="color:var(--texto-suave);font-size:15px">Ingrese con una cuenta de Google autorizada por el grupo.</p>
+        <div id="aviso-acceso"></div>
+        <div id="boton-google" style="display:flex;justify-content:center;min-height:44px"></div>
+      </div>
+    </section>
+
+    <!-- Panel -->
+    <section id="panel" class="oculto">
+      <div class="panel-top">
+        <h1>Charlas del seminario</h1>
+        <div class="panel-user"><span id="usuario"></span> <button class="boton sec peq" id="salir">Cerrar sesión</button></div>
+      </div>
+      <div id="aviso-panel"></div>
+      <p><button class="boton" id="nueva">+ Nueva charla</button></p>
+      <p class="vacio">Puede ingresar todos los datos usted mismo, o crear la charla solo con fecha, hora y expositor y enviarle a este un enlace para que complete título, resumen, institución y foto. Nada enviado por un expositor se publica sin su revisión.</p>
+
+      <h2 class="grupo-titulo">Pendientes de revisión <span class="cuenta" id="n-pendiente"></span></h2>
+      <div id="lista-pendiente"></div>
+      <h2 class="grupo-titulo">Borradores e invitaciones <span class="cuenta" id="n-preparacion"></span></h2>
+      <div id="lista-preparacion"></div>
+      <h2 class="grupo-titulo">Publicadas <span class="cuenta" id="n-publicada"></span></h2>
+      <div id="lista-publicada"></div>
+    </section>
+
+    <p id="cargando" style="color:var(--texto-suave)">Cargando…</p>
+  </div>
+</main>
+
+<!-- Editor de charla -->
+<dialog class="modal" id="editor">
+  <form method="dialog" id="form-charla" novalidate>
+    <div class="cab"><h2 id="editor-titulo">Nueva charla</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+    <div class="cuerpo">
+      <div id="aviso-editor"></div>
+      <div class="fila2">
+        <div class="campo"><label for="f-fecha">Fecha *</label><input type="date" id="f-fecha" required></div>
+        <div class="campo"><label for="f-hora">Hora *</label><input type="time" id="f-hora" required value="11:00"></div>
+      </div>
+      <div class="campo"><label for="f-sala">Sala</label><input type="text" id="f-sala" maxlength="120" value="Sala 2-2, Instituto de Matemáticas"></div>
+      <div class="fila2">
+        <div class="campo"><label for="f-expositor">Expositor *</label><input type="text" id="f-expositor" maxlength="120" required></div>
+        <div class="campo"><label for="f-institucion">Institución</label><input type="text" id="f-institucion" maxlength="200" placeholder="p. ej. UFRJ, Brasil"></div>
+      </div>
+      <div class="campo"><label for="f-titulo">Título de la charla</label><input type="text" id="f-titulo" maxlength="300"></div>
+      <div class="campo">
+        <label for="f-resumen">Resumen</label>
+        <textarea id="f-resumen" maxlength="5000"></textarea>
+        <div class="ayuda">Las fórmulas se escriben en LaTeX entre signos de dólar, por ejemplo <code>$f\colon M\to M$</code>.</div>
+      </div>
+      <div class="campo"><label>Vista previa del resumen</label><div class="vista-previa" id="f-vista"></div></div>
+      <div class="campo">
+        <label for="f-foto">Foto del expositor</label>
+        <div class="foto-campo">
+          <img id="f-foto-img" class="oculto" alt="">
+          <input type="file" id="f-foto" accept="image/jpeg,image/png,image/webp">
+          <button type="button" class="boton peligro oculto" id="f-foto-quitar">Quitar foto</button>
+        </div>
+        <div class="ayuda">JPG, PNG o WebP. Se reduce automáticamente antes de subirla.</div>
+      </div>
+    </div>
+    <div class="pie">
+      <button type="button" class="boton sec" data-cerrar>Cancelar</button>
+      <button type="submit" class="boton" id="guardar">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Invitación -->
+<dialog class="modal" id="invitacion">
+  <div class="cab"><h2>Invitación al expositor</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+  <div class="cuerpo">
+    <p style="margin-top:0;font-size:14.5px">Copie el enlace o el mensaje sugerido y envíelo al expositor desde su correo. El enlace vence el <strong id="inv-vence"></strong> y deja de funcionar al publicar la charla. Si genera un enlace nuevo, el anterior queda anulado.</p>
+    <div class="campo"><label for="inv-enlace">Enlace</label>
+      <input class="copiable" id="inv-enlace" readonly>
+      <p><button class="boton sec peq" data-copiar="inv-enlace">Copiar enlace</button></p></div>
+    <div class="campo"><label for="inv-texto-es">Mensaje sugerido (español)</label>
+      <textarea class="copiable" id="inv-texto-es" readonly></textarea>
+      <p><button class="boton sec peq" data-copiar="inv-texto-es">Copiar mensaje en español</button></p></div>
+    <div class="campo"><label for="inv-texto-en">Suggested message (English)</label>
+      <textarea class="copiable" id="inv-texto-en" readonly></textarea>
+      <p><button class="boton sec peq" data-copiar="inv-texto-en">Copy English message</button></p></div>
+  </div>
+  <div class="pie"><button type="button" class="boton" data-cerrar>Listo</button></div>
+</dialog>
+
+<script src="../assets/panel-comun.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
