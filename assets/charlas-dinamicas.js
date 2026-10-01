@@ -5,9 +5,9 @@
 (function () {
   const EN = (document.documentElement.lang || "es").toLowerCase().startsWith("en");
   const T = EN
-    ? { ver: "View abstract &#9662;", ocultar: "Hide abstract &#9652;", prox: ["Next talks", "Next talk"], ult: ["Last talks", "Last talk"],
+    ? { reagendada: "Rescheduled", ver: "View abstract &#9662;", ocultar: "Hide abstract &#9652;", prox: ["Next talks", "Next talk"], ult: ["Last talks", "Last talk"],
         charlas: (n) => `${n} ${n === 1 ? "talk" : "talks"}` }
-    : { ver: "Ver resumen &#9662;", ocultar: "Ocultar resumen &#9652;", prox: ["Próximas charlas", "Próxima charla"], ult: ["Últimas charlas", "Última charla"],
+    : { reagendada: "Reagendada", ver: "Ver resumen &#9662;", ocultar: "Ocultar resumen &#9652;", prox: ["Próximas charlas", "Próxima charla"], ult: ["Últimas charlas", "Última charla"],
         charlas: (n) => `${n} ${n === 1 ? "charla" : "charlas"}` };
   const MESES = EN ? ["January","February","March","April","May","June","July","August","September","October","November","December"]
                    : ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -22,6 +22,16 @@
   const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   let n = 0;
   const el = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
+
+  // Etiqueta «Reagendada» para las charlas próximas cuya fecha cambió (sin mostrar la fecha anterior)
+  function etiqueta(c) {
+    if (!c.reprogramadaDesde || c.fecha < hoy) return [];
+    const e = el("span", "etiqueta-estado", T.reagendada);
+    e.style.cssText = "display:inline-block;margin:0 0 6px;padding:2px 9px;border-radius:10px;font:700 11.5px 'Roboto Condensed',Arial,sans-serif;" +
+      "letter-spacing:.04em;text-transform:uppercase;background:#efe6f7;color:#5b2d82";
+    return [e];
+  }
+  const tachar = (nodo) => nodo;
 
   // Bloques comunes: expositor (con foto si existe) y resumen desplegable
   function expositor(c, claseP) {
@@ -40,13 +50,14 @@
   }
   function tarjeta(c) {             // formato de la portada y de «Últimas charlas»
     const d = el("div", "seminar-card"); d.dataset.seminarDate = c.fecha;
-    d.append(el("div", "fecha", fechaLarga(c.fecha, c.hora)), el("h3", "", c.titulo), expositor(c, "expositor"), ...resumen(c, true), el("p", "lugar", c.sala));
+    d.append(...etiqueta(c), tachar(el("div", "fecha", fechaLarga(c.fecha, c.hora)), c), el("h3", "", c.titulo), expositor(c, "expositor"),
+             ...resumen(c, !c.cancelada), el("p", "lugar", c.sala));
     return d;
   }
   function entrada(c, archivo) {    // formato de «Seminarios anteriores» y del archivo
     const d = el("div", archivo ? "event-item archive-entry" : "event-item");
     if (archivo) d.dataset.search = [c.titulo, c.expositor, c.institucion].join(" ").toLowerCase();
-    d.append(el("div", "fecha", fechaLarga(c.fecha, archivo ? c.hora : "")), el("h3", "", c.titulo), expositor(c, ""), ...resumen(c, !archivo));
+    d.append(...(archivo ? [] : etiqueta(c)), el("div", "fecha", fechaLarga(c.fecha, archivo ? c.hora : "")), el("h3", "", c.titulo), expositor(c, ""), ...resumen(c, !archivo));
     return d;
   }
   // Convierte una tarjeta escrita en la página en una entrada de «Seminarios anteriores»
@@ -61,8 +72,11 @@
   // Elige qué mostrar como próximas o últimas charlas
   function destacadas(publicadas, fechaFija, max) {
     const futuras = publicadas.filter((c) => c.fecha >= hoy).sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
-    if (futuras.length) { const f = futuras[0].fecha; return { lista: futuras.filter((c) => c.fecha === f).slice(0, max), proximas: true }; }
-    const pasadas = publicadas.filter((c) => c.fecha < hoy);
+    if (futuras.length) {                                // próxima fecha con charlas vigentes, más las cancelaciones anteriores a ella
+      const vigentes = futuras.filter((c) => !c.cancelada), f = (vigentes[0] || futuras[0]).fecha;
+      return { lista: futuras.filter((c) => c.fecha === f || (c.cancelada && c.fecha < f)).slice(0, max), proximas: true };
+    }
+    const pasadas = publicadas.filter((c) => c.fecha < hoy && !c.cancelada);
     if (!pasadas.length) return null;
     const f = pasadas.reduce((m, c) => (c.fecha > m ? c.fecha : m), "");
     if (fechaFija && f < fechaFija) return null;           // lo escrito en la página es más reciente
@@ -78,7 +92,7 @@
     return [grid];
   }
   function seminario(publicadas) {
-    const etiqueta = document.getElementById("seminar-label"); if (!etiqueta) return [];
+    const etiqueta = document.getElementById("seminar-label") || document.getElementById("seminar-label-en"); if (!etiqueta) return [];
     const cuerpo = etiqueta.parentElement.querySelector(".details-body");
     const fijas = [...cuerpo.querySelectorAll(".seminar-card")];
     const sel = destacadas(publicadas, fijas[0]?.dataset.seminarDate || "", 3);
@@ -97,7 +111,7 @@
     }
     if (anteriores) {                                       // charlas ya realizadas, de la más reciente a la más antigua
       const ref = anteriores.querySelector(".event-item");
-      publicadas.filter((c) => c.fecha < hoy).sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora))
+      publicadas.filter((c) => c.fecha < hoy && !c.cancelada).sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora))
         .forEach((c) => { const e = entrada(c, false); anteriores.insertBefore(e, ref); nuevas.push(e); });
     }
     return nuevas;
@@ -105,7 +119,7 @@
   function archivo(publicadas) {
     const primero = document.querySelector(".archive-year"); if (!primero) return [];
     const nuevas = [];
-    publicadas.filter((c) => c.fecha < hoy).sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)).forEach((c) => {
+    publicadas.filter((c) => c.fecha < hoy && !c.cancelada).sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)).forEach((c) => {
       const anio = c.fecha.slice(0, 4);
       let bloque = document.querySelector(`.archive-year[data-year="${anio}"]`);
       if (!bloque) {
@@ -169,7 +183,7 @@
   }
   async function cifras(publicadas) {
     const marcas = document.querySelectorAll("[data-cifra]"); if (!marcas.length) return;
-    const realizadas = publicadas.filter((c) => c.fecha < hoy); if (!realizadas.length) return;
+    const realizadas = publicadas.filter((c) => c.fecha < hoy && !c.cancelada); if (!realizadas.length) return;
     const base = document.querySelector('script[src$="charlas-dinamicas.js"]').src.replace(/charlas-dinamicas\.js.*$/, "");
     let b; try { b = await (await fetch(base + "cifras-base.json")).json(); } catch (e) { return; }
     const expositores = new Set(b.expositores), paises = new Set(b.paises);
@@ -180,7 +194,9 @@
   }
 
   fetch("/api/charlas").then((r) => (r.ok ? r.json() : [])).then((publicadas) => {
-    if (!Array.isArray(publicadas) || !publicadas.length) return;
+    if (!Array.isArray(publicadas)) return;
+    publicadas = publicadas.filter((c) => !c.cancelada);        // las charlas canceladas no se muestran en el sitio
+    if (!publicadas.length) return;
     formulas([...portada(publicadas), ...seminario(publicadas), ...archivo(publicadas)]);
     cifras(publicadas);
   }).catch(() => {});

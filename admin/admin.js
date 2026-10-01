@@ -78,21 +78,34 @@
     const info = document.createElement("div"); info.className = "info";
     const f = document.createElement("div"); f.className = "fecha"; f.textContent = DP.fechaLarga(c.fecha, c.hora);
     const e = document.createElement("span"); e.className = "estado " + c.estado; e.textContent = NOMBRE_ESTADO[c.estado]; f.appendChild(e);
+    if (c.cancelada) { const x = document.createElement("span"); x.className = "estado cancelada"; x.textContent = "Cancelada"; f.appendChild(x); }
+    else if (c.reprogramaciones && c.reprogramaciones.length) {
+      const x = document.createElement("span"); x.className = "estado reprogramada"; const r = c.reprogramaciones[c.reprogramaciones.length - 1];
+      x.textContent = "Reagendada"; x.title = "Fecha anterior: " + DP.fechaLarga(r.fecha, r.hora); f.appendChild(x); }
     const t = document.createElement("div"); t.className = "titulo"; t.textContent = c.titulo || "(sin título aún)";
     const m = document.createElement("div"); m.className = "meta";
     m.textContent = [c.expositor, c.institucion].filter(Boolean).join(" — ") +
       (c.estado === "invitada" && c.invitacionEnviadaA ? ` · invitación enviada a ${c.invitacionEnviadaA}` : "") +
       (c.estado === "invitada" && c.invitacionVence ? ` · enlace vigente hasta ${DP.fechaLarga(c.invitacionVence.slice(0, 10))}` : "") +
-      (c.enviadaPorExpositor ? ` · completada por el expositor el ${DP.fechaLarga(c.enviadaPorExpositor.slice(0, 10))}` : "");
+      (c.enviadaPorExpositor ? ` · completada por el expositor el ${DP.fechaLarga(c.enviadaPorExpositor.slice(0, 10))}` : "") +
+      (c.certificadoEnviado ? ` · certificado enviado el ${DP.fechaLarga(c.certificadoEnviado.slice(0, 10))}` : "");
+    const avisoCorreo = [];
+    if (!c.email) { const w = document.createElement("div"); w.className = "sin-correo";
+      w.textContent = "⚠ Sin correo del expositor: no se le puede enviar la invitación, los avisos ni el certificado. Agréguelo con «Editar»."; avisoCorreo.push(w); }
     const acc = document.createElement("div"); acc.className = "acciones";
     const boton = (texto, clase, fn) => { const b = document.createElement("button"); b.className = "boton " + clase; b.textContent = texto; b.onclick = fn; acc.appendChild(b); };
     boton(c.estado === "pendiente" ? "Revisar y editar" : "Editar", "sec peq", () => abrirEditor(c));
-    if (c.estado !== "publicada") boton(c.estado === "borrador" ? (c.email ? "Enviar invitación" : "Invitar al expositor")
-                                                               : (c.email ? "Reenviar invitación" : "Nuevo enlace de invitación"), "sec peq", () => invitar(c));
+    if (c.estado !== "publicada" && c.email) boton(c.estado === "borrador" ? "Enviar invitación" : "Reenviar invitación", "sec peq", () => invitar(c));
+    const vigente = c.fecha >= hoyISO();
+    if (c.estado === "publicada" && !c.cancelada) boton("Materiales", "sec peq", () => abrirMateriales(c));
+    if (c.estado === "publicada" && (vigente || c.cancelada)) boton("Reprogramar", "sec peq", () => abrirReprogramar(c));
+    if (c.estado === "publicada" && vigente && !c.cancelada) boton("Cancelar charla", "peligro", () => cancelar(c));
+    if (c.estado === "publicada" && !c.cancelada && c.fecha <= hoyISO() && c.email)
+      boton(c.certificadoEnviado ? "Reenviar certificado" : "Enviar certificado", "sec peq", () => enviarCertificado(c));
     if (c.estado === "publicada") boton("Retirar de la web", "sec peq", () => publicar(c, false));
     else boton("Publicar", "peq", () => publicar(c, true));
     boton("Eliminar", "peligro", () => eliminar(c));
-    info.append(f, t, m, acc); d.appendChild(info);
+    info.append(f, t, m, ...avisoCorreo, acc); d.appendChild(info);
     return d;
   }
 
@@ -207,12 +220,105 @@
           aviso("aviso-panel", "ok", si ? "Charla publicada." : "Charla retirada del sitio."); cargar(); }
     catch (e) { manejarError(e, "aviso-panel"); }
   }
+  async function enviarCertificado(c) {
+    if (!c.email) return aviso("aviso-panel", "error", "La charla no tiene correo del expositor. Agréguelo con «Editar» y vuelva a intentarlo.");
+    if (!confirm(`¿${c.certificadoEnviado ? "Reenviar" : "Enviar"} el certificado a ${c.email}, con copia al organizador?`)) return;
+    try { const r = await DP.api(`/api/admin/charlas/${encodeURIComponent(c.id)}/certificado`, { method: "POST", body: {} });
+          aviso("aviso-panel", "ok", `Certificado enviado a ${r.a}${r.copia ? ", con copia a " + r.copia : ""}.`); cargar(); }
+    catch (e) { manejarError(e, "aviso-panel"); }
+  }
   async function eliminar(c) {
     if (!confirm(`¿Eliminar definitivamente la charla de ${c.expositor}${c.titulo ? " «" + c.titulo + "»" : ""}? Esta acción no se puede deshacer.`)) return;
     try { await DP.api("/api/admin/charlas/" + encodeURIComponent(c.id), { method: "DELETE" });
           aviso("aviso-panel", "ok", "Charla eliminada."); cargar(); }
     catch (e) { manejarError(e, "aviso-panel"); }
   }
+
+  // ---------- Cancelación y reprogramación ----------
+  function hoyISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+  function informarAviso(prefijo, a) {
+    if (!a) return aviso("aviso-panel", "ok", prefijo);
+    const partes = [];
+    if (a.expositor) partes.push("aviso enviado al expositor");
+    if (a.lista) partes.push(`aviso en envío a ${a.lista} suscriptor(es) (vea «Suscriptores» → «Envíos recientes»)`);
+    if (!a.expositor && !a.lista && !a.motivo) partes.push("no hay destinatarios: la charla no tiene correo del expositor y la lista está vacía");
+    aviso("aviso-panel", a.motivo ? "info" : "ok", prefijo + " " + (partes.length ? partes.join("; ") + "." : "") + (a.motivo ? " " + a.motivo : ""));
+  }
+  async function cancelar(c) {
+    if (!confirm(`¿Cancelar la charla de ${c.expositor} del ${DP.fechaLarga(c.fecha, c.hora)}?\n\nSe enviará un aviso de cancelación a los suscriptores y al expositor, y la web la mostrará como cancelada.`)) return;
+    try { const r = await DP.api(`/api/admin/charlas/${encodeURIComponent(c.id)}/cancelar`, { method: "POST", body: {} });
+          informarAviso("Charla cancelada.", r.aviso); cargar(); }
+    catch (e) { manejarError(e, "aviso-panel"); }
+  }
+  let reprogramando = null;
+  function abrirReprogramar(c) {
+    reprogramando = c; aviso("aviso-reprogramar", "", "");
+    $("rep-actual").textContent = (c.cancelada ? "Charla cancelada, programada originalmente para el " : "Fecha actual: ") + DP.fechaLarga(c.fecha, c.hora) + ", " + c.sala + ".";
+    $("r-fecha").value = ""; $("r-hora").value = c.hora; $("r-sala").value = c.sala;
+    $("reprogramar").showModal();
+  }
+  $("form-reprogramar").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const datos = { fecha: $("r-fecha").value, hora: $("r-hora").value, sala: $("r-sala").value };
+    if (!datos.fecha || !datos.hora) return aviso("aviso-reprogramar", "error", "Indique la nueva fecha y hora.");
+    $("rep-confirmar").disabled = true;
+    try { const r = await DP.api(`/api/admin/charlas/${encodeURIComponent(reprogramando.id)}/reprogramar`, { method: "POST", body: datos });
+          $("reprogramar").close(); informarAviso("Charla reprogramada.", r.aviso); cargar(); }
+    catch (e) { manejarError(e, "aviso-reprogramar"); }
+    finally { $("rep-confirmar").disabled = false; }
+  });
+
+  // ---------- Materiales de la sesión (vista previa) ----------
+  function abrirMateriales(c) {
+    const f = encodeURIComponent(c.fecha), t = Date.now();
+    $("mat-titulo").textContent = "Materiales — " + DP.fechaLarga(c.fecha);
+    $("mat-nota").textContent = "Incluyen todas las charlas publicadas de ese día. Se generan con los datos actuales; si edita una charla o las plantillas, vuelva a abrir esta ventana para ver el cambio.";
+    aviso("aviso-materiales", "", "");
+    $("mat-anuncio").src = `/api/admin/materiales?fecha=${f}&tipo=anuncio&t=${t}`;
+    $("mat-afiche").src = `/api/admin/materiales?fecha=${f}&tipo=afiche-png&t=${t}`;
+    $("mat-pdf").href = `/api/admin/materiales?fecha=${f}&tipo=afiche&t=${t}`;
+    $("mat-png").href = `/api/admin/materiales?fecha=${f}&tipo=anuncio&descargar=1&t=${t}`;
+    $("mat-cert").href = `/api/admin/materiales?charla=${encodeURIComponent(c.id)}&tipo=certificado&t=${t}`;
+    $("materiales").showModal();
+    cargarDifusion(c.fecha);
+  }
+  // ---------- Difusión de la sesión ----------
+  let difFecha = null;
+  const fechaHora = (iso) => { const d = new Date(iso); return DP.fechaLarga(iso.slice(0, 10)) + " a las " + d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", timeZone: "America/Santiago" }); };
+  async function cargarDifusion(fecha) {
+    difFecha = fecha; $("dif-estado").textContent = "Cargando…";
+    let e; try { e = await DP.api("/api/admin/sesiones/" + fecha); } catch (x) { $("dif-estado").textContent = x.message; return; }
+    const lineas = [];
+    if (!e.correo) lineas.push("⚠️ El envío de correos no está configurado en Netlify.");
+    lineas.push(`Suscriptores activos: ${e.suscriptores}.`);
+    const an = e.envios.anuncio, re = e.envios.recordatorio;
+    if (!e.aprobada) lineas.push(`Estado: <b>sin aprobar</b>. Al aprobar, el anuncio se enviará el ${DP.fechaLarga(e.fechaAnuncio)} a las ${e.horaEnvio} (o de inmediato si esa fecha ya pasó), y el recordatorio el mismo día de la sesión a las ${e.horaEnvio}.`);
+    else lineas.push(`Estado: <b>aprobada</b>${e.aprobadaPor ? " por " + e.aprobadaPor : ""}.`);
+    lineas.push("Anuncio: " + (an?.enviado ? `enviado el ${fechaHora(an.enviado)} a ${an.total} destinatario(s).` : e.aprobada ? `programado para el ${DP.fechaLarga(e.fechaAnuncio)} a las ${e.horaEnvio}.` : "pendiente de aprobación."));
+    lineas.push("Recordatorio: " + (re?.enviado ? `enviado el ${fechaHora(re.enviado)}.` : re?.omitido ? "no corresponde (el anuncio salió el mismo día)." : e.aprobada ? `programado para el ${DP.fechaLarga(e.fecha)} a las ${e.horaEnvio}.` : "pendiente de aprobación."));
+    $("dif-estado").innerHTML = lineas.join("<br>");
+    $("dif-aprobar").classList.toggle("oculto", e.aprobada);
+    $("dif-anular").classList.toggle("oculto", !e.aprobada || Boolean(an?.enviado && re));
+    $("dif-enviar").textContent = an?.enviado ? "Reenviar el anuncio ahora" : "Enviar el anuncio ahora";
+  }
+  async function accionDifusion(accion, pregunta, exito) {
+    if (pregunta && !confirm(pregunta)) return;
+    ["dif-aprobar", "dif-prueba", "dif-enviar", "dif-anular"].forEach((id) => ($(id).disabled = true));
+    aviso("aviso-materiales", "info", "Procesando…");
+    try {
+      const r = await DP.api(`/api/admin/sesiones/${difFecha}/${accion}`, { method: "POST", body: {} });
+      const enviado = (r.hechos || []).find((h) => h[0] === "anuncio");
+      aviso("aviso-materiales", "ok", typeof exito === "function" ? exito(r, enviado) : exito);
+      cargarDifusion(difFecha); cargar();
+    } catch (x) { aviso("aviso-materiales", "error", x.message); }
+    finally { ["dif-aprobar", "dif-prueba", "dif-enviar", "dif-anular"].forEach((id) => ($(id).disabled = false)); }
+  }
+  $("dif-aprobar").onclick = () => accionDifusion("aprobar", "¿Aprobar los envíos de esta sesión? El anuncio y el recordatorio se enviarán a la lista en las fechas indicadas.",
+    (r, env) => env ? `Envíos aprobados. Como la fecha del anuncio ya llegó, se está enviando ahora a ${env[1].total ?? 0} suscriptor(es).` : "Envíos aprobados y programados.");
+  $("dif-prueba").onclick = () => accionDifusion("prueba", null, (r) => `Se envió una prueba del anuncio a ${r.prueba}. Revise su bandeja de entrada.`);
+  $("dif-enviar").onclick = () => accionDifusion("enviar", "¿Enviar ahora el anuncio a toda la lista de suscriptores?", (r) => `Anuncio en envío a ${r.total} suscriptor(es).`);
+  $("dif-anular").onclick = () => accionDifusion("anular", "¿Anular la aprobación? Los envíos pendientes no se realizarán hasta volver a aprobar.", "Aprobación anulada.");
+  ["mat-anuncio", "mat-afiche"].forEach((id) => $(id).addEventListener("error", () => aviso("aviso-materiales", "error", "No se pudo generar la vista previa. Intente nuevamente en unos segundos.")));
 
   // ---------- Diálogos y copiar ----------
   document.querySelectorAll("[data-cerrar]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));

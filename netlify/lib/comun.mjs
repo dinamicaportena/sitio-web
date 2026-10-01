@@ -54,6 +54,8 @@ export function fechaLarga(fecha, hora, idioma = "es") {
   const f = idioma === "es" ? `${dia} ${d} de ${MESES.es[m - 1]} de ${a}` : `${dia}, ${MESES.en[m - 1]} ${d}, ${a}`;
   return hora ? `${f} · ${hora} ${idioma === "es" ? "hrs" : "h"}` : f;
 }
+// Fecha de hoy en Chile (AAAA-MM-DD)
+export const hoyChile = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
 export const horaValida = (h) => /^([01]\d|2[0-3]):[0-5]\d$/.test(h);
 
 export async function leerJSON(req) {
@@ -125,15 +127,19 @@ export const ESTADOS = ["borrador", "invitada", "pendiente", "publicada"];
 
 // Versión pública de una charla (sin datos internos)
 export function publica(c) {
+  const previa = (c.reprogramaciones || []).slice(-1)[0];
   return { id: c.id, fecha: c.fecha, hora: c.hora, sala: c.sala, expositor: c.expositor, institucion: c.institucion,
-           titulo: c.titulo, resumen: c.resumen, foto: c.foto ? `/api/foto/${c.foto}` : null };
+           titulo: c.titulo, resumen: c.resumen, foto: c.foto ? `/api/foto/${c.foto}` : null,
+           cancelada: Boolean(c.cancelada), reprogramadaDesde: previa ? { fecha: previa.fecha, hora: previa.hora } : null };
 }
 // Versión para el panel (incluye estado, sin el hash de la invitación)
 export function paraPanel(c) {
   return { ...publica(c), estado: c.estado, creada: c.creada, actualizada: c.actualizada,
            email: c.email || "", idioma: c.idioma || "es",
+           reprogramaciones: (c.reprogramaciones || []).map((r) => ({ fecha: r.fecha, hora: r.hora })),
            invitacionVence: c.invitacion?.expira || null, invitacionEnviadaA: c.invitacion?.enviadaA || null,
-           enviadaPorExpositor: c.enviadaPorExpositor || null };
+           enviadaPorExpositor: c.enviadaPorExpositor || null,
+           certificadoEnviado: c.certificado?.enviado || null, certificadoSinCorreo: Boolean(c.certificado?.sinCorreo) };
 }
 export async function listarCharlas() {
   const almacenC = charlas();

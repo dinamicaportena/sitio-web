@@ -1,18 +1,27 @@
 # Sitio web — Dinámica Porteña (IMA-PUCV)
 
-Sitio del grupo de investigación Dinámica Porteña, publicado en Netlify desde este repositorio.
+Sitio del grupo de investigación Dinámica Porteña, publicado en Netlify desde este repositorio
+(www.dinamicaportena.cl · dinamicaportena.netlify.app).
 
-- Páginas públicas: archivos `.html` en la raíz y `assets/`.
+## Estructura
+- Páginas públicas: archivos `.html` en la raíz; estilos, scripts, fotos y cifras en `assets/`.
 - Panel de administración: `admin/` (acceso con Google, solo correos autorizados).
 - Formulario para expositores: `charla/` (acceso con enlace de invitación).
-- Funciones del servidor: `netlify/functions/`, con utilidades en `netlify/lib/`.
+- Baja de la lista de suscriptores: `baja/`.
+- Funciones del servidor: `netlify/functions/`, con utilidades en `netlify/lib/`
+  (fuentes Roboto en `netlify/lib/fuentes/`, componentes gráficos en `netlify/lib/plantillas/`).
 
-Configuración requerida en Netlify (Project configuration → Environment variables):
-`GOOGLE_CLIENT_ID`, `ADMIN_EMAILS` (correos separados por comas) y `SESSION_SECRET`.
+## Funciones del panel
+Charlas (ingreso directo o invitación al expositor), publicación, cancelación y reprogramación con aviso;
+suscriptores con baja por enlace personal; plantillas (datos, imágenes y textos de los correos);
+generación de afiche (PDF), anuncio (imagen) y certificado (PDF); aprobación y envío del anuncio;
+revisión diaria a las 8:00 (anuncios, recordatorios, certificados del día anterior).
 
-Aviso por correo cuando un expositor completa su charla (opcional): `GMAIL_USER` (cuenta que envía),
-`GMAIL_APP_PASSWORD` (contraseña de aplicación de Google, secreta) y `AVISO_EMAILS`
-(destinatarios separados por comas; si no se define, se usa `ADMIN_EMAILS`).
+## Variables de entorno (Netlify → Project configuration → Environment variables)
+- `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS` (correos separados por comas), `SESSION_SECRET`.
+- Correo: `GMAIL_USER` (cuenta que inicia sesión), `GMAIL_APP_PASSWORD` (contraseña de aplicación, secreta),
+  `GMAIL_FROM` (remitente, opcional), `AVISO_EMAILS` (avisos al completar un expositor sus datos, opcional).
 
-No suba a este repositorio archivos con datos personales (planillas con RUT, formularios, etc.):
-el repositorio es público.
+## Advertencias
+- El repositorio es público: no suba archivos con datos personales (planillas con RUT, formularios, etc.).
+- Cada publicación en producción consume créditos de Netlify: agrupe los cambios en pocas subidas.

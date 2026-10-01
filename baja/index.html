@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Seminario Dinámica Porteña — Dejar de recibir anuncios</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/panel.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <div class="brandblock">
+      <img src="../assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+      <div class="names"><span class="group-name">Dinámica Porteña</span>
+        <span class="inst-name">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</span></div>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <div class="tarjeta centro">
+      <h1 style="margin-top:0;font-size:23px">Dejar de recibir anuncios<br><span style="font-size:17px;color:var(--texto-suave);font-weight:400">Unsubscribe</span></h1>
+      <div id="aviso"></div>
+      <div id="confirmar" class="oculto">
+        <p style="font-size:15px">¿Desea dejar de recibir los anuncios del Seminario Dinámica Porteña en <strong id="correo"></strong>?<br>
+        <span style="color:var(--texto-suave)">Do you want to stop receiving the Dinámica Porteña Seminar announcements?</span></p>
+        <p><button class="boton" id="boton">Confirmar / Confirm</button></p>
+      </div>
+      <p><a href="../index.html">Volver al sitio / Back to the website</a></p>
+    </div>
+  </div>
+</main>
+<script src="../assets/panel-comun.js"></script>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search), datos = { c: q.get("c") || "", t: q.get("t") || "" };
+  const aviso = (tipo, m) => { const d = document.getElementById("aviso"); d.innerHTML = ""; const e = document.createElement("div"); e.className = "aviso " + tipo; e.textContent = m; d.appendChild(e); };
+  DP.api("/api/baja?c=" + encodeURIComponent(datos.c) + "&t=" + encodeURIComponent(datos.t)).then((r) => {
+    if (r.estado === "baja") return aviso("ok", "Su correo ya no recibe los anuncios del seminario. / You are already unsubscribed.");
+    document.getElementById("correo").textContent = r.email;
+    document.getElementById("confirmar").classList.remove("oculto");
+  }).catch(() => aviso("error", "El enlace no es válido. Escriba a dinamica.portena@pucv.cl. / Invalid link; please write to dinamica.portena@pucv.cl."));
+  document.getElementById("boton").addEventListener("click", async (ev) => {
+    ev.target.disabled = true;
+    try { await DP.api("/api/baja", { method: "POST", body: datos });
+          document.getElementById("confirmar").classList.add("oculto");
+          aviso("ok", "Listo: ya no recibirá los anuncios del seminario. / Done: you will no longer receive the seminar announcements."); }
+    catch (e) { ev.target.disabled = false; aviso("error", e.message); }
+  });
+})();
+</script>
+</body>
+</html>

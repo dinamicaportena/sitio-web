@@ -5,6 +5,10 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  # fuentes e imágenes de las plantillas que usan las funciones al generar documentos
+  included_files = ["netlify/lib/fuentes/**", "netlify/lib/plantillas/**"]
+  # módulos con archivos binarios o de datos propios: se instalan tal cual, sin empaquetar
+  external_node_modules = ["@resvg/resvg-js", "pdfkit", "mathjax-full"]
 
 # Las páginas del panel y del formulario del expositor no deben aparecer en buscadores
 # ni mostrarse dentro de otros sitios.
@@ -20,4 +24,10 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+
+[[headers]]
+  for = "/baja/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
     Referrer-Policy = "no-referrer"

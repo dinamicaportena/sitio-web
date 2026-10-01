@@ -62,3 +62,23 @@ dialog.modal::backdrop{background:rgba(20,30,45,.45)}
 .copiable{width:100%;font:13px ui-monospace,Menlo,monospace;padding:8px;border:1px solid #c5ccd4;border-radius:4px;background:var(--gris-fondo)}
 textarea.copiable{min-height:170px;font:13.5px 'Roboto',Arial,sans-serif;line-height:1.5}
 .oculto{display:none!important}
+.estado.cancelada{background:#fdecec;color:#8f1f1b}.estado.reprogramada{background:#efe6f7;color:#5b2d82}
+.charla-fila.cancelada-fila{opacity:.8;border-left-color:#8f1f1b}
+.pestanas{display:flex;gap:4px;border-bottom:2px solid var(--borde)}
+.pestana{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:8px 14px;cursor:pointer;
+  font:600 17px 'Roboto',Arial,sans-serif;color:var(--texto-suave)}
+.pestana.activa{color:var(--azul-oscuro);border-bottom-color:var(--rojo-texto)}
+.tabla{width:100%;border-collapse:collapse;font-size:14px;background:#fff}
+.tabla th{text-align:left;font:700 12px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--texto-suave);
+  border-bottom:1px solid var(--borde);padding:8px 10px}
+.tabla td{border-bottom:1px solid var(--borde);padding:7px 10px;vertical-align:middle}
+.tabla tr.baja td{color:var(--texto-suave)}
+.componentes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.componente{border:1px solid var(--borde);border-radius:6px;background:#fff;padding:10px}
+.componente .muestra{height:120px;display:flex;align-items:center;justify-content:center;border-radius:4px;margin-bottom:8px;
+  background:repeating-conic-gradient(#eef1f4 0% 25%,#fff 0% 50%) 50%/16px 16px}
+.componente .muestra img{max-width:100%;max-height:120px}
+.componente .muestra.oscuro{background:#1e5273}
+.componente p{font-size:13px;margin:0 0 8px;color:var(--texto)}
+.componente .propio{font:700 11px 'Roboto Condensed',Arial,sans-serif;color:#1f6b3f;text-transform:uppercase;letter-spacing:.04em}
+.charla-fila .sin-correo{font-size:13px;color:#8a5a00;background:#fdf3dc;border-radius:4px;padding:4px 8px;margin-top:6px;display:inline-block}

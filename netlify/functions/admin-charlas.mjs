@@ -7,9 +7,11 @@
 //   POST   /api/admin/charlas/:id/publicar    publica ({publicar:true}) o retira ({publicar:false})
 import {
   json, error, leerJSON, sesion, charlas, invitaciones, listarCharlas, paraPanel, texto, fechaValida, horaValida,
-  guardarFoto, borrarFoto, nuevoId, tokenAleatorio, sha256, SALA_POR_DEFECTO, DURACION_INVITACION_DIAS, emailValido,
+  guardarFoto, borrarFoto, nuevoId, tokenAleatorio, sha256, SALA_POR_DEFECTO, DURACION_INVITACION_DIAS, emailValido, hoyChile,
 } from "../lib/comun.mjs";
-import { textoInvitacion, enviarInvitacion, correoConfigurado } from "../lib/correo.mjs";
+import { textoInvitacion, enviarInvitacion, correoConfigurado, avisarCambio } from "../lib/correo.mjs";
+import { trasladarAprobacion } from "../lib/difusion.mjs";
+import { enviarCertificado } from "../lib/certificados.mjs";
 
 function camposDesde(cuerpo, base = {}) {
   const c = { ...base };
@@ -67,6 +69,8 @@ export default async (req, context) => {
     const cuerpo = await leerJSON(req); if (!cuerpo) return error("Solicitud no válida.");
     const nueva = camposDesde(cuerpo, c);
     const problema = validar(nueva); if (problema) return error(problema);
+    if (c.estado === "publicada" && (nueva.fecha !== c.fecha || nueva.hora !== c.hora))
+      return error("Para cambiar la fecha u hora de una charla publicada use «Reprogramar», que avisa a los suscriptores y al expositor.");
     if (cuerpo.foto === null) { await borrarFoto(c.foto); nueva.foto = null; }
     else if (typeof cuerpo.foto === "string" && cuerpo.foto.startsWith("data:")) {
       try { nueva.foto = await guardarFoto(cuerpo.foto); } catch (e) { return error(e.message); }
@@ -88,8 +92,8 @@ export default async (req, context) => {
     // {enviar: true} envía la invitación por correo al expositor (requiere su correo y Gmail configurado)
     const cuerpo = (await leerJSON(req)) || {};
     if (c.estado === "publicada") return error("La charla ya está publicada; retírela antes de invitar al expositor.");
+    if (!c.email) return error("La charla no tiene correo del expositor: agréguelo con «Editar» para poder enviarle la invitación.");
     if (cuerpo.enviar) {
-      if (!c.email) return error("Indique el correo del expositor para enviarle la invitación.");
       if (!correoConfigurado()) return error("El envío de correos no está configurado en Netlify (GMAIL_USER y GMAIL_APP_PASSWORD).");
     }
     await anularInvitacion(c);
@@ -113,6 +117,46 @@ export default async (req, context) => {
     await almacen.setJSON(id, c);
     const textos = { es: textoInvitacion(c, enlace, "es").texto, en: textoInvitacion(c, enlace, "en").texto };
     return json({ enlace, expira, textos, ...envio, charla: paraPanel(c) });
+  }
+
+  // Cancelación: solo charlas publicadas cuya fecha no ha pasado
+  if (accion === "cancelar" && req.method === "POST") {
+    if (c.estado !== "publicada") return error("Solo se pueden cancelar charlas publicadas.");
+    if (c.cancelada) return error("La charla ya está cancelada.");
+    if (c.fecha < hoyChile()) return error("La charla ya se realizó; no puede cancelarse.");
+    c.cancelada = { el: ahora, por: email };
+    c.actualizada = ahora; c.actualizadaPor = email;
+    await almacen.setJSON(id, c);
+    const aviso = await avisarCambio(c, "cancelada", { fecha: c.fecha, hora: c.hora }, email, new URL(req.url).origin);
+    return json({ charla: paraPanel(c), aviso });
+  }
+
+  // Reprogramación: nueva fecha, hora y (opcional) sala; reinicia el ciclo de anuncios
+  if (accion === "reprogramar" && req.method === "POST") {
+    const cuerpo = await leerJSON(req); if (!cuerpo) return error("Solicitud no válida.");
+    if (c.estado !== "publicada") return error("Solo se pueden reprogramar charlas publicadas.");
+    if (c.fecha < hoyChile() && !c.cancelada) return error("La charla ya se realizó; no puede reprogramarse.");
+    const fecha = texto(cuerpo.fecha, 10), hora = texto(cuerpo.hora, 5), sala = texto(cuerpo.sala, 120) || c.sala;
+    if (!fechaValida(fecha) || !horaValida(hora)) return error("Indique una fecha y hora válidas.");
+    if (fecha < hoyChile()) return error("La nueva fecha no puede ser anterior a hoy.");
+    if (fecha === c.fecha && hora === c.hora && sala === c.sala && !c.cancelada) return error("La fecha, hora y sala son las mismas.");
+    const anterior = { fecha: c.fecha, hora: c.hora, sala: c.sala, cancelada: Boolean(c.cancelada), el: ahora, por: email };
+    c.reprogramaciones = [...(c.reprogramaciones || []), anterior];
+    Object.assign(c, { fecha, hora, sala, cancelada: null, envios: {} });   // envios: se reinicia el ciclo de anuncio
+    c.actualizada = ahora; c.actualizadaPor = email;
+    await almacen.setJSON(id, c);
+    const aviso = await avisarCambio(c, "reprogramada", anterior, email, new URL(req.url).origin);
+    // si la sesión original estaba aprobada, la nueva fecha hereda la aprobación y se repite el ciclo de anuncio
+    let difusion = [];
+    try { difusion = await trasladarAprobacion(anterior.fecha, fecha, email, new URL(req.url).origin); } catch (e) { console.error(e); }
+    return json({ charla: paraPanel(c), aviso, difusion });
+  }
+
+  // Envío (o reenvío) manual del certificado
+  if (accion === "certificado" && req.method === "POST") {
+    if (c.estado !== "publicada" || c.cancelada) return error("Solo se emiten certificados de charlas publicadas y no canceladas.");
+    if (c.fecha > hoyChile()) return error("La charla aún no se realiza.");
+    try { const r = await enviarCertificado(c); return json({ ok: true, ...r }); } catch (e) { return error(e.message); }
   }
 
   if (accion === "publicar" && req.method === "POST") {

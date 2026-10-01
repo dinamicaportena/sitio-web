@@ -47,10 +47,15 @@
     <!-- Panel -->
     <section id="panel" class="oculto">
       <div class="panel-top">
-        <h1>Charlas del seminario</h1>
+        <nav class="pestanas" aria-label="Secciones del panel">
+          <button class="pestana activa" data-vista="charlas">Charlas</button>
+          <button class="pestana" data-vista="suscriptores">Suscriptores</button>
+          <button class="pestana" data-vista="plantillas">Plantillas</button>
+        </nav>
         <div class="panel-user"><span id="usuario"></span> <button class="boton sec peq" id="salir">Cerrar sesión</button></div>
       </div>
       <div id="aviso-panel"></div>
+      <div id="vista-charlas">
       <p><button class="boton" id="nueva">+ Nueva charla</button></p>
       <p class="vacio">Puede ingresar todos los datos usted mismo, o crear la charla solo con fecha, hora y expositor y enviarle a este un enlace para que complete título, resumen, institución y foto. Nada enviado por un expositor se publica sin su revisión.</p>
 
@@ -60,6 +65,89 @@
       <div id="lista-preparacion"></div>
       <h2 class="grupo-titulo">Publicadas <span class="cuenta" id="n-publicada"></span></h2>
       <div id="lista-publicada"></div>
+      </div>
+
+      <div id="vista-suscriptores" class="oculto">
+        <p class="vacio" style="margin-top:0">Las personas de esta lista reciben los anuncios, recordatorios y avisos de cancelación o reprogramación del seminario. Cada correo incluye un enlace personal para darse de baja.</p>
+        <div class="tarjeta" style="margin:14px 0 6px">
+          <div class="campo" style="margin-bottom:8px"><label for="s-texto">Agregar suscriptores</label>
+            <textarea id="s-texto" style="min-height:110px" placeholder="Un correo por línea, o separados por comas. También: Nombre Apellido &lt;correo@dominio.cl&gt;"></textarea></div>
+          <label style="font-size:13.5px;display:flex;gap:6px;align-items:center;margin-bottom:10px"><input type="checkbox" id="s-reactivar">
+            Reactivar también a quienes se dieron de baja (solo si lo solicitaron expresamente)</label>
+          <button class="boton" id="s-agregar">Agregar a la lista</button>
+        </div>
+        <div class="panel-top" style="margin:22px 0 8px">
+          <h2 class="grupo-titulo" style="margin:0;border:0">Lista <span class="cuenta" id="s-cuenta"></span></h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="search" id="s-buscar" placeholder="Buscar…" style="font:14px Roboto,Arial,sans-serif;padding:7px 10px;border:1px solid #c5ccd4;border-radius:4px">
+            <button class="boton sec peq" id="s-exportar">Descargar CSV</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tabla" id="s-tabla"><thead><tr><th>Correo</th><th>Nombre</th><th>Estado</th><th>Desde</th><th></th></tr></thead><tbody></tbody></table></div>
+        <h2 class="grupo-titulo">Revisión automática diaria</h2>
+        <p class="vacio" style="margin-top:0">Cada día, a la hora indicada, el sistema envía los anuncios programados, los recordatorios del día y los certificados de las charlas del día anterior, y retoma los envíos que hayan quedado incompletos.</p>
+        <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14.5px">
+          <label for="rev-hora"><b>Hora de la revisión (hora de Chile):</b></label>
+          <select id="rev-hora" style="font:14px Roboto,Arial,sans-serif;padding:6px 8px;border:1px solid #c5ccd4;border-radius:4px"></select>
+          <button class="boton sec peq" id="rev-guardar-hora">Guardar hora</button>
+        </p>
+        <p id="rev-estado" style="font-size:14.5px"></p>
+        <p><button class="boton sec peq" id="rev-ejecutar">Ejecutar la revisión ahora</button></p>
+        <h2 class="grupo-titulo">Envíos recientes a la lista</h2>
+        <div style="overflow-x:auto"><table class="tabla" id="e-tabla"><thead><tr><th>Fecha</th><th>Asunto</th><th>Estado</th><th>Enviados</th><th>Fallidos</th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div id="vista-plantillas" class="oculto">
+        <p class="vacio" style="margin-top:0">Datos, imágenes y textos con que el sistema genera el afiche, el anuncio, el certificado y los correos. Los cambios se aplican a los documentos que se generen desde ese momento.</p>
+
+        <h2 class="grupo-titulo">Vista previa con datos de ejemplo</h2>
+        <p style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="boton sec peq" target="_blank" href="/api/admin/materiales?muestra=1&amp;tipo=anuncio">Anuncio (imagen)</a>
+          <a class="boton sec peq" target="_blank" href="/api/admin/materiales?muestra=1&amp;tipo=afiche">Afiche (PDF)</a>
+          <a class="boton sec peq" target="_blank" href="/api/admin/materiales?muestra=1&amp;tipo=certificado">Certificado (PDF)</a>
+        </p>
+
+        <h2 class="grupo-titulo">Datos de los documentos</h2>
+        <form id="form-datos" class="tarjeta" novalidate>
+          <div class="fila2">
+            <div class="campo"><label for="d-institucion-es">Institución (español)</label><input type="text" id="d-institucion-es"></div>
+            <div class="campo"><label for="d-institucion-en">Institución (inglés)</label><input type="text" id="d-institucion-en"></div>
+          </div>
+          <div class="campo"><label for="d-direccion">Dirección</label><input type="text" id="d-direccion"></div>
+          <div class="fila2">
+            <div class="campo"><label for="d-email">Correo de contacto</label><input type="email" id="d-email"></div>
+            <div class="campo"><label for="d-web">Sitio web</label><input type="text" id="d-web"></div>
+          </div>
+          <div class="fila2">
+            <div class="campo"><label for="d-firmaNombre">Firma del certificado: nombre</label><input type="text" id="d-firmaNombre"></div>
+            <div class="campo"><label for="d-ciudad">Ciudad (fecha del certificado)</label><input type="text" id="d-ciudad"></div>
+          </div>
+          <div class="fila2">
+            <div class="campo"><label for="d-firmaCargo-es">Cargo (español)</label><input type="text" id="d-firmaCargo-es"></div>
+            <div class="campo"><label for="d-firmaCargo-en">Cargo (inglés)</label><input type="text" id="d-firmaCargo-en"></div>
+          </div>
+          <div class="campo"><label for="d-organizadorEmail">Correo del organizador (recibe copia de cada certificado)</label><input type="email" id="d-organizadorEmail"></div>
+          <button type="submit" class="boton">Guardar datos</button>
+        </form>
+
+        <h2 class="grupo-titulo">Imágenes</h2>
+        <div id="lista-componentes" class="componentes"></div>
+
+        <h2 class="grupo-titulo">Textos de los correos</h2>
+        <form id="form-textos" class="tarjeta" novalidate>
+          <div class="fila2">
+            <div class="campo"><label for="t-tipo">Correo</label><select id="t-tipo"></select></div>
+            <div class="campo"><label for="t-idioma">Idioma</label><select id="t-idioma"><option value="es">Español</option><option value="en">English</option></select></div>
+          </div>
+          <div class="campo"><label for="t-asunto">Asunto</label><input type="text" id="t-asunto"></div>
+          <div class="campo"><label for="t-cuerpo">Texto</label><textarea id="t-cuerpo" style="min-height:230px"></textarea>
+            <div class="ayuda">Marcadores disponibles: <code>{fecha}</code> <code>{sala}</code> <code>{charlas}</code> (lista de charlas del día en texto; opcional, ya que el anuncio las muestra) <code>{expositor}</code> <code>{titulo}</code> <code>{institucion}</code> <code>{fecha_anterior}</code> <code>{web}</code> <code>{email}</code>. En los correos a la lista se agrega automáticamente el enlace para darse de baja.</div></div>
+          <p style="display:flex;gap:8px;flex-wrap:wrap;margin:0">
+            <button type="submit" class="boton">Guardar texto</button>
+            <button type="button" class="boton sec" id="t-restaurar">Restaurar texto original</button>
+          </p>
+        </form>
+      </div>
     </section>
 
     <p id="cargando" style="color:var(--texto-suave)">Cargando…</p>
@@ -82,8 +170,8 @@
         <div class="campo"><label for="f-institucion">Institución</label><input type="text" id="f-institucion" maxlength="200" placeholder="p. ej. UFRJ, Brasil"></div>
       </div>
       <div class="fila2">
-        <div class="campo"><label for="f-email">Correo del expositor</label><input type="email" id="f-email" maxlength="200" placeholder="para enviarle la invitación">
-          <div class="ayuda">No se publica en el sitio.</div></div>
+        <div class="campo"><label for="f-email">Correo del expositor</label><input type="email" id="f-email" maxlength="200" placeholder="nombre@institución">
+          <div class="ayuda">Necesario para enviar la invitación, los avisos y el certificado. No se publica en el sitio.</div></div>
         <div class="campo"><label for="f-idioma">Idioma de la invitación</label>
           <select id="f-idioma"><option value="es">Español</option><option value="en">English</option></select></div>
       </div>
@@ -112,6 +200,58 @@
   </form>
 </dialog>
 
+<!-- Materiales de la sesión -->
+<dialog class="modal" id="materiales" style="max-width:900px">
+  <div class="cab"><h2 id="mat-titulo">Materiales</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+  <div class="cuerpo">
+    <div id="aviso-materiales"></div>
+    <div class="tarjeta" style="margin-bottom:16px;padding:16px 18px">
+      <h3 style="margin:0 0 6px;font-size:16px">Difusión a la lista</h3>
+      <div id="dif-estado" style="font-size:14.5px;line-height:1.55"></div>
+      <p style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0">
+        <button class="boton" id="dif-aprobar">Aprobar envíos</button>
+        <button class="boton sec peq" id="dif-prueba">Enviarme una prueba</button>
+        <button class="boton sec peq" id="dif-enviar">Enviar el anuncio ahora</button>
+        <button class="boton peligro" id="dif-anular">Anular aprobación</button>
+      </p>
+    </div>
+    <p class="vacio" style="margin-top:0" id="mat-nota"></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+      <div><h3 style="margin:0 0 8px;font-size:16px">Anuncio (va en el cuerpo del correo)</h3>
+        <img id="mat-anuncio" alt="Anuncio" style="width:100%;border:1px solid var(--borde);border-radius:4px;background:var(--gris-fondo);min-height:200px"></div>
+      <div><h3 style="margin:0 0 8px;font-size:16px">Afiche (va adjunto en PDF)</h3>
+        <img id="mat-afiche" alt="Afiche" style="width:100%;border:1px solid var(--borde);border-radius:4px;background:var(--gris-fondo);min-height:200px"></div>
+    </div>
+    <p style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <a class="boton sec peq" id="mat-pdf" target="_blank">Abrir afiche (PDF)</a>
+      <a class="boton sec peq" id="mat-png">Descargar anuncio (JPG)</a>
+      <a class="boton sec peq" id="mat-cert" target="_blank">Ver certificado de esta charla (PDF)</a>
+    </p>
+  </div>
+  <div class="pie"><button type="button" class="boton" data-cerrar>Cerrar</button></div>
+</dialog>
+
+<!-- Reprogramación -->
+<dialog class="modal" id="reprogramar">
+  <form method="dialog" id="form-reprogramar" novalidate>
+    <div class="cab"><h2>Reprogramar charla</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+    <div class="cuerpo">
+      <div id="aviso-reprogramar"></div>
+      <p style="margin-top:0;font-size:14.5px" id="rep-actual"></p>
+      <div class="fila2">
+        <div class="campo"><label for="r-fecha">Nueva fecha *</label><input type="date" id="r-fecha" required></div>
+        <div class="campo"><label for="r-hora">Nueva hora *</label><input type="time" id="r-hora" required></div>
+      </div>
+      <div class="campo"><label for="r-sala">Sala</label><input type="text" id="r-sala" maxlength="120"></div>
+      <p class="vacio">Al confirmar, se enviará un aviso de reprogramación a los suscriptores y al expositor, y la web mostrará la nueva fecha.</p>
+    </div>
+    <div class="pie">
+      <button type="button" class="boton sec" data-cerrar>Cancelar</button>
+      <button type="submit" class="boton" id="rep-confirmar">Reprogramar y avisar</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Invitación -->
 <dialog class="modal" id="invitacion">
   <div class="cab"><h2>Invitación al expositor</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
@@ -133,5 +273,7 @@
 
 <script src="../assets/panel-comun.js"></script>
 <script src="admin.js"></script>
+<script src="suscriptores.js"></script>
+<script src="plantillas.js"></script>
 </body>
 </html>
