@@ -14,6 +14,15 @@
 <meta property="og:title" content="Quiénes somos — Dinámica Porteña">
 <meta property="og:description" content="Investigadores, intereses de investigación y trayectoria del grupo Dinámica Porteña.">
 <meta property="og:locale" content="es_CL">
+<link rel="canonical" href="https://www.dinamicaportena.cl/el-grupo.html">
+<link rel="alternate" hreflang="es" href="https://www.dinamicaportena.cl/el-grupo.html">
+<link rel="alternate" hreflang="en" href="https://www.dinamicaportena.cl/el-grupo-en.html">
+<link rel="alternate" hreflang="x-default" href="https://www.dinamicaportena.cl/el-grupo.html">
+<meta property="og:url" content="https://www.dinamicaportena.cl/el-grupo.html">
+<meta property="og:image" content="https://www.dinamicaportena.cl/assets/og-imagen.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -62,9 +71,9 @@
 <main>
   <div class="wrap">
     <h1 class="page-title">Quiénes somos</h1>
-    <p class="subtitle">Investigadores, colaboradores, estudiantes y graduados; intereses de investigación y trayectoria</p>
+    <p class="subtitle">Investigadores, postdoctorados, colaboradores, graduados y estudiantes; intereses de investigación y trayectoria</p>
 
-    <details class="block" open>
+    <details class="block" open data-grupo="investigadores">
       <summary>Investigadores</summary>
       <div class="details-body">
       <div class="people-grid">
@@ -72,31 +81,44 @@
           <div class="avatar">RS</div>
           <div class="nombre">Radu Saghin</div>
           <div class="institucion">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</div>
-          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/radu-saghin/" target="_blank" rel="noopener">Ficha IMA</a> &middot; <a href="mailto:radu.saghin@pucv.cl">Correo</a></div>
+          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/radu-saghin/" target="_blank" rel="noopener">Ficha IMA</a></div>
         </div>
         <div class="person">
           <div class="avatar"><img src="assets/fotos/felipe-riquelme.jpg" alt="Felipe Riquelme Abarca" loading="lazy"></div>
           <div class="nombre">Felipe Riquelme Abarca</div>
           <div class="institucion">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</div>
-          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/felipe-riquelme/" target="_blank" rel="noopener">Ficha IMA</a> &middot; <a href="mailto:felipe.riquelme@pucv.cl">Correo</a> &middot; <a href="https://sites.google.com/view/feliperiquelmeabarca/" target="_blank" rel="noopener">Sitio web</a></div>
+          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/felipe-riquelme/" target="_blank" rel="noopener">Ficha IMA</a> &middot; <a href="https://sites.google.com/view/feliperiquelmeabarca/" target="_blank" rel="noopener">Sitio web</a></div>
         </div>
         <div class="person">
           <div class="avatar"><img src="assets/fotos/carlos-h-vasquez.jpg" alt="Carlos H. Vásquez" loading="lazy"></div>
           <div class="nombre">Carlos H. Vásquez</div>
           <div class="institucion">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</div>
-          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/carlos-vasquez/" target="_blank" rel="noopener">Ficha IMA</a> &middot; <a href="mailto:carlos.vasquez@pucv.cl">Correo</a></div>
+          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/carlos-vasquez/" target="_blank" rel="noopener">Ficha IMA</a></div>
         </div>
         <div class="person">
           <div class="avatar">FV</div>
           <div class="nombre">Francisco Valenzuela Henríquez</div>
           <div class="institucion">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</div>
-          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/valenzuela-francisco/" target="_blank" rel="noopener">Ficha IMA</a> &middot; <a href="mailto:francisco.valenzuela@pucv.cl">Correo</a></div>
+          <div class="enlaces"><a href="https://ima.ucv.cl/academicos/valenzuela-francisco/" target="_blank" rel="noopener">Ficha IMA</a></div>
         </div>
       </div>
       </div>
     </details>
 
-    <details class="block">
+    <details class="block" data-grupo="postdoctorados">
+      <summary>Postdoctorados</summary>
+      <div class="details-body">
+      <div class="people-grid">
+        <div class="person">
+          <div class="avatar">AM</div>
+          <div class="nombre">Aline De Melo Machado</div>
+          <div class="institucion">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</div>
+        </div>
+      </div>
+      </div>
+    </details>
+
+    <details class="block" data-grupo="colaboradores">
       <summary>Colaboradores</summary>
       <div class="details-body">
       <div class="people-grid">
@@ -109,19 +131,14 @@
       </div>
     </details>
 
-    <details class="block">
-      <summary>Estudiantes y graduados</summary>
+    <details class="block" data-grupo="graduados">
+      <summary>Graduados</summary>
       <div class="details-body">
       <div class="people-grid">
         <div class="person">
           <div class="avatar">EF</div>
           <div class="nombre">Enzo Fuentes Manríquez</div>
           <div class="institucion">Pontificia Universidad Católica de Valparaíso</div>
-        </div>
-        <div class="person">
-          <div class="avatar">VJ</div>
-          <div class="nombre">Victor Janeiro</div>
-          <div class="institucion">Universidade Federal de Minas Gerais</div>
         </div>
         <div class="person">
           <div class="avatar">BN</div>
@@ -139,14 +156,27 @@
           <div class="institucion">Pontificia Universidad Católica de Chile</div>
         </div>
         <div class="person">
-          <div class="avatar">FR</div>
-          <div class="nombre">Francisco Robles Fernández</div>
-          <div class="institucion">Pontificia Universidad Católica de Valparaíso</div>
-        </div>
-        <div class="person">
           <div class="avatar">BY</div>
           <div class="nombre">Bruno Yemini Cabaleiro</div>
           <div class="institucion">Universidad de la República</div>
+        </div>
+      </div>
+      </div>
+    </details>
+
+    <details class="block" data-grupo="estudiantes">
+      <summary>Estudiantes</summary>
+      <div class="details-body">
+      <div class="people-grid">
+        <div class="person">
+          <div class="avatar">VJ</div>
+          <div class="nombre">Victor Janeiro</div>
+          <div class="institucion">Universidade Federal de Minas Gerais</div>
+        </div>
+        <div class="person">
+          <div class="avatar">FR</div>
+          <div class="nombre">Francisco Robles Fernández</div>
+          <div class="institucion">Pontificia Universidad Católica de Valparaíso</div>
         </div>
       </div>
       </div>
@@ -165,7 +195,7 @@
       <p>El grupo tiene su origen en el seminario permanente Dinámica Porteña, iniciado en 2008 en el Instituto de Matemáticas de la Pontificia Universidad Católica de Valparaíso y consolidado a lo largo de cerca de veinte años como un espacio estable de colaboración científica. En ese período el seminario ha mantenido un archivo continuo de charlas (2008&ndash;2026) y ha incorporado minicursos y seminarios de estudiantes.</p>
       <div class="stats">
         <div class="stat"><div class="n" data-cifra="charlas">253</div><div class="l">charlas desde 2008</div></div>
-        <div class="stat"><div class="n" data-cifra="expositores">166</div><div class="l">expositores distintos</div></div>
+        <div class="stat"><div class="n" data-cifra="expositores">165</div><div class="l">expositores distintos</div></div>
         <div class="stat"><div class="n" data-cifra="paises">23</div><div class="l">países de procedencia</div></div>
       </div>
       <p>La formación de investigadores se realiza a través del Programa de Magíster en Matemáticas de la Pontificia Universidad Católica de Valparaíso y del Programa de Doctorado en Matemática, desarrollado en consorcio con la Universidad de Valparaíso (UV) y la Universidad Técnica Federico Santa María (USM); la diseminación se canaliza mediante actividades dirigidas a estudiantes y comunidades escolares.</p>
@@ -184,6 +214,7 @@
   </div>
 </footer>
 <script src="assets/charlas-dinamicas.js" defer></script>
+<script src="assets/personas-publicas.js" defer></script>
 <script src="assets/site.js" defer></script>
 </body>
 </html>

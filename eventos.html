@@ -14,6 +14,15 @@
 <meta property="og:title" content="Eventos — Dinámica Porteña">
 <meta property="og:description" content="Conferencias, escuelas y eventos científicos organizados con el apoyo del grupo Dinámica Porteña.">
 <meta property="og:locale" content="es_CL">
+<link rel="canonical" href="https://www.dinamicaportena.cl/eventos.html">
+<link rel="alternate" hreflang="es" href="https://www.dinamicaportena.cl/eventos.html">
+<link rel="alternate" hreflang="en" href="https://www.dinamicaportena.cl/eventos-en.html">
+<link rel="alternate" hreflang="x-default" href="https://www.dinamicaportena.cl/eventos.html">
+<meta property="og:url" content="https://www.dinamicaportena.cl/eventos.html">
+<meta property="og:image" content="https://www.dinamicaportena.cl/assets/og-imagen.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,7 +65,13 @@
     <h1 class="page-title">Eventos</h1>
     <p class="subtitle">Conferencias y escuelas organizadas con el apoyo del grupo</p>
 
-    <details class="block" open>
+    <details class="block" open data-eventos="proximos" hidden>
+      <summary>Próximos eventos</summary>
+      <div class="details-body">
+      </div>
+    </details>
+
+    <details class="block" open data-eventos="anteriores">
       <summary>Eventos anteriores</summary>
       <div class="details-body">
       <div class="event-item">
@@ -126,6 +141,7 @@
     <a href="mailto:dinamica.portena@pucv.cl">dinamica.portena@pucv.cl</a></p>
   </div>
 </footer>
+<script src="assets/eventos-publicos.js" defer></script>
 <script src="assets/site.js" defer></script>
 </body>
 </html>

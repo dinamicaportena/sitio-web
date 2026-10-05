@@ -38,7 +38,8 @@ export const nuevoId = () => new Date().toISOString().slice(0, 10).replace(/-/g,
 
 export function texto(valor, max) {
   if (valor === undefined || valor === null) return "";
-  return String(valor).replace(/\r\n/g, "\n").trim().slice(0, max);
+  // sin caracteres de control (no válidos en XML: romperían afiches, anuncios y certificados)
+  return String(valor).replace(/\r\n/g, "\n").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, "").trim().slice(0, max);
 }
 export const fechaValida = (f) => /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNaN(Date.parse(f + "T00:00:00Z"));
 export const emailValido = (e) => /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(e);
@@ -79,7 +80,15 @@ export function correosAutorizados() {
   return variable("ADMIN_EMAILS").split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
 }
 
+// Protección adicional contra solicitudes de otros sitios (CSRF): las acciones (POST, PUT, PATCH, DELETE) solo se aceptan
+// si el navegador indica que vienen de este mismo sitio. Sin la cabecera (clientes antiguos o herramientas) se acepta.
+export function peticionAjena(req) {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return false;
+  const sitio = req.headers.get("sec-fetch-site");
+  return Boolean(sitio) && !["same-origin", "none"].includes(sitio);
+}
 export function sesion(req) {
+  if (peticionAjena(req)) return null;
   const cookies = Object.fromEntries((req.headers.get("cookie") || "").split(";").map((c) => {
     const i = c.indexOf("="); return i < 0 ? [c.trim(), ""] : [c.slice(0, i).trim(), c.slice(i + 1).trim()];
   }));
@@ -130,7 +139,8 @@ export function publica(c) {
   const previa = (c.reprogramaciones || []).slice(-1)[0];
   return { id: c.id, fecha: c.fecha, hora: c.hora, sala: c.sala, expositor: c.expositor, institucion: c.institucion,
            titulo: c.titulo, resumen: c.resumen, foto: c.foto ? `/api/foto/${c.foto}` : null,
-           cancelada: Boolean(c.cancelada), reprogramadaDesde: previa ? { fecha: previa.fecha, hora: previa.hora } : null };
+           cancelada: Boolean(c.cancelada), reprogramadaDesde: previa ? { fecha: previa.fecha, hora: previa.hora } : null,
+           historica: Boolean(c.historica) };
 }
 // Versión para el panel (incluye estado, sin el hash de la invitación)
 export function paraPanel(c) {
@@ -139,11 +149,33 @@ export function paraPanel(c) {
            reprogramaciones: (c.reprogramaciones || []).map((r) => ({ fecha: r.fecha, hora: r.hora })),
            invitacionVence: c.invitacion?.expira || null, invitacionEnviadaA: c.invitacion?.enviadaA || null,
            enviadaPorExpositor: c.enviadaPorExpositor || null,
-           certificadoEnviado: c.certificado?.enviado || null, certificadoSinCorreo: Boolean(c.certificado?.sinCorreo) };
+           certificadoEnviado: c.certificado?.enviado || null, certificadoSinCorreo: Boolean(c.certificado?.sinCorreo),
+           historica: Boolean(c.historica), personaId: c.personaId || null, serie: c.serie || "Seminario Dinámica Porteña" };
 }
 export async function listarCharlas() {
   const almacenC = charlas();
   const { blobs } = await almacenC.list();
   const todas = await Promise.all(blobs.map((b) => almacenC.get(b.key, { type: "json" })));
   return todas.filter(Boolean).sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+}
+
+// Turnos: exclusión mutua entre ejecuciones simultáneas (p. ej. dos trabajadores de envío, o la revisión diaria y una aprobación
+// manual a la vez), con escrituras condicionales de Netlify Blobs. Devuelve el identificador del turno, o null si otro lo tiene.
+const turnos = () => almacen("turnos");
+export async function tomarTurno(clave, ms) {
+  const t = turnos(), ahora = Date.now(), valor = { dueno: tokenAleatorio(9), hasta: ahora + ms };
+  const actual = await t.getWithMetadata(clave, { type: "json" });
+  if (actual && actual.data?.hasta > ahora) return null;
+  const r = actual ? await t.setJSON(clave, valor, { onlyIfMatch: actual.etag }) : await t.setJSON(clave, valor, { onlyIfNew: true });
+  return r?.modified ? valor.dueno : null;
+}
+export async function renovarTurno(clave, dueno, ms) {
+  const t = turnos(), actual = await t.getWithMetadata(clave, { type: "json" });
+  if (!actual || actual.data?.dueno !== dueno) return false;
+  const r = await t.setJSON(clave, { dueno, hasta: Date.now() + ms }, { onlyIfMatch: actual.etag });
+  return Boolean(r?.modified);
+}
+export async function soltarTurno(clave, dueno) {
+  const t = turnos(), actual = await t.get(clave, { type: "json" });
+  if (actual?.dueno === dueno) await t.delete(clave);
 }

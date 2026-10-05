@@ -1,0 +1,126 @@
+/* Micrositio del LXIV Coloquio. Se apoya en assets/style.css (mismas variables, tipografías y componentes del sitio Dinámica Porteña). */
+
+/* Barra de secciones (anclas) */
+.subnav{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--borde);box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.subnav .wrap{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-top:0;padding-bottom:0}
+.subnav .wrap::-webkit-scrollbar{display:none}
+.subnav a{flex:none;text-decoration:none;color:var(--texto);font-size:14.5px;font-weight:500;padding:12px 12px 10px;border-bottom:3px solid transparent}
+.subnav a:hover{color:var(--azul);border-bottom-color:var(--borde)}
+.subnav a.activo{color:var(--azul);border-bottom-color:var(--rojo)}
+section[id]{scroll-margin-top:56px}
+
+/* Portada del evento */
+.hero.evento .wrap{padding:56px 20px 48px}
+.hero .eyebrow{font-family:'Roboto Condensed',Arial,sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--rojo-texto);margin:0 0 10px}
+.hero.evento h1{font-size:38px;max-width:760px}
+.hero-meta{display:flex;flex-wrap:wrap;gap:10px 28px;margin:6px 0 26px;font-size:16px;color:var(--texto)}
+.hero-meta .item{display:flex;flex-direction:column;line-height:1.3}
+.hero-meta .item .k{font:700 11.5px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave)}
+.hero-meta .item .v{font-weight:500}
+.hero .btn.secondary{margin-left:10px}
+.estado-insc{display:inline-block;margin-left:12px;font-size:13.5px;color:var(--texto-suave)}
+
+/* Secciones */
+.col-section{padding:40px 0 8px;border-bottom:1px solid var(--borde)}
+.col-section:last-of-type{border-bottom:0}
+.col-section .section-head{margin-bottom:16px}
+.col-section p{font-size:15.5px;margin:0 0 14px}
+.col-section a{overflow-wrap:anywhere}
+.vacio-nota{background:var(--gris-fondo);border:1px dashed var(--borde);border-radius:6px;padding:16px 18px;font-size:14.5px;color:var(--texto-suave)}
+.datos-clave{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0 26px}
+.dato-clave{background:var(--gris-fondo);border:1px solid var(--borde);border-left:4px solid var(--azul);border-radius:6px;padding:14px 18px}
+.dato-clave .k{font:700 11.5px 'Roboto Condensed',Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--texto-suave)}
+.dato-clave .v{font-size:15.5px;font-weight:500;color:var(--texto);margin-top:2px}
+
+/* Conferencistas */
+.conf-grupo{font-size:17px;margin:22px 0 12px;color:var(--azul-oscuro)}
+.speaker{display:flex;gap:18px;align-items:flex-start;border-bottom:1px solid var(--borde);padding:16px 0}
+.speaker:last-child{border-bottom:0}
+.speaker .avatar{width:84px;height:84px;border-radius:50%;flex:none;background:var(--azul);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:'Roboto Condensed',Arial,sans-serif;font-weight:700;font-size:26px;overflow:hidden;border:1px solid var(--borde)}
+.speaker .avatar img{width:100%;height:100%;object-fit:cover}
+.speaker .cuerpo{flex:1;min-width:0}
+.speaker .nombre{font-weight:600;font-size:16.5px;color:var(--texto);line-height:1.3}
+.speaker .institucion{font-size:14px;color:var(--texto-suave);margin-top:1px}
+.speaker .titulo-charla{font-family:'Roboto Condensed',Arial,sans-serif;font-weight:700;font-size:16px;color:var(--azul-oscuro);margin:8px 0 0;line-height:1.3}
+.speaker .resumen{display:none;margin:8px 0 0;font-size:14.5px;color:var(--texto-suave);border-left:2px solid var(--borde);padding-left:12px}
+.speaker .resumen p{font-size:14.5px;margin:0 0 8px}
+.speaker.abierto .resumen{display:block}
+
+/* Programa */
+.dia{margin:0 0 30px}
+.dia h3{font-size:19px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid var(--azul)}
+.slot{display:grid;grid-template-columns:110px 1fr;gap:6px 18px;padding:10px 0;border-bottom:1px solid var(--borde)}
+.slot .hora{font:700 14px 'Roboto Condensed',Arial,sans-serif;color:var(--rojo-texto);letter-spacing:.02em;padding-top:2px;white-space:nowrap}
+.slot .t{font-weight:600;color:var(--azul-oscuro);font-size:15.5px;line-height:1.35}
+.slot .quien{font-size:14px;color:var(--texto-suave);margin-top:2px}
+.slot .lugar{font-size:13px;color:var(--texto-suave);margin-top:2px}
+.slot.pausa .t,.slot.almuerzo .t{font-weight:400;color:var(--texto-suave);font-size:14.5px}
+.slot.almuerzo,.slot.pausa{background:var(--gris-fondo);padding-left:10px;padding-right:10px;border-radius:4px;border-bottom-color:transparent;margin:3px 0}
+.slot.otro .t{color:var(--texto)}
+.slot.plenaria .t::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rojo);margin-right:8px;vertical-align:1px}
+
+/* Participantes */
+.part-bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+.part-bar input[type="search"]{flex:1;min-width:220px;font:15.5px 'Roboto',Arial,sans-serif;color:var(--texto);background:#fff;border:1.5px solid var(--borde);border-radius:6px;padding:10px 14px}
+.part-bar input[type="search"]:focus{outline:none;border-color:var(--azul)}
+.part-bar .cuenta{font-size:13px;color:var(--texto-suave)}
+.part-lista{list-style:none;margin:0;padding:0;columns:2;column-gap:32px}
+.part-lista li{break-inside:avoid;padding:6px 0;border-bottom:1px solid var(--borde);font-size:14.5px;line-height:1.35}
+.part-lista .inst{display:block;font-size:12.5px;color:var(--texto-suave)}
+
+/* Inscripción */
+.form-card{background:var(--gris-fondo);border:1px solid var(--borde);border-radius:8px;padding:24px 26px;margin-top:14px}
+.form-card .campo{margin-bottom:14px}
+.form-card label{display:block;font-weight:600;font-size:14px;margin-bottom:4px}
+.form-card input[type=text],.form-card input[type=email],.form-card select,.form-card textarea{width:100%;font:15px 'Roboto',Arial,sans-serif;padding:9px 11px;border:1px solid #c5ccd4;border-radius:4px;background:#fff;color:var(--texto)}
+.form-card textarea{min-height:84px;resize:vertical}
+.form-card input:focus,.form-card select:focus,.form-card textarea:focus{outline:2px solid var(--azul);outline-offset:0;border-color:var(--azul)}
+.form-card .fila2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-card .casilla{display:flex;gap:9px;align-items:flex-start;font-size:14px;font-weight:400;margin:4px 0 10px}
+.form-card .casilla input{margin-top:4px}
+.form-card .ayuda{font-size:12.5px;color:var(--texto-suave);margin-top:3px}
+.form-card button.btn{border:0;cursor:pointer;font-family:'Roboto',Arial,sans-serif}
+.form-card button.btn[disabled]{opacity:.6;cursor:default}
+.trampa{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.aviso{border-radius:6px;padding:12px 14px;font-size:14.5px;margin:0 0 16px}
+.aviso.error{background:#fdecec;color:#8f1f1b;border:1px solid #f3c1bf}
+.aviso.ok{background:#e6f4ec;color:#1f6b3f;border:1px solid #bfe3cd}
+@media (max-width:560px){.form-card .fila2{grid-template-columns:1fr}.form-card{padding:18px 16px}}
+
+/* Información práctica y organización */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.info-card{background:var(--gris-fondo);border:1px solid var(--borde);border-top:3px solid var(--azul);border-radius:6px;padding:18px 20px}
+.info-card h3{font-size:17px;margin:0 0 8px}
+.info-card p{font-size:14.5px;color:var(--texto);margin:0 0 10px}
+.info-card p:last-child{margin-bottom:0}
+.org-lista{list-style:none;margin:0 0 8px;padding:0}
+.org-lista li{padding:8px 0;border-bottom:1px solid var(--borde);font-size:15px}
+.org-lista .rol{display:block;font-size:13px;color:var(--texto-suave)}
+.sponsors{display:flex;flex-wrap:wrap;gap:12px}
+.sponsor{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--borde);border-radius:6px;padding:10px 16px;font-size:14.5px;font-weight:500;text-decoration:none;color:var(--texto)}
+.sponsor img{height:34px;width:auto}
+a.sponsor:hover{border-color:var(--azul);color:var(--azul)}
+.subtitulo-seccion{font-size:18px;margin:24px 0 10px}
+.contacto-evento{margin:22px 0 6px}
+
+@media (max-width:640px){
+  .hero.evento h1{font-size:28px}
+  .hero.evento .wrap{padding:36px 20px 30px}
+  .hero .btn.secondary{margin-left:0;margin-top:8px}
+  .slot{grid-template-columns:1fr}
+  .slot .hora{padding-top:0}
+  .part-lista{columns:1}
+  .speaker{gap:14px}
+  .speaker .avatar{width:64px;height:64px;font-size:20px}
+  .col-section{padding-top:30px}
+}
+@media print{.subnav,header.site .navblock,.nav-toggle,.form-card{display:none}}
+
+/* Páginas de evento dentro de dinamicaportena.cl */
+.hero .eyebrow:empty{display:none}
+.aviso-preview{background:#fff8e6;border:1px solid #f0d9a0;color:#6b4a00;border-radius:6px;padding:10px 14px;margin:18px 0 0;font-size:14px}
+.brandblock .inst-name:empty{display:none}
+
+/* el atributo hidden prevalece sobre display de .btn y otros (secciones ocultas desde el panel) */
+[hidden]{display:none!important}

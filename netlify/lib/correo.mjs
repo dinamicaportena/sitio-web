@@ -26,12 +26,13 @@ export function crearTransporte(pool = false) {
     auth: { user: usuario, pass: clave.replace(/\s+/g, "") },
   });
 }
-export const remitente = () => `"Seminario Dinámica Porteña" <${leer("GMAIL_FROM") || leer("GMAIL_USER") || "prueba@localhost"}>`;
+export const remitente = (nombre = "Seminario Dinámica Porteña") =>
+  `"${String(nombre).replace(/["\\\r\n<>]/g, "").slice(0, 120)}" <${leer("GMAIL_FROM") || leer("GMAIL_USER") || "prueba@localhost"}>`;
 
-export async function enviar({ para, copia, asunto, texto, html, adjuntos, cabeceras, responderA }, transporte) {
+export async function enviar({ para, copia, asunto, texto, html, adjuntos, cabeceras, responderA, remitenteNombre }, transporte) {
   const t = transporte || crearTransporte();
   await t.sendMail({
-    from: remitente(), to: para, ...(copia ? { cc: copia } : {}), subject: asunto, text: texto, ...(html ? { html } : {}),
+    from: remitenteNombre ? remitente(remitenteNombre) : remitente(), to: para, ...(copia ? { cc: copia } : {}), subject: asunto, text: texto, ...(html ? { html } : {}),
     ...(adjuntos?.length ? { attachments: adjuntos } : {}), ...(cabeceras ? { headers: cabeceras } : {}),
     ...(responderA ? { replyTo: responderA } : {}),
   });

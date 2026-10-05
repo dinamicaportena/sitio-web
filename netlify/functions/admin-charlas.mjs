@@ -12,6 +12,7 @@ import {
 import { textoInvitacion, enviarInvitacion, correoConfigurado, avisarCambio } from "../lib/correo.mjs";
 import { trasladarAprobacion } from "../lib/difusion.mjs";
 import { enviarCertificado } from "../lib/certificados.mjs";
+import { vincularCharla } from "../lib/vinculos.mjs";
 
 function camposDesde(cuerpo, base = {}) {
   const c = { ...base };
@@ -24,6 +25,7 @@ function camposDesde(cuerpo, base = {}) {
   if ("resumen" in cuerpo) c.resumen = texto(cuerpo.resumen, 5000);
   if ("email" in cuerpo) c.email = texto(cuerpo.email, 200).toLowerCase();
   if ("idioma" in cuerpo) c.idioma = cuerpo.idioma === "en" ? "en" : "es";
+  if ("personaId" in cuerpo) c.personaId = /^P\d{4,}$/.test(String(cuerpo.personaId || "")) ? cuerpo.personaId : null;
   return c;
 }
 function validar(c) {
@@ -56,8 +58,9 @@ export default async (req, context) => {
       const problema = validar(c); if (problema) return error(problema);
       if (cuerpo.foto) { try { c.foto = await guardarFoto(cuerpo.foto); } catch (e) { return error(e.message); } }
       c.actualizada = ahora; c.actualizadaPor = email;
+      const vinculo = await vincularCharla(c, { por: email });
       await almacen.setJSON(c.id, c);
-      return json(paraPanel(c), 201);
+      return json({ ...paraPanel(c), vinculo }, 201);
     }
     return error("Método no permitido.", 405);
   }
@@ -77,8 +80,10 @@ export default async (req, context) => {
       await borrarFoto(c.foto);
     }
     nueva.actualizada = ahora; nueva.actualizadaPor = email;
+    // vínculo con el registro (salvo que el administrador lo haya quitado a propósito, o sea una charla del archivo histórico)
+    const vinculo = nueva.historica || ("personaId" in cuerpo && !nueva.personaId) ? null : await vincularCharla(nueva, { por: email, crear: nueva.estado === "publicada" });
     await almacen.setJSON(id, nueva);
-    return json(paraPanel(nueva));
+    return json({ ...paraPanel(nueva), vinculo });
   }
 
   if (!accion && req.method === "DELETE") {
@@ -169,8 +174,10 @@ export default async (req, context) => {
       c.estado = "publicada";
     }
     c.actualizada = ahora; c.actualizadaPor = email;
+    // al publicar, la charla queda vinculada a una ficha del registro (existente o nueva)
+    const vinculo = c.estado === "publicada" && !c.historica ? await vincularCharla(c, { por: email, crear: true }) : null;
     await almacen.setJSON(id, c);
-    return json(paraPanel(c));
+    return json({ ...paraPanel(c), vinculo });
   }
 
   return error("Ruta o método no permitido.", 405);

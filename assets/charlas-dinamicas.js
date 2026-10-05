@@ -17,9 +17,12 @@
     const [a, m, d] = f.split("-").map(Number);
     const dia = DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
     const t = EN ? `${dia}, ${MESES[m - 1]} ${d}, ${a}` : `${dia} ${d} de ${MESES[m - 1]} de ${a}`;
-    return h ? `${t} · ${h} ${EN ? "h" : "hrs"}` : t;
+    if (!h) return t;
+    if (!EN) return `${t} · ${h} hrs`;
+    const [hh, mm] = h.split(":").map(Number);                       // 12:20 → 12:20 pm, como en las páginas en inglés
+    return `${t} · ${((hh + 11) % 12) + 1}:${String(mm).padStart(2, "0")} ${hh < 12 ? "am" : "pm"}`;
   }
-  const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });   // fecha de hoy en Chile (AAAA-MM-DD)
   let n = 0;
   const el = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 
@@ -34,8 +37,16 @@
   const tachar = (nodo) => nodo;
 
   // Bloques comunes: expositor (con foto si existe) y resumen desplegable
+  // institución tal como se declaró, con el país del catálogo si no lo incluye («PUC-Rio» → «PUC-Rio, Brasil»)
+  const sinT = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const PAISES_EN = { "Brasil": "Brazil", "Francia": "France", "Estados Unidos": "United States", "Reino Unido": "United Kingdom", "México": "Mexico",
+    "España": "Spain", "Suiza": "Switzerland", "Suecia": "Sweden", "Escocia": "Scotland", "Polonia": "Poland", "Perú": "Peru", "Nueva Zelanda": "New Zealand",
+    "Japón": "Japan", "Finlandia": "Finland", "Canadá": "Canada", "Alemania": "Germany", "Italia": "Italy", "Países Bajos": "Netherlands", "Bélgica": "Belgium",
+    "Rusia": "Russia", "China": "China", "Corea del Sur": "South Korea", "Dinamarca": "Denmark", "Noruega": "Norway", "Austria": "Austria", "Irlanda": "Ireland" };
+  const paisEn = (p) => (EN ? String(p).replace(/[^\/()]+/g, (x) => { const k = x.trim(); return PAISES_EN[k] ? x.replace(k, PAISES_EN[k]) : x; }) : p);
+  const institucion = (c) => (c.pais && c.institucion && !sinT(c.institucion).includes(sinT(c.pais).split(" / ")[0]) ? `${c.institucion}, ${paisEn(c.pais)}` : c.institucion || (c.pais ? paisEn(c.pais) : ""));
   function expositor(c, claseP) {
-    const p = el("p", claseP, [c.expositor, c.institucion].filter(Boolean).join(" — "));
+    const p = el("p", claseP, [c.expositor, institucion(c)].filter(Boolean).join(" — "));
     if (!c.foto) return p;
     const caja = el("div", "expositor-foto"), img = el("img", "foto-expositor");
     img.src = c.foto; img.alt = c.expositor; img.loading = "lazy"; caja.append(img, p); return caja;
@@ -56,7 +67,7 @@
   }
   function entrada(c, archivo) {    // formato de «Seminarios anteriores» y del archivo
     const d = el("div", archivo ? "event-item archive-entry" : "event-item");
-    if (archivo) d.dataset.search = [c.titulo, c.expositor, c.institucion].join(" ").toLowerCase();
+    if (archivo) d.dataset.search = [c.titulo, c.expositor, institucion(c)].join(" ").toLowerCase();
     d.append(...(archivo ? [] : etiqueta(c)), el("div", "fecha", fechaLarga(c.fecha, archivo ? c.hora : "")), el("h3", "", c.titulo), expositor(c, ""), ...resumen(c, !archivo));
     return d;
   }
@@ -139,6 +150,24 @@
     return nuevas;
   }
 
+  // Archivo completo desde el registro (incluye el archivo histórico importado): reemplaza lo escrito en la página
+  function reconstruirArchivo(todas) {
+    const viejos = [...document.querySelectorAll(".archive-year")]; if (!viejos.length) return [];
+    const nuevas = [], porAnio = new Map();
+    todas.filter((c) => c.fecha < hoy).sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora))
+      .forEach((c) => { const a = c.fecha.slice(0, 4); (porAnio.get(a) || porAnio.set(a, []).get(a)).push(c); });
+    for (const [anio, lista] of porAnio) {
+      const bloque = el("details", "block archive-year"); bloque.dataset.year = anio;
+      const s = el("summary"); s.append(anio + " ", el("span", "year-count", "— " + T.charlas(lista.length)));
+      const cuerpo = el("div", "details-body");
+      lista.forEach((c) => { const e = entrada(c, true); cuerpo.appendChild(e); nuevas.push(e); });
+      bloque.append(s, cuerpo); viejos[0].before(bloque);
+    }
+    viejos.forEach((v) => v.remove());
+    if (typeof window.actualizarArchivo === "function") window.actualizarArchivo();
+    return nuevas;
+  }
+
   // Fórmulas: usa MathJax si la página ya lo carga; si no, lo carga solo cuando hace falta
   function formulas(nodos) {
     if (!nodos.length || !nodos.some((x) => x.textContent.includes("$"))) return;
@@ -181,6 +210,15 @@
     const ultimo = (institucion || "").split(",").pop().replace(/\(.*?\)/g, "");
     return ultimo.split("/").map((x) => PAISES[sinTildes(x).replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim()]).filter(Boolean);
   }
+  async function cifrasRegistro() {
+    const marcas = document.querySelectorAll("[data-cifra]"); if (!marcas.length) return false;
+    try {
+      const r = await (await fetch("/api/cifras")).json(); if (!r.disponible) return false;
+      const valores = { charlas: r.charlas, expositores: r.expositores, paises: r.paises, anio: r.anio };
+      marcas.forEach((m) => { if (m.dataset.cifra in valores) m.textContent = valores[m.dataset.cifra]; });
+      return true;
+    } catch (e) { return false; }
+  }
   async function cifras(publicadas) {
     const marcas = document.querySelectorAll("[data-cifra]"); if (!marcas.length) return;
     const realizadas = publicadas.filter((c) => c.fecha < hoy && !c.cancelada); if (!realizadas.length) return;
@@ -193,11 +231,14 @@
     marcas.forEach((m) => { if (m.dataset.cifra in valores) m.textContent = valores[m.dataset.cifra]; });
   }
 
-  fetch("/api/charlas").then((r) => (r.ok ? r.json() : [])).then((publicadas) => {
-    if (!Array.isArray(publicadas)) return;
+  const enArchivo = Boolean(document.querySelector(".archive-year"));
+  const pedirTodas = enArchivo ? fetch("/api/charlas?todas=1").then((r) => (r.ok ? r.json() : [])).catch(() => []) : Promise.resolve([]);
+  Promise.all([fetch("/api/charlas").then((r) => (r.ok ? r.json() : [])), pedirTodas, cifrasRegistro()]).then(([publicadas, todas, cifrasListas]) => {
+    if (!Array.isArray(publicadas)) publicadas = [];
     publicadas = publicadas.filter((c) => !c.cancelada);        // las charlas canceladas no se muestran en el sitio
-    if (!publicadas.length) return;
-    formulas([...portada(publicadas), ...seminario(publicadas), ...archivo(publicadas)]);
-    cifras(publicadas);
+    const conHistoria = Array.isArray(todas) && todas.some((c) => c.historica);
+    const nodos = [...portada(publicadas), ...seminario(publicadas), ...(conHistoria ? reconstruirArchivo(todas) : archivo(publicadas))];
+    formulas(nodos);
+    if (!cifrasListas && publicadas.length) cifras(publicadas);
   }).catch(() => {});
 })();

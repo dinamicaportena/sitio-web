@@ -42,7 +42,7 @@
   function entrar(email) {
     $("usuario").textContent = email;
     mostrar("cargando", false); mostrar("acceso", false); mostrar("panel", true);
-    cargar();
+    cargar(); document.dispatchEvent(new Event("panel-listo"));
   }
   $("salir").addEventListener("click", async () => {
     try { await DP.api("/api/auth/logout", { method: "POST", body: {} }); } catch (e) {}
@@ -56,13 +56,18 @@
   }
 
   // ---------- Listado ----------
+  $("ver-historicas").addEventListener("change", () => dibujar());
   async function cargar() {
     try { charlas = await DP.api("/api/admin/charlas"); dibujar(); }
     catch (e) { manejarError(e, "aviso-panel"); }
   }
   function dibujar() {
     const grupos = { pendiente: [], preparacion: [], publicada: [] };
-    charlas.forEach((c) => (c.estado === "pendiente" ? grupos.pendiente : c.estado === "publicada" ? grupos.publicada : grupos.preparacion).push(c));
+    const historicas = charlas.filter((c) => c.historica).length, ver = $("ver-historicas").checked;
+    $("n-historicas").textContent = historicas ? `(${historicas})` : "";
+    $("caja-historicas").classList.toggle("oculto", !historicas);
+    charlas.filter((c) => ver || !c.historica)
+      .forEach((c) => (c.estado === "pendiente" ? grupos.pendiente : c.estado === "publicada" ? grupos.publicada : grupos.preparacion).push(c));
     for (const [g, lista] of Object.entries(grupos)) {
       const cont = $("lista-" + g); cont.innerHTML = "";
       $("n-" + g).textContent = lista.length ? `(${lista.length})` : "";
@@ -84,11 +89,11 @@
       x.textContent = "Reagendada"; x.title = "Fecha anterior: " + DP.fechaLarga(r.fecha, r.hora); f.appendChild(x); }
     const t = document.createElement("div"); t.className = "titulo"; t.textContent = c.titulo || "(sin título aún)";
     const m = document.createElement("div"); m.className = "meta";
-    m.textContent = [c.expositor, c.institucion].filter(Boolean).join(" — ") +
+    m.textContent = [c.expositor, c.institucion].filter(Boolean).join(" — ") + (c.personaId ? ` · ficha ${c.personaId}` : "") +
       (c.estado === "invitada" && c.invitacionEnviadaA ? ` · invitación enviada a ${c.invitacionEnviadaA}` : "") +
-      (c.estado === "invitada" && c.invitacionVence ? ` · enlace vigente hasta ${DP.fechaLarga(c.invitacionVence.slice(0, 10))}` : "") +
-      (c.enviadaPorExpositor ? ` · completada por el expositor el ${DP.fechaLarga(c.enviadaPorExpositor.slice(0, 10))}` : "") +
-      (c.certificadoEnviado ? ` · certificado enviado el ${DP.fechaLarga(c.certificadoEnviado.slice(0, 10))}` : "");
+      (c.estado === "invitada" && c.invitacionVence ? ` · enlace vigente hasta ${DP.fechaLarga(c.invitacionVence)}` : "") +
+      (c.enviadaPorExpositor ? ` · completada por el expositor el ${DP.fechaLarga(c.enviadaPorExpositor)}` : "") +
+      (c.certificadoEnviado ? ` · certificado enviado el ${DP.fechaLarga(c.certificadoEnviado)}` : "");
     const avisoCorreo = [];
     if (!c.email) { const w = document.createElement("div"); w.className = "sin-correo";
       w.textContent = "⚠ Sin correo del expositor: no se le puede enviar la invitación, los avisos ni el certificado. Agréguelo con «Editar»."; avisoCorreo.push(w); }
@@ -151,8 +156,37 @@
   }
 
   const campos = ["fecha", "hora", "sala", "expositor", "email", "idioma", "institucion", "titulo", "resumen"];
+  // ---------- Vínculo con el registro de personas ----------
+  let personasReg = [], personaId, personaTocada = false;
+  const etiquetaPersona = (p) => `${p.nombre || p.correo}${p.institucion ? " — " + p.institucion : ""} (${p.id})`;
+  async function cargarPersonasReg() {
+    try { personasReg = await DP.api("/api/admin/personas"); } catch (e) { personasReg = []; }
+    const dl = $("f-personas"); dl.innerHTML = "";
+    personasReg.forEach((p) => { const o = document.createElement("option"); o.value = etiquetaPersona(p); dl.appendChild(o); });
+  }
+  function ayudaPersona() {
+    const p = personasReg.find((x) => x.id === personaId);
+    $("f-persona-ayuda").textContent = p
+      ? `Vinculada a la ficha ${p.id}. El nombre y la institución de esta charla se guardan tal como están abajo (la ficha conserva su historial).`
+      : "Sin vínculo. Al publicar, la charla se vinculará con la ficha que tenga el mismo correo o el mismo nombre; si no existe, se creará una ficha nueva.";
+  }
+  $("f-persona").addEventListener("input", () => {
+    const v = $("f-persona").value.trim(), m = v.match(/\((P\d{4,})\)$/);
+    personaTocada = true;
+    if (!v) { personaId = null; return ayudaPersona(); }
+    if (!m) return;
+    const p = personasReg.find((x) => x.id === m[1]); if (!p) return;
+    personaId = p.id;
+    $("f-expositor").value = p.nombre || $("f-expositor").value;
+    if (!$("f-institucion").value.trim() && p.institucion) $("f-institucion").value = p.institucion + (p.pais ? ", " + p.pais : "");
+    if (!$("f-email").value.trim() && p.correo) $("f-email").value = p.correo;
+    ayudaPersona();
+  });
+
   function abrirEditor(c) {
     editando = c || null; fotoNueva = undefined;
+    personaId = c ? c.personaId : null; personaTocada = false; $("f-persona").value = "";
+    cargarPersonasReg().then(() => { const p = personasReg.find((x) => x.id === personaId); $("f-persona").value = p ? etiquetaPersona(p) : ""; ayudaPersona(); });
     $("editor-titulo").textContent = c ? "Editar charla" : "Nueva charla";
     aviso("aviso-editor", "", "");
     campos.forEach((k) => { $("f-" + k).value = c ? (c[k] || "") : ($("f-" + k).defaultValue || ""); });
@@ -178,6 +212,7 @@
   async function guardar(enviarInvitacion) {
     const datos = {}; campos.forEach((k) => (datos[k] = $("f-" + k).value));
     if (fotoNueva !== undefined) datos.foto = fotoNueva;
+    if (personaId || personaTocada) datos.personaId = personaId || null;
     if (enviarInvitacion && !datos.email.trim()) return aviso("aviso-editor", "error", "Indique el correo del expositor para enviarle la invitación.");
     $("guardar").disabled = $("guardar-invitar").disabled = true;
     try {
@@ -186,7 +221,7 @@
       else { if (datos.foto === null) delete datos.foto; c = await DP.api("/api/admin/charlas", { method: "POST", body: datos }); }
       $("editor").close();
       if (enviarInvitacion) await invitar(c, true);
-      else { aviso("aviso-panel", "ok", "Charla guardada."); cargar(); }
+      else { aviso("aviso-panel", c.vinculo?.avisos?.length ? "info" : "ok", ["Charla guardada.", textoVinculo(c.vinculo)].filter(Boolean).join(" ")); cargar(); }
     } catch (e) { manejarError(e, "aviso-editor"); }
     finally { $("guardar").disabled = $("guardar-invitar").disabled = false; }
   }
@@ -205,7 +240,7 @@
     try {
       const r = await DP.api(`/api/admin/charlas/${encodeURIComponent(c.id)}/invitacion`, { method: "POST", body: { enviar } });
       $("inv-enlace").value = r.enlace;
-      $("inv-vence").textContent = DP.fechaLarga(r.expira.slice(0, 10));
+      $("inv-vence").textContent = DP.fechaLarga(r.expira);
       $("inv-texto-es").value = r.textos.es; $("inv-texto-en").value = r.textos.en;
       if (r.enviado) aviso("inv-estado", "ok", `Invitación enviada por correo a ${r.a}.`);
       else if (r.error) aviso("inv-estado", "error", r.error + " Puede copiar el mensaje y enviarlo desde su correo.");
@@ -213,11 +248,12 @@
       $("invitacion").showModal(); cargar();
     } catch (e) { manejarError(e, "aviso-panel"); cargar(); }
   }
+  const textoVinculo = (v) => !v ? "" : [v.persona ? `Vinculada a la ficha de ${v.persona.nombre} (${v.persona.id}).` : "", ...(v.avisos || [])].filter(Boolean).join(" ");
   async function publicar(c, si) {
     const pregunta = si ? `¿Publicar en el sitio la charla de ${c.expositor}?` : `¿Retirar del sitio la charla de ${c.expositor}? Quedará como borrador.`;
     if (!confirm(pregunta)) return;
-    try { await DP.api(`/api/admin/charlas/${encodeURIComponent(c.id)}/publicar`, { method: "POST", body: { publicar: si } });
-          aviso("aviso-panel", "ok", si ? "Charla publicada." : "Charla retirada del sitio."); cargar(); }
+    try { const r = await DP.api(`/api/admin/charlas/${encodeURIComponent(c.id)}/publicar`, { method: "POST", body: { publicar: si } });
+          aviso("aviso-panel", r.vinculo?.avisos?.length ? "info" : "ok", [si ? "Charla publicada." : "Charla retirada del sitio.", textoVinculo(r.vinculo)].filter(Boolean).join(" ")); cargar(); }
     catch (e) { manejarError(e, "aviso-panel"); }
   }
   async function enviarCertificado(c) {
@@ -284,7 +320,7 @@
   }
   // ---------- Difusión de la sesión ----------
   let difFecha = null;
-  const fechaHora = (iso) => { const d = new Date(iso); return DP.fechaLarga(iso.slice(0, 10)) + " a las " + d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", timeZone: "America/Santiago" }); };
+  const fechaHora = (iso) => { const d = new Date(iso); return DP.fechaLarga(iso) + " a las " + d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", timeZone: "America/Santiago" }); };
   async function cargarDifusion(fecha) {
     difFecha = fecha; $("dif-estado").textContent = "Cargando…";
     let e; try { e = await DP.api("/api/admin/sesiones/" + fecha); } catch (x) { $("dif-estado").textContent = x.message; return; }

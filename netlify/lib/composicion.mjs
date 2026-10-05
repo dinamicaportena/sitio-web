@@ -26,9 +26,26 @@ const ESTILO = { normal: 'font-weight="400"', negrita: 'font-weight="700"', curs
 
 const adaptor = liteAdaptor(); RegisterHTMLHandler(adaptor);
 const MACROS = { Z: "{\\mathbb{Z}}", R: "{\\mathbb{R}}", N: "{\\mathbb{N}}", Q: "{\\mathbb{Q}}", C: "{\\mathbb{C}}", T: "{\\mathbb{T}}", P: "{\\mathcal{P}}" };
-const docMath = mathjax.document("", { InputJax: new TeX({ packages: AllPackages, macros: MACROS }), OutputJax: new SVG({ fontCache: "none" }) });
+// Seguridad: sin los paquetes html (\href, \style, \class, \cssId), require ni autoload: el texto de las charlas lo escriben los expositores.
+const PAQUETES = AllPackages.filter((p) => !["html", "require", "autoload", "action"].includes(p));
+const docMath = mathjax.document("", { InputJax: new TeX({ packages: PAQUETES, macros: MACROS }), OutputJax: new SVG({ fontCache: "none" }) });
 
-export const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export const esc = (s) => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Solo elementos gráficos que produce MathJax, sin «<» ni «&» sueltos en atributos (el texto de las fórmulas lo escriben los expositores)
+const ETIQUETAS_SVG = new Set(["svg", "g", "path", "rect", "text", "line", "ellipse", "polygon", "title", "defs", "use"]);
+function svgSeguro(svg) {
+  for (const m of svg.matchAll(/<([a-zA-Z][\w:-]*)/g)) if (!ETIQUETAS_SVG.has(m[1])) return false;
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/.test(svg) || /<(?!\/?[a-zA-Z])/.test(svg) || /="[^"]*</.test(svg) || /javascript:/i.test(svg)) return false;
+  for (const m of svg.matchAll(/&(#x[0-9a-f]+|#\d+|[a-z]+)?;?/gi)) {           // entidades: solo las de XML y caracteres válidos
+    const e = m[1] || "";
+    if (!m[0].endsWith(";") || !e) return false;
+    if (e[0] !== "#") { if (!["amp", "lt", "gt", "quot", "apos"].includes(e)) return false; continue; }
+    const n = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+    if (!(n === 9 || n === 10 || n === 13 || (n >= 0x20 && n <= 0xD7FF) || (n >= 0xE000 && n <= 0xFFFD) || (n >= 0x10000 && n <= 0x10FFFF))) return false;
+  }
+  return true;
+}
 
 // Fórmula LaTeX → {svg interno, ancho, alto, bajada} en píxeles para un tamaño de letra dado
 const cacheMath = new Map();
@@ -38,11 +55,11 @@ function formula(tex, tam) {
   let r;
   try {
     const nodo = docMath.convert(tex, { display: false, em: tam, ex: tam * 0.52, containerWidth: 4000 });
-    const svg = adaptor.innerHTML(nodo);
+    const svg = adaptor.serializeXML(adaptor.firstChild(nodo));   // serializeXML escapa las comillas de los atributos
     const ex = tam * 0.52, num = (a) => parseFloat((new RegExp(a + '="([-\\d.]+)ex"').exec(svg) || [])[1] || "0");
     const va = parseFloat((/vertical-align:\s*([-\d.]+)ex/.exec(svg) || [])[1] || "0");
     r = { svg, ancho: num("width") * ex, alto: num("height") * ex, bajada: -va * ex };
-    if (/data-mjx-error|merror/.test(svg)) throw new Error("tex");
+    if (/data-mjx-error|merror/.test(svg) || !svgSeguro(svg)) throw new Error("tex");
   } catch (e) { r = null; }
   cacheMath.set(clave, r);
   return r;

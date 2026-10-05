@@ -31,3 +31,79 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     Referrer-Policy = "no-referrer"
+
+[[headers]]
+  for = "/datos/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+
+# Panel de cada página de evento (dinamicaportena.cl/<dirección>/admin): fuera de buscadores y sin mostrarse dentro de otros sitios.
+[[headers]]
+  for = "/*/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+
+[[headers]]
+  for = "/*/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+
+# Código fuente y herramientas: no se publican como páginas del sitio.
+[[redirects]]
+  from = "/herramientas/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package-lock.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify.toml"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/README.md"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# Páginas de evento: dinamicaportena.cl/<dirección>/ (ES), /<dirección>/en (EN) y /<dirección>/admin (panel del evento).
+# Solo se aplican si no existe un archivo con esa ruta (las páginas y carpetas del sitio tienen prioridad).
+[[redirects]]
+  from = "/:slug/admin"
+  to = "/evento/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/:slug/en"
+  to = "/evento/index-en.html"
+  status = 200
+
+[[redirects]]
+  from = "/:slug"
+  to = "/evento/index.html"
+  status = 200

@@ -1,6 +1,6 @@
 // Certificados de participación: se envían al expositor al día siguiente de su charla (revisión de las 8:00),
 // con copia al organizador. También pueden enviarse o reenviarse manualmente desde el panel.
-import { charlas, listarCharlas, hoyChile, fechaLarga } from "./comun.mjs";
+import { charlas, listarCharlas, hoyChile, fechaLarga, tomarTurno, soltarTurno } from "./comun.mjs";
 import { certificado, fotoURI } from "./sesiones.mjs";
 import { leerPlantillas, rellenar, configuracionDocumentos } from "./plantillas.mjs";
 import { enviar, correoConfigurado } from "./correo.mjs";
@@ -30,7 +30,7 @@ export async function enviarCertificado(c, cfg) {
 export async function enviarCertificadosPendientes() {
   const hoy = hoyChile(), desde = restar(hoy, VENTANA_DIAS), resultados = [];
   const pendientes = (await listarCharlas()).filter((c) => c.estado === "publicada" && !c.cancelada && c.fecha < hoy && c.fecha >= desde
-                                                      && !c.certificado?.enviado && !c.certificado?.sinCorreo);
+                                                      && !c.historica && !c.certificado?.enviado && !c.certificado?.sinCorreo && !c.certificado?.omitido);
   if (!pendientes.length) return resultados;
   const cfg = await configuracionDocumentos();
   for (const c of pendientes) {
@@ -39,8 +39,14 @@ export async function enviarCertificadosPendientes() {
       resultados.push({ tipo: "certificado", sesion: c.fecha, ok: false, motivo: `${c.expositor}: la charla no tiene correo del expositor` });
       continue;
     }
-    try { await enviarCertificado(c, cfg); resultados.push({ tipo: "certificado", sesion: c.fecha, ok: true, total: 1 }); }
-    catch (e) { resultados.push({ tipo: "certificado", sesion: c.fecha, ok: false, motivo: `${c.expositor}: ${e.message}` }); }
+    // un solo envío por charla aunque coincidan dos revisiones (la programada y una manual)
+    const turno = await tomarTurno("certificado/" + c.id, 5 * 60 * 1000);
+    if (!turno) continue;
+    try {
+      if ((await charlas().get(c.id, { type: "json" }))?.certificado?.enviado) continue;
+      await enviarCertificado(c, cfg); resultados.push({ tipo: "certificado", sesion: c.fecha, ok: true, total: 1 });
+    } catch (e) { resultados.push({ tipo: "certificado", sesion: c.fecha, ok: false, motivo: `${c.expositor}: ${e.message}` }); }
+    finally { await soltarTurno("certificado/" + c.id, turno); }
   }
   return resultados;
 }

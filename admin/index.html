@@ -49,7 +49,10 @@
       <div class="panel-top">
         <nav class="pestanas" aria-label="Secciones del panel">
           <button class="pestana activa" data-vista="charlas">Charlas</button>
-          <button class="pestana" data-vista="suscriptores">Suscriptores</button>
+          <button class="pestana" data-vista="eventos">Eventos</button>
+          <button class="pestana" data-vista="personas">Personas</button>
+          <button class="pestana" data-vista="correos">Correos <span class="chip alerta oculto" id="n-por-aprobar"></span></button>
+          <button class="pestana" data-vista="envios">Envíos</button>
           <button class="pestana" data-vista="plantillas">Plantillas</button>
         </nav>
         <div class="panel-user"><span id="usuario"></span> <button class="boton sec peq" id="salir">Cerrar sesión</button></div>
@@ -64,26 +67,56 @@
       <h2 class="grupo-titulo">Borradores e invitaciones <span class="cuenta" id="n-preparacion"></span></h2>
       <div id="lista-preparacion"></div>
       <h2 class="grupo-titulo">Publicadas <span class="cuenta" id="n-publicada"></span></h2>
+      <label class="casilla oculto" id="caja-historicas"><input type="checkbox" id="ver-historicas"> Mostrar también el archivo histórico del seminario <span class="cuenta" id="n-historicas"></span></label>
       <div id="lista-publicada"></div>
       </div>
 
-      <div id="vista-suscriptores" class="oculto">
-        <p class="vacio" style="margin-top:0">Las personas de esta lista reciben los anuncios, recordatorios y avisos de cancelación o reprogramación del seminario. Cada correo incluye un enlace personal para darse de baja.</p>
-        <div class="tarjeta" style="margin:14px 0 6px">
-          <div class="campo" style="margin-bottom:8px"><label for="s-texto">Agregar suscriptores</label>
-            <textarea id="s-texto" style="min-height:110px" placeholder="Un correo por línea, o separados por comas. También: Nombre Apellido &lt;correo@dominio.cl&gt;"></textarea></div>
-          <label style="font-size:13.5px;display:flex;gap:6px;align-items:center;margin-bottom:10px"><input type="checkbox" id="s-reactivar">
-            Reactivar también a quienes se dieron de baja (solo si lo solicitaron expresamente)</label>
-          <button class="boton" id="s-agregar">Agregar a la lista</button>
+      <div id="vista-eventos" class="oculto">
+        <p class="vacio" style="margin-top:0">Conferencias, workshops, escuelas y otros eventos del grupo. Los publicados aparecen en la página Eventos del sitio (próximos y anteriores) y en la portada (los próximos o, si no hay, los tres más recientes).</p>
+        <p><button class="boton" id="ev-nuevo">+ Nuevo evento</button></p>
+        <h2 class="grupo-titulo">Próximos <span class="cuenta" id="ev-n-proximos"></span></h2>
+        <div id="ev-proximos"></div>
+        <h2 class="grupo-titulo">Anteriores <span class="cuenta" id="ev-n-anteriores"></span></h2>
+        <div id="ev-anteriores"></div>
+      </div>
+
+      <div id="vista-personas" class="oculto">
+        <p class="vacio" style="margin-top:0">Registro único de las personas vinculadas al grupo y al seminario: investigadores, colaboradores, estudiantes, graduados, expositores y suscriptores. Cada ficha guarda el historial de instituciones, roles, charlas y suscripción; los cambios no borran la historia.</p>
+        <div class="herramientas">
+          <button class="boton" id="p-nueva">+ Nueva persona</button>
+          <button class="boton sec peq" id="p-suscribir">Agregar suscriptores…</button>
+          <button class="boton sec peq" id="p-exportar">Descargar Excel</button>
+          <button class="boton sec peq" id="p-importar">Importar Excel…</button>
+          <button class="boton sec peq" id="p-instituciones">Instituciones</button>
+          <button class="boton sec peq" id="p-enlaces">Pedir actualización de datos…</button>
         </div>
-        <div class="panel-top" style="margin:22px 0 8px">
-          <h2 class="grupo-titulo" style="margin:0;border:0">Lista <span class="cuenta" id="s-cuenta"></span></h2>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <input type="search" id="s-buscar" placeholder="Buscar…" style="font:14px Roboto,Arial,sans-serif;padding:7px 10px;border:1px solid #c5ccd4;border-radius:4px">
-            <button class="boton sec peq" id="s-exportar">Descargar CSV</button>
-          </div>
+        <div class="filtros">
+          <input type="search" id="p-buscar" placeholder="Buscar por nombre, correo o institución…" aria-label="Buscar personas">
+          <select id="p-filtro" aria-label="Filtrar">
+            <option value="">Todas</option>
+            <option value="investigador">Investigadores</option>
+            <option value="postdoc">Postdoctorados</option>
+            <option value="colaborador">Colaboradores vigentes</option>
+            <option value="colaborador-antes">Excolaboradores</option>
+            <option value="estudiante">Estudiantes (incluye por confirmar)</option>
+            <option value="graduado">Graduados (magíster o doctorado)</option>
+            <option value="expositor">Expositores</option>
+            <option value="activo">Suscritos a los correos</option>
+            <option value="baja">Dados de baja</option>
+            <option value="sin-correo">Sin correo</option>
+            <option value="pendientes">Con pendientes de revisión</option>
+            <option value="publicar">Publicados en el sitio</option>
+            <option value="solicitudes">Con solicitudes por revisar</option>
+            <option value="sin-respuesta">Enlace de datos enviado y aún sin respuesta</option>
+          </select>
+          <span class="cuenta" id="p-cuenta"></span>
         </div>
-        <div style="overflow-x:auto"><table class="tabla" id="s-tabla"><thead><tr><th>Correo</th><th>Nombre</th><th>Estado</th><th>Desde</th><th></th></tr></thead><tbody></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tabla" id="p-tabla"><thead><tr><th>Nombre</th><th>Institución vigente</th><th>Roles</th><th>Charlas</th><th>Suscripción</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div id="vista-correos" class="oculto"></div>
+
+      <div id="vista-envios" class="oculto">
         <h2 class="grupo-titulo">Revisión automática diaria</h2>
         <p class="vacio" style="margin-top:0">Cada día, a la hora indicada, el sistema envía los anuncios programados, los recordatorios del día y los certificados de las charlas del día anterior, y retoma los envíos que hayan quedado incompletos.</p>
         <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14.5px">
@@ -141,7 +174,7 @@
           </div>
           <div class="campo"><label for="t-asunto">Asunto</label><input type="text" id="t-asunto"></div>
           <div class="campo"><label for="t-cuerpo">Texto</label><textarea id="t-cuerpo" style="min-height:230px"></textarea>
-            <div class="ayuda">Marcadores disponibles: <code>{fecha}</code> <code>{sala}</code> <code>{charlas}</code> (lista de charlas del día en texto; opcional, ya que el anuncio las muestra) <code>{expositor}</code> <code>{titulo}</code> <code>{institucion}</code> <code>{fecha_anterior}</code> <code>{web}</code> <code>{email}</code>. En los correos a la lista se agrega automáticamente el enlace para darse de baja.</div></div>
+            <div class="ayuda">Marcadores disponibles: <code>{fecha}</code> <code>{sala}</code> <code>{charlas}</code> (lista de charlas del día en texto; opcional, ya que el anuncio las muestra) <code>{expositor}</code> <code>{titulo}</code> <code>{institucion}</code> <code>{fecha_anterior}</code> <code>{web}</code> <code>{email}</code>; en el correo para actualizar datos: <code>{nombre}</code> <code>{enlace}</code> <code>{vence}</code>. En los correos a la lista se agrega automáticamente el enlace para darse de baja.</div></div>
           <p style="display:flex;gap:8px;flex-wrap:wrap;margin:0">
             <button type="submit" class="boton">Guardar texto</button>
             <button type="button" class="boton sec" id="t-restaurar">Restaurar texto original</button>
@@ -165,6 +198,10 @@
         <div class="campo"><label for="f-hora">Hora *</label><input type="time" id="f-hora" required value="12:30"></div>
       </div>
       <div class="campo"><label for="f-sala">Sala</label><input type="text" id="f-sala" maxlength="120" value="Sala 2-2, Instituto de Matemáticas"></div>
+      <div class="campo"><label for="f-persona">Persona del registro</label>
+        <input type="text" id="f-persona" list="f-personas" autocomplete="off" placeholder="Escriba un nombre para buscarlo en el registro de personas…" style="width:100%;font:15px Roboto,Arial,sans-serif;padding:8px 10px;border:1px solid #c5ccd4;border-radius:4px">
+        <datalist id="f-personas"></datalist>
+        <div class="ayuda" id="f-persona-ayuda"></div></div>
       <div class="fila2">
         <div class="campo"><label for="f-expositor">Expositor *</label><input type="text" id="f-expositor" maxlength="120" required></div>
         <div class="campo"><label for="f-institucion">Institución</label><input type="text" id="f-institucion" maxlength="200" placeholder="p. ej. UFRJ, Brasil"></div>
@@ -271,9 +308,219 @@
   <div class="pie"><button type="button" class="boton" data-cerrar>Listo</button></div>
 </dialog>
 
+<!-- Editor de evento -->
+<dialog class="modal" id="editor-evento">
+  <form method="dialog" id="form-evento" novalidate>
+    <div class="cab"><h2 id="ev-titulo-dialogo">Nuevo evento</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+    <div class="cuerpo">
+      <div id="aviso-evento"></div>
+      <div class="campo"><label for="ev-titulo">Título *</label><input type="text" id="ev-titulo" maxlength="300"></div>
+      <div class="campo"><label for="ev-titulo-en">Título en inglés (si es distinto)</label><input type="text" id="ev-titulo-en" maxlength="300"></div>
+      <div class="fila2">
+        <div class="campo"><label for="ev-tipo">Tipo</label><select id="ev-tipo"><option>Conferencia</option><option>Workshop</option><option>Escuela</option><option>Coloquio</option><option>Encuentro</option><option>Minicurso</option><option>Otro</option></select></div>
+        <div class="campo"><label for="ev-lugar">Lugar</label><input type="text" id="ev-lugar" maxlength="200" placeholder="p. ej. Instituto de Matemáticas, PUCV, Valparaíso"></div>
+      </div>
+      <div class="fila2">
+        <div class="campo"><label for="ev-inicio">Inicio *</label><input type="text" id="ev-inicio" maxlength="10" placeholder="AAAA-MM-DD">
+          <div class="ayuda">Si no se conoce el día, escriba solo AAAA-MM.</div></div>
+        <div class="campo"><label for="ev-fin">Término</label><input type="text" id="ev-fin" maxlength="10" placeholder="AAAA-MM-DD"></div>
+      </div>
+      <div class="campo"><label for="ev-descripcion">Descripción</label><textarea id="ev-descripcion" class="corto" maxlength="3000" style="min-height:90px"></textarea></div>
+      <div class="campo"><label for="ev-descripcion-en">Descripción en inglés</label><textarea id="ev-descripcion-en" class="corto" maxlength="3000" style="min-height:90px"></textarea>
+        <div class="ayuda">Se muestra en la versión en inglés del sitio; si queda vacía, se usa la descripción en español.</div></div>
+      <div class="campo"><label for="ev-enlace">Página del evento</label><input type="text" id="ev-enlace" maxlength="400" placeholder="https://…"></div>
+      <label class="casilla"><input type="checkbox" id="ev-publicar"> Publicar en el sitio</label>
+    </div>
+    <div class="pie">
+      <button type="button" class="boton peligro oculto" id="ev-eliminar">Eliminar</button>
+      <span style="flex:1"></span>
+      <button type="button" class="boton sec" data-cerrar>Cancelar</button>
+      <button type="submit" class="boton" id="ev-guardar">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Ficha de persona -->
+<dialog class="modal ancho" id="ficha">
+  <form method="dialog" id="form-ficha" novalidate>
+    <div class="cab"><h2 id="ficha-titulo">Persona</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+    <div class="cuerpo">
+      <div id="aviso-ficha"></div>
+      <h3 class="seccion">Datos</h3>
+      <div class="fila2">
+        <div class="campo"><label for="pf-nombre">Nombre normalizado</label><input type="text" id="pf-nombre" maxlength="150">
+          <div class="ayuda">Forma única que se usa en el sitio y en los informes.</div></div>
+        <div class="campo"><label for="pf-variantes">Otras formas del nombre</label><input type="text" id="pf-variantes" maxlength="1000">
+          <div class="ayuda">Separadas por punto y coma (sin tilde, con iniciales, con segundo apellido…).</div></div>
+      </div>
+      <div class="campo"><label>Correos <span class="ayuda-inline">(privados: nunca se publican)</span></label>
+        <div id="pf-correos"></div>
+        <button type="button" class="boton sec peq" id="pf-agregar-correo">+ Agregar correo</button></div>
+      <div class="fila2">
+        <div class="campo"><label for="pf-orcid">ORCID</label><input type="text" id="pf-orcid" maxlength="40" placeholder="0000-0000-0000-0000"></div>
+        <div class="campo"><label for="pf-zbmath">zbMATH (ID de autor)</label><input type="text" id="pf-zbmath" maxlength="80" placeholder="p. ej. vasquez.carlos-h"></div>
+      </div>
+      <div class="campo"><label for="pf-enlaces">Enlaces públicos</label><textarea id="pf-enlaces" class="corto" maxlength="2000" placeholder="Ficha IMA | https://ima.ucv.cl/academicos/…&#10;Sitio web | https://…"></textarea>
+        <div class="ayuda">Uno por línea, «Texto | dirección». Se muestran en «Quiénes somos» si la persona se publica.</div></div>
+      <div class="fila2">
+        <label class="casilla"><input type="checkbox" id="pf-publicar"> Publicar nombre e institución vigente en el sitio</label>
+        <label class="casilla"><input type="checkbox" id="pf-foto-autorizada"> La persona autorizó publicar su foto</label>
+      </div>
+      <div class="campo"><label for="pf-foto">Foto</label>
+        <div class="foto-campo"><img id="pf-foto-img" class="oculto" alt=""><input type="file" id="pf-foto" accept="image/jpeg,image/png,image/webp">
+          <button type="button" class="boton peligro oculto" id="pf-foto-quitar">Quitar foto</button></div>
+        <div class="ayuda">Suba una foto aquí, o indique el nombre de una foto que ya está en el sitio (carpeta assets/fotos): <input type="text" id="pf-foto-archivo" aria-label="Nombre de una foto que ya está en el sitio" maxlength="120" placeholder="p. ej. felipe-riquelme.jpg" style="font:13px Roboto,Arial,sans-serif;padding:3px 6px;border:1px solid #c5ccd4;border-radius:4px;width:220px"></div></div>
+
+      <h3 class="seccion">Instituciones <span class="ayuda-inline">— historial; solo una vigente</span></h3>
+      <div id="pf-afiliaciones"></div>
+      <p class="acciones-seccion"><button type="button" class="boton sec peq" id="pf-cambiar-inst">Cambió de institución…</button>
+        <button type="button" class="boton sec peq" id="pf-agregar-afil">+ Agregar fila</button></p>
+      <div id="pf-cambio" class="tarjeta oculto mini-form">
+        <div class="fila2">
+          <div class="campo"><label for="pc-inst">Nueva institución</label><select id="pc-inst"></select></div>
+          <div class="campo"><label for="pc-fecha">Desde</label><input type="date" id="pc-fecha"></div>
+        </div>
+        <div class="campo"><label for="pc-unidad">Unidad o programa (opcional)</label><input type="text" id="pc-unidad" maxlength="150"></div>
+        <p class="ayuda">La institución actual queda en el historial con fecha «hasta»; las charlas antiguas conservan la institución de entonces.</p>
+        <button type="button" class="boton peq" id="pc-aplicar">Registrar el cambio</button> <button type="button" class="boton sec peq" id="pc-cancelar">Cancelar</button>
+      </div>
+
+      <h3 class="seccion">Roles <span class="ayuda-inline">— un rol por período; para un retiro voluntario, cierre la fila (no la borre)</span></h3>
+      <div id="pf-roles"></div>
+      <p class="acciones-seccion"><button type="button" class="boton sec peq" id="pf-agregar-rol">+ Agregar rol</button></p>
+
+      <h3 class="seccion">Suscripción a los correos del seminario</h3>
+      <p id="pf-sus-estado"></p>
+      <div id="pf-sus-acciones" class="mini-form"></div>
+      <div id="pf-sus-historial"></div>
+
+      <h3 class="seccion">Enlace para que la persona actualice sus datos</h3>
+      <p class="vacio" style="margin-top:0">Enlace personal de un solo uso (vence en 30 días). Lo que la persona cambia se aplica de inmediato y lo anterior queda en el historial; una institución que no está en el catálogo, su situación académica y sus comentarios quedan como solicitudes para revisar.</p>
+      <p id="pf-enlace-estado" style="font-size:14px"></p>
+      <div id="pf-enlace-acciones" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="pf-enlace-idioma" aria-label="Idioma del correo" style="font:14px Roboto,Arial,sans-serif;padding:5px 8px;border:1px solid #c5ccd4;border-radius:4px"><option value="es">Correo en español</option><option value="en">Correo en inglés</option></select>
+        <button type="button" class="boton sec peq" id="pf-enlace-enviar">Enviar enlace por correo</button>
+        <button type="button" class="boton sec peq" id="pf-enlace-copiar">Generar enlace para copiar</button>
+        <button type="button" class="boton peligro oculto" id="pf-enlace-anular">Anular enlace</button>
+      </div>
+      <textarea id="pf-enlace-texto" aria-label="Texto del correo con el enlace para actualizar datos" class="copiable oculto" readonly style="margin-top:8px"></textarea>
+
+      <div id="pf-solicitudes-bloque" class="oculto">
+        <h3 class="seccion">Solicitudes de la persona</h3>
+        <div id="pf-solicitudes"></div>
+      </div>
+
+      <h3 class="seccion">Charlas</h3>
+      <div id="pf-charlas"></div>
+
+      <div class="fila2">
+        <div class="campo"><label for="pf-pendientes">Pendientes de revisión</label><textarea id="pf-pendientes" class="corto" maxlength="1000"></textarea></div>
+        <div class="campo"><label for="pf-notas">Notas internas</label><textarea id="pf-notas" class="corto" maxlength="2000"></textarea></div>
+      </div>
+      <div class="campo"><label for="pf-fuentes">Fuentes de los datos</label><input type="text" id="pf-fuentes" maxlength="1000"></div>
+      <details class="historial"><summary>Historial de cambios de la ficha</summary><div id="pf-historial"></div></details>
+    </div>
+    <div class="pie">
+      <button type="button" class="boton peligro" id="pf-eliminar">Eliminar</button>
+      <button type="button" class="boton sec" id="pf-fusionar">Fusionar con otra ficha…</button>
+      <span style="flex:1"></span>
+      <button type="button" class="boton sec" data-cerrar>Cancelar</button>
+      <button type="submit" class="boton" id="pf-guardar">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Envío masivo de enlaces de actualización -->
+<dialog class="modal" id="enlaces-masivo">
+  <div class="cab"><h2>Pedir actualización de datos</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+  <div class="cuerpo">
+    <div id="aviso-masivo"></div>
+    <p>Se enviará a cada persona de la lista actual (según la búsqueda y el filtro elegidos) un correo con su enlace personal para revisar y actualizar sus datos. Cada enlace sirve una sola vez y vence en 30 días; un enlace nuevo anula el anterior. El texto del correo se edita en «Plantillas».</p>
+    <p id="em-resumen" style="font-size:14.5px"></p>
+    <div class="campo"><label for="em-idioma">Idioma del correo</label><select id="em-idioma"><option value="es">Español</option><option value="en">Inglés</option></select></div>
+    <div id="em-sin-correo" class="vacio"></div>
+  </div>
+  <div class="pie"><button type="button" class="boton sec" data-cerrar>Cerrar</button><button type="button" class="boton" id="em-enviar">Enviar enlaces</button></div>
+</dialog>
+
+<!-- Fusionar fichas -->
+<dialog class="modal" id="fusion">
+  <div class="cab"><h2>Fusionar fichas</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+  <div class="cuerpo">
+    <div id="aviso-fusion"></div>
+    <p>Use esta opción cuando dos fichas corresponden a la misma persona. La ficha elegida se incorpora en <b id="fu-destino"></b>: sus correos, formas del nombre, instituciones, roles, suscripción y charlas pasan a esta ficha, y la otra desaparece.</p>
+    <div class="campo"><label for="fu-buscar">Ficha que se incorporará</label><input type="text" id="fu-buscar" list="fu-lista" placeholder="Escriba un nombre o un ID…"><datalist id="fu-lista"></datalist></div>
+  </div>
+  <div class="pie"><button type="button" class="boton sec" data-cerrar>Cancelar</button><button type="button" class="boton" id="fu-aplicar">Fusionar</button></div>
+</dialog>
+
+<!-- Agregar suscriptores -->
+<dialog class="modal" id="suscribir">
+  <div class="cab"><h2>Agregar suscriptores</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+  <div class="cuerpo">
+    <div id="aviso-suscribir"></div>
+    <p class="vacio" style="margin-top:0">Cada correo se busca en el registro: si ya pertenece a una persona, se suscribe esa ficha; si no, se crea una ficha nueva. Quien se dio de baja no se vuelve a suscribir, salvo que marque la casilla de abajo.</p>
+    <div class="campo"><label for="s-texto">Correos</label>
+      <textarea id="s-texto" style="min-height:130px" placeholder="Uno por línea, separados por comas, «Nombre &lt;correo&gt;» (como los copia Gmail), o filas copiadas desde Excel."></textarea>
+      <div class="ayuda" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
+        <button type="button" class="boton sec peq" id="s-archivo-boton">Leer un CSV o Excel…</button>
+        <input type="file" id="s-archivo" aria-label="Archivo de suscriptores" accept=".csv,.txt,.xlsx,.xls,text/csv" style="display:none">
+        <span>Se leen el correo y, si existen, las columnas «Nombre» y «Apellido».</span></div></div>
+    <div class="fila2">
+      <div class="campo"><label for="s-origen">Origen</label>
+        <select id="s-origen"><option>Lista inicial del seminario</option><option>Solicitud por correo</option><option>Asistente a una charla o evento</option><option>Panel (agregado por un administrador)</option></select></div>
+      <div class="campo"><label for="s-nota">Consentimiento / nota</label><input type="text" id="s-nota" maxlength="300" placeholder="p. ej. asistentes habituales del seminario"></div>
+    </div>
+    <label class="casilla"><input type="checkbox" id="s-reactivar"> Reactivar también a quienes se dieron de baja (solo si lo solicitaron expresamente)</label>
+  </div>
+  <div class="pie"><button type="button" class="boton sec" data-cerrar>Cerrar</button><button type="button" class="boton" id="s-agregar">Agregar</button></div>
+</dialog>
+
+<!-- Importar el registro desde Excel -->
+<dialog class="modal" id="importar">
+  <div class="cab"><h2>Importar el registro desde Excel</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+  <div class="cuerpo">
+    <div id="aviso-importar"></div>
+    <p class="vacio" style="margin-top:0">Use un Excel descargado con «Descargar Excel» (o el registro de trabajo con las mismas hojas y columnas). Primero se muestra una revisión; nada cambia hasta que pulse «Aplicar». Las hojas Afiliaciones y Roles reemplazan el historial de las personas que aparecen en el archivo; los eventos de la hoja Suscripción solo se agregan, nunca se borran. Las hojas que falten no se tocan.</p>
+    <p><input type="file" id="i-archivo" aria-label="Archivo Excel del registro" accept=".xlsx"></p>
+    <div id="i-resultado"></div>
+  </div>
+  <div class="pie"><button type="button" class="boton sec" data-cerrar>Cerrar</button><button type="button" class="boton" id="i-aplicar" disabled>Aplicar la importación</button></div>
+</dialog>
+
+<!-- Instituciones -->
+<dialog class="modal ancho" id="instituciones">
+  <div class="cab"><h2>Instituciones</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
+  <div class="cuerpo">
+    <div id="aviso-inst"></div>
+    <form id="form-inst" class="tarjeta mini-form" novalidate>
+      <h3 class="seccion" style="margin-top:0" id="in-titulo">Nueva institución</h3>
+      <div class="fila2">
+        <div class="campo"><label for="in-nombre">Nombre normalizado *</label><input type="text" id="in-nombre" maxlength="200"></div>
+        <div class="campo"><label for="in-sigla">Sigla</label><input type="text" id="in-sigla" maxlength="30"></div>
+      </div>
+      <div class="campo"><label for="in-nombre-en">Nombre en inglés (para la versión en inglés del sitio; opcional)</label><input type="text" id="in-nombre-en" maxlength="200"></div>
+      <div class="fila2">
+        <div class="campo"><label for="in-ciudad">Ciudad</label><input type="text" id="in-ciudad" maxlength="80"></div>
+        <div class="campo"><label for="in-pais">País *</label><input type="text" id="in-pais" maxlength="60" list="in-paises"><datalist id="in-paises"></datalist></div>
+      </div>
+      <div class="campo"><label for="in-variantes">Otras formas del nombre</label><input type="text" id="in-variantes" maxlength="2000"><div class="ayuda">Separadas por punto y coma.</div></div>
+      <button type="submit" class="boton peq" id="in-guardar">Agregar institución</button>
+      <button type="button" class="boton sec peq oculto" id="in-nueva">Nueva institución</button>
+    </form>
+    <input type="search" id="in-buscar" aria-label="Buscar institución" placeholder="Buscar institución…" style="margin:14px 0 8px" class="buscador">
+    <div style="overflow-x:auto"><table class="tabla" id="in-tabla"><thead><tr><th>ID</th><th>Nombre</th><th>Sigla</th><th>País</th><th></th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="pie"><button type="button" class="boton sec" data-cerrar>Cerrar</button></div>
+</dialog>
+
 <script src="../assets/panel-comun.js"></script>
 <script src="admin.js"></script>
-<script src="suscriptores.js"></script>
+<script src="personas.js"></script>
+<script src="envios.js"></script>
+<script src="eventos.js"></script>
+<script src="eventos-modulos.js"></script>
+<script src="correos.js"></script>
 <script src="plantillas.js"></script>
 </body>
 </html>

@@ -39,6 +39,7 @@ window.DP = (function () {
                  en: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"] };
   function fechaLarga(fecha, hora, idioma = "es") {
     if (!fecha) return "";
+    if (/T/.test(fecha)) fecha = new Date(fecha).toLocaleDateString("en-CA", { timeZone: "America/Santiago" });   // fecha y hora → día en Chile
     const [a, m, d] = fecha.split("-").map(Number);
     const dia = DIAS[idioma][new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
     const f = idioma === "es" ? `${dia} ${d} de ${MESES.es[m - 1]} de ${a}` : `${dia}, ${MESES.en[m - 1]} ${d}, ${a}`;

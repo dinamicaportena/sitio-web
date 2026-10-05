@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel del evento — Dinámica Porteña</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/panel.css">
+<link rel="stylesheet" href="/evento/admin/admin.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <div class="brandblock">
+      <img src="/assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+      <div class="names">
+        <span class="group-name">Evento</span>
+        <span class="inst-name">Panel de administración del evento</span>
+      </div>
+    </div>
+    <div class="navblock">
+      <nav class="site"><a class="ver-sitio" href="/" target="_blank" rel="noopener">Ver la página del evento</a></nav>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <section id="acceso" class="oculto">
+      <div class="tarjeta centro">
+        <h1 style="margin-top:0;font-size:24px">Panel del evento</h1>
+        <p style="color:var(--texto-suave);font-size:15px">Ingrese con la cuenta de Google asociada al correo con que fue invitado/a a administrar este evento.</p>
+        <div id="aviso-acceso"></div>
+        <div id="boton-google" style="display:flex;justify-content:center;min-height:44px"></div>
+      </div>
+    </section>
+
+    <section id="panel" class="oculto">
+      <div class="panel-top">
+        <nav class="pestanas" aria-label="Secciones del panel" id="pestanas">
+          <button class="pestana activa" data-vista="general">General</button>
+          <button class="pestana" data-vista="conferencistas">Conferencistas</button>
+          <button class="pestana" data-vista="programa">Programa</button>
+          <button class="pestana" data-vista="info">Información práctica</button>
+          <button class="pestana" data-vista="organizacion">Organización</button>
+          <button class="pestana" data-vista="inscripciones">Inscripciones <span class="chip alerta oculto" id="n-pend"></span></button>
+          <button class="pestana" data-vista="correos">Correos</button>
+          <button class="pestana" data-vista="admins">Administradores</button>
+        </nav>
+        <div class="panel-user"><span id="usuario"></span> <button class="boton sec peq" id="salir">Cerrar sesión</button></div>
+      </div>
+      <div id="estado-evento" class="estado-evento"></div>
+      <div id="aviso-panel"></div>
+      <div id="barra-guardar" class="barra-guardar oculto">
+        <span id="estado-guardado">Hay cambios sin guardar.</span>
+        <span>
+          <button class="boton sec peq" id="descartar" type="button">Descartar cambios</button>
+          <button class="boton peq" id="guardar" type="button">Guardar cambios</button>
+        </span>
+      </div>
+      <div id="vista"></div>
+    </section>
+  </div>
+</main>
+<script src="/assets/panel-comun.js"></script>
+<script src="/evento/admin/admin.js"></script>
+</body>
+</html>

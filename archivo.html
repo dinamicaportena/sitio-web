@@ -14,6 +14,15 @@
 <meta property="og:title" content="Seminarios anteriores — Dinámica Porteña">
 <meta property="og:description" content="Seminarios anteriores del seminario Dinámica Porteña, 2008–2026: 253 charlas, buscable por expositor, institución, país o título.">
 <meta property="og:locale" content="es_CL">
+<link rel="canonical" href="https://www.dinamicaportena.cl/archivo.html">
+<link rel="alternate" hreflang="es" href="https://www.dinamicaportena.cl/archivo.html">
+<link rel="alternate" hreflang="en" href="https://www.dinamicaportena.cl/archivo-en.html">
+<link rel="alternate" hreflang="x-default" href="https://www.dinamicaportena.cl/archivo.html">
+<meta property="og:url" content="https://www.dinamicaportena.cl/archivo.html">
+<meta property="og:image" content="https://www.dinamicaportena.cl/assets/og-imagen.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,6 +31,7 @@
 <script>
 window.MathJax = {
   tex: {
+    packages: {'[-]': ['html', 'require', 'autoload']},   // seguridad: sin \href, \style, \class, \cssId ni carga de extensiones
     inlineMath: [['$','$']],
     macros: {
       Z: "{\\mathbb{Z}}", R: "{\\mathbb{R}}", N: "{\\mathbb{N}}",
@@ -1903,8 +1913,18 @@ window.MathJax = {
       var emptyMsg = document.getElementById('archive-empty');
       var primero = document.querySelector('.archive-year');
       var defaultYear = primero ? primero.getAttribute('data-year') : null;
+      // Búsqueda sin distinguir tildes ni mayúsculas, y con los países también en inglés
+      var PAISES = {'brasil':'brazil','francia':'france','estados unidos':'united states usa','reino unido':'united kingdom uk','mexico':'mexico',
+        'espana':'spain','suiza':'switzerland','suecia':'sweden','escocia':'scotland','polonia':'poland','peru':'peru','nueva zelanda':'new zealand',
+        'japon':'japan','finlandia':'finland','canada':'canada','alemania':'germany'};
+      function norm(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+      function textoBusqueda(entry){
+        var t = norm(entry.getAttribute('data-search'));
+        for (var k in PAISES) if (t.indexOf(k) !== -1) t += ' ' + PAISES[k];
+        return t;
+      }
       function render(){
-        var q = input.value.trim().toLowerCase();
+        var q = norm(input.value.trim());
         var total = document.querySelectorAll('.archive-entry').length;
         var visible = 0;
         var years = Array.prototype.slice.call(document.querySelectorAll('.archive-year'));
@@ -1912,7 +1932,7 @@ window.MathJax = {
           var entries = Array.prototype.slice.call(details.querySelectorAll('.archive-entry'));
           var yearVisible = 0;
           entries.forEach(function(entry){
-            var match = !q || entry.getAttribute('data-search').indexOf(q) !== -1;
+            var match = !q || textoBusqueda(entry).indexOf(q) !== -1;
             entry.style.display = match ? '' : 'none';
             if(match) yearVisible++;
           });

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event — Dinámica Porteña</title>
+<meta name="description" content="Event page of the Dinámica Porteña group.">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="theme-color" content="#1a4269">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dinámica Porteña">
+<meta property="og:title" content="Event — Dinámica Porteña">
+<meta property="og:description" content="Event page of the Dinámica Porteña group.">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/evento.css">
+<script src="/assets/mathjax-config.js"></script>
+<script src="/assets/mathjax.js" defer></script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <div class="brandblock">
+      <img src="/assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+      <div class="names">
+        <span class="group-name" id="c-marca">Event</span>
+        <span class="inst-name" id="c-inst"></span>
+      </div>
+    </div>
+    <div class="lang-toggle lang-mobile">
+      <a href="#" class="active" data-lang="en">EN</a>
+      <a href="#" data-lang="es">ES</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+    <div class="navblock" id="site-nav">
+      <nav class="site" id="c-nav">
+        <a href="/">Dinámica Porteña</a>
+      </nav>
+      <div class="lang-toggle">
+        <a href="#" class="active" data-lang="en">EN</a>
+        <a href="#" data-lang="es">ES</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="hero evento">
+  <div class="wrap">
+    <p class="eyebrow" id="c-eyebrow"></p>
+    <h1 id="c-nombre">Event — Dinámica Porteña</h1>
+    <div class="hero-meta" id="c-meta"></div>
+    <a class="btn" href="#inscripcion">Registration</a>
+    <a class="btn secondary" href="#programa">View program</a>
+    <span class="estado-insc" id="c-estado-insc"></span>
+  </div>
+</div>
+
+<nav class="subnav" aria-label="Event — Dinámica Porteña">
+  <div class="wrap">
+    <a href="#objetivo">Aim</a>
+    <a href="#conferencistas">Speakers</a>
+    <a href="#programa">Program</a>
+    <a href="#participantes">Participants</a>
+    <a href="#inscripcion">Registration</a>
+    <a href="#info">Practical information</a>
+    <a href="#organizacion">Organization</a>
+  </div>
+</nav>
+
+<main style="padding-top:0">
+  <div class="wrap">
+    <div class="aviso-preview" id="c-preview" hidden>Preview: this event is not published yet; only its administrators can see it.</div>
+    <div class="vacio-nota" id="c-error" hidden style="margin-top:40px"></div>
+
+    <section class="col-section" id="objetivo">
+      <div class="section-head"><h2 id="t-objetivo">Aim</h2></div>
+      <div id="c-objetivo"></div>
+      <div class="datos-clave" id="c-clave"></div>
+    </section>
+
+    <section class="col-section" id="conferencistas">
+      <div class="section-head"><h2 id="t-conferencistas">Speakers</h2></div>
+      <div id="c-conferencistas"></div>
+    </section>
+
+    <section class="col-section" id="programa">
+      <div class="section-head"><h2 id="t-programa">Program</h2></div>
+      <div id="c-programa"></div>
+    </section>
+
+    <section class="col-section" id="participantes">
+      <div class="section-head"><h2 id="t-participantes">Participants</h2></div>
+      <div id="c-participantes"></div>
+    </section>
+
+    <section class="col-section" id="inscripcion">
+      <div class="section-head"><h2 id="t-inscripcion">Registration</h2></div>
+      <div id="c-inscripcion-texto"></div>
+      <div id="c-inscripcion-form">
+        <form class="form-card" id="form-insc" novalidate>
+          <div id="insc-aviso" role="status" aria-live="polite"></div>
+          <div class="fila2">
+            <div class="campo"><label for="i-nombre">Full name</label><input type="text" id="i-nombre" name="nombre" maxlength="120" autocomplete="name" required></div>
+            <div class="campo"><label for="i-email">Email address</label><input type="email" id="i-email" name="email" maxlength="160" autocomplete="email" required><div class="ayuda">It is not published; it is only used by the organizers to contact you.</div></div>
+          </div>
+          <div class="fila2">
+            <div class="campo"><label for="i-inst">Institution</label><input type="text" id="i-inst" name="institucion" maxlength="160" autocomplete="organization" required></div>
+            <div class="campo"><label for="i-pais">Country</label><input type="text" id="i-pais" name="pais" maxlength="80" autocomplete="country-name" required></div>
+          </div>
+          <div class="campo"><label for="i-nivel">Academic status</label>
+            <select id="i-nivel" name="nivel">
+              <option value="investigador">Researcher or professor</option>
+              <option value="postdoc">Postdoctoral researcher</option>
+              <option value="doctorado">PhD student</option>
+              <option value="magister">Master&#x27;s student</option>
+              <option value="pregrado">Undergraduate student</option>
+              <option value="otro">Other</option>
+            </select></div>
+          <label class="casilla"><input type="checkbox" id="i-charla" name="charla"> <span>I would like to give a talk or poster</span></label>
+          <div class="campo" id="i-titulo-campo" hidden><label for="i-titulo">Proposed title (optional)</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"></div>
+          <div class="campo"><label for="i-obs">Remarks (optional)</label><textarea id="i-obs" name="observaciones" maxlength="600"></textarea><div class="ayuda">For example, accessibility or dietary requirements.</div></div>
+          <label class="casilla"><input type="checkbox" id="i-publicar" name="publicar"> <span>I authorize my name and institution to appear in the public list of participants.</span></label>
+          <label class="casilla"><input type="checkbox" id="i-suscribir" name="suscribir"> <span>I would like to receive news from Dinámica Porteña (seminar and events) by email. I can unsubscribe at any time.</span></label>
+          <label class="casilla"><input type="checkbox" id="i-priv" name="privacidad" required> <span>I agree that the organizers use the data entered only to manage this event. My email and remarks are not published.</span></label>
+          <div class="trampa" aria-hidden="true"><label>Web <input type="text" name="web" tabindex="-1" autocomplete="off"></label></div>
+          <button class="btn" type="submit" id="i-enviar">Submit registration</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="col-section" id="info">
+      <div class="section-head"><h2 id="t-info">Practical information</h2></div>
+      <div id="c-info"></div>
+    </section>
+
+    <section class="col-section" id="organizacion">
+      <div class="section-head"><h2 id="t-organizacion">Organization</h2></div>
+      <h3 class="subtitulo-seccion" id="t-cientifico" hidden>Scientific committee</h3>
+      <div id="c-cientifico" hidden></div>
+      <h3 class="subtitulo-seccion" id="t-organizadores">Organizing committee</h3>
+      <div id="c-organizadores"></div>
+      <h3 class="subtitulo-seccion" id="t-auspiciantes">Sponsors and partners</h3>
+      <div id="c-auspiciantes"></div>
+      <p class="contacto-evento" id="c-contacto"></p>
+    </section>
+  </div>
+</main>
+<footer class="site">
+  <div class="wrap">
+    <div class="logos">
+      <img src="/assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+    </div>
+    <p><span id="c-pie-inst"></span><br>
+    <span id="c-pie-dir"></span> &middot;
+    <span id="c-pie-enlace"><a href="/">Dinámica Porteña group website</a></span></p>
+  </div>
+</footer>
+<script src="/assets/evento.js" defer></script>
+<script src="/assets/site.js" defer></script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 //    (sin sábados ni domingos). Se envía a la hora de la revisión diaria de ese día, o de inmediato si al aprobar ya pasó.
 //  · Recordatorio: el mismo día de la sesión, a la hora de la revisión diaria.
 //  · Si el anuncio sale el mismo día de la sesión, no se envía además el recordatorio (un solo correo).
-import { almacen, nuevoId, fechaLarga, hoyChile } from "./comun.mjs";
+import { almacen, nuevoId, fechaLarga, hoyChile, tomarTurno, soltarTurno } from "./comun.mjs";
 import { charlasDelDia, idiomaDelDia, materialesDelDia } from "./sesiones.mjs";
 import { leerPlantillas, rellenar, configuracionDocumentos } from "./plantillas.mjs";
 import { correosActivos } from "./suscriptores.mjs";
@@ -68,7 +68,17 @@ async function componerCorreo(tipo, charlas, idioma, cid) {
 }
 
 // Genera los materiales, los guarda y encola el envío a la lista (o envía una prueba a un solo correo)
-export async function enviarDifusion(fecha, tipo, origen, { prueba = null, responderA = null } = {}) {
+export async function enviarDifusion(fecha, tipo, origen, opciones = {}) {
+  if (opciones.prueba) return componerYEnviar(fecha, tipo, origen, opciones);
+  // Un solo envío a la vez por sesión y tipo: evita anuncios duplicados (doble clic, o aprobación simultánea con la revisión diaria)
+  const clave = `difusion/${fecha}/${tipo}`, turno = await tomarTurno(clave, 10 * 60 * 1000);
+  if (!turno) return { ok: false, motivo: "Ya hay un envío de este correo en preparación; espere un momento y revise el estado." };
+  try {
+    if (opciones.soloSiFalta && (await leerSesion(fecha)).envios?.[tipo]) return { ok: true, total: 0, motivo: "Ya se había enviado." };
+    return await componerYEnviar(fecha, tipo, origen, opciones);
+  } finally { await soltarTurno(clave, turno); }
+}
+async function componerYEnviar(fecha, tipo, origen, { prueba = null, responderA = null } = {}) {
   const charlas = await charlasDelDia(fecha);
   if (!charlas.length) return { ok: false, motivo: "No hay charlas publicadas vigentes en esa fecha." };
   if (!correoConfigurado()) return { ok: false, motivo: "El envío de correos no está configurado." };
@@ -102,8 +112,8 @@ export async function procesarSesion(fecha, origen) {
   if (!s.aprobada || fecha < hoy) return hechos;
   if (!(await charlasDelDia(fecha)).length) return hechos;          // sesión sin charlas vigentes (canceladas o movidas)
   const debidoAnuncio = hoy > fechaAnuncio(fecha) || (hoy === fechaAnuncio(fecha) && ya) || (fecha === hoy && ya);
-  if (!s.envios?.anuncio && debidoAnuncio) { hechos.push(["anuncio", await enviarDifusion(fecha, "anuncio", origen)]); }
-  else if (fecha === hoy && ya && s.envios?.anuncio && !s.envios?.recordatorio) { hechos.push(["recordatorio", await enviarDifusion(fecha, "recordatorio", origen)]); }
+  if (!s.envios?.anuncio && debidoAnuncio) { hechos.push(["anuncio", await enviarDifusion(fecha, "anuncio", origen, { soloSiFalta: true })]); }
+  else if (fecha === hoy && ya && s.envios?.anuncio && !s.envios?.recordatorio) { hechos.push(["recordatorio", await enviarDifusion(fecha, "recordatorio", origen, { soloSiFalta: true })]); }
   return hechos;
 }
 

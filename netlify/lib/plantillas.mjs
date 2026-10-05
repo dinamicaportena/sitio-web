@@ -37,8 +37,15 @@ export const TEXTOS_BASE = {
     en: { asunto: "Session rescheduled: Dinámica Porteña Seminar — now {fecha}", cuerpo: "Dear all,\n\nDue to unforeseen circumstances, the session of the Dinámica Porteña Seminar scheduled for {fecha_anterior}, with the talk “{titulo}” by {expositor}, has been rescheduled to {fecha}, in {sala}.\n\nWe apologize for any inconvenience.\n\nBest regards,\nDinámica Porteña Seminar" },
   },
 };
+TEXTOS_BASE.datos = {
+  es: { asunto: "Actualización de sus datos — Dinámica Porteña",
+        cuerpo: "Estimado/a {nombre}:\n\nEl grupo de investigación Dinámica Porteña, del Instituto de Matemáticas de la Pontificia Universidad Católica de Valparaíso, mantiene un registro de las personas vinculadas al grupo y a su seminario. Le pedimos revisar y, si corresponde, actualizar sus datos (institución, correos, enlaces, foto y preferencias de publicación y de correos) en el siguiente enlace personal:\n\n{enlace}\n\nEl enlace es personal, sirve para un solo envío y vence el {vence}. Sus datos anteriores quedan guardados en nuestro registro. Su correo no se publica en el sitio.\n\nSaludos cordiales,\nGrupo Dinámica Porteña\n{web}" },
+  en: { asunto: "Please update your details — Dinámica Porteña",
+        cuerpo: "Dear {nombre},\n\nThe Dinámica Porteña research group, at the Institute of Mathematics of the Pontifical Catholic University of Valparaíso, keeps a record of the people connected to the group and its seminar. We kindly ask you to review and, if needed, update your details (institution, email addresses, links, photo, and publication and mailing preferences) using the following personal link:\n\n{enlace}\n\nThe link is personal, can be used once, and expires on {vence}. Your previous details remain stored in our records. Your email address is never published on the website.\n\nBest regards,\nDinámica Porteña research group\n{web}" },
+};
 export const NOMBRES_TEXTOS = { anuncio: "Anuncio a la lista", recordatorio: "Recordatorio del día", certificado: "Envío del certificado al expositor",
-                                cancelada: "Aviso de cancelación", reprogramada: "Aviso de reprogramación" };
+                                cancelada: "Aviso de cancelación", reprogramada: "Aviso de reprogramación",
+                                datos: "Enlace para que una persona actualice sus datos" };
 
 const fusionar = (base, propio) => {
   if (!propio || typeof base !== "object" || base === null || Array.isArray(base)) return propio ?? base;

@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /charla/
+Disallow: /baja/
+Disallow: /datos/
+Disallow: /api/
+Disallow: /*/admin
+
+Sitemap: https://www.dinamicaportena.cl/sitemap.xml

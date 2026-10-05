@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Dinámica Porteña — Actualización de datos</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/panel.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <div class="brandblock">
+      <img src="../assets/pucv-logo-centenario.png" alt="Pontificia Universidad Católica de Valparaíso">
+      <div class="names">
+        <span class="group-name">Dinámica Porteña</span>
+        <span class="inst-name" data-t="inst">Instituto de Matemáticas, Pontificia Universidad Católica de Valparaíso</span>
+      </div>
+    </div>
+    <div class="lang-toggle lang-mobile"><a href="#" data-idioma="es" class="active">ES</a><a href="#" data-idioma="en">EN</a></div>
+    <div class="navblock">
+      <div class="lang-toggle"><a href="#" data-idioma="es" class="active">ES</a><a href="#" data-idioma="en">EN</a></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap" style="max-width:760px">
+    <h1 class="page-title" data-t="titulo">Actualización de sus datos</h1>
+    <p class="subtitle" data-t="subtitulo">Grupo de investigación Dinámica Porteña</p>
+    <p id="cargando" data-t="cargando" style="color:var(--texto-suave)">Cargando…</p>
+    <div id="aviso"></div>
+
+    <section id="contenido" class="oculto">
+      <p data-t="intro" style="font-size:15px">Revise sus datos y corrija lo que corresponda. Este enlace es personal y sirve para un solo envío. Sus datos anteriores quedan guardados en el registro del grupo; sus correos nunca se publican.</p>
+      <form id="form" novalidate>
+        <h3 class="seccion-form" data-t="sDatos">Datos personales</h3>
+        <div class="campo"><label for="d-nombre" data-t="nombre">Nombre, tal como desea que aparezca *</label><input type="text" id="d-nombre" maxlength="150" required></div>
+        <div class="fila2">
+          <div class="campo"><label for="d-correo" data-t="correo">Correo principal *</label><input type="email" id="d-correo" maxlength="200" required></div>
+          <div class="campo"><label for="d-otros" data-t="otros">Otros correos (uno por línea)</label><textarea id="d-otros" class="corto" maxlength="1000"></textarea></div>
+        </div>
+
+        <h3 class="seccion-form" data-t="sInst">Institución actual</h3>
+        <div class="campo"><label for="d-inst" data-t="inst2">Institución</label><select id="d-inst"></select></div>
+        <div id="d-otra" class="fila2 oculto">
+          <div class="campo"><label for="d-otra-nombre" data-t="otraNombre">Nombre de la institución *</label><input type="text" id="d-otra-nombre" maxlength="200"></div>
+          <div class="campo"><label for="d-otra-pais" data-t="otraPais">País *</label><input type="text" id="d-otra-pais" maxlength="60"></div>
+        </div>
+        <div class="fila2">
+          <div class="campo"><label for="d-unidad" data-t="unidad">Unidad (instituto, departamento o programa; opcional)</label><input type="text" id="d-unidad" maxlength="150"></div>
+          <div class="campo" id="d-desde-campo"><label for="d-desde" data-t="desde">Desde (si cambió de institución)</label><input type="date" id="d-desde"></div>
+        </div>
+        <p class="ayuda-form" data-t="ayudaInst">Si cambió de institución, la anterior queda en su historial: sus charlas pasadas conservan la institución que tenía entonces.</p>
+
+        <div id="d-colab" class="oculto">
+          <h3 class="seccion-form" data-t="sColab">Colaboración con el grupo</h3>
+          <label class="casilla"><input type="checkbox" id="d-retiro"> <span data-t="retiro">Deseo dejar de figurar como colaborador/a del grupo</span></label>
+        </div>
+
+        <details class="bloque-form" id="d-academica">
+          <summary data-t="sAcad">Situación académica (solo si es o fue estudiante de postgrado vinculado/a al grupo)</summary>
+          <div class="fila2" style="margin-top:10px">
+            <div class="campo"><label for="d-situacion" data-t="situacion">Situación</label><select id="d-situacion"></select></div>
+            <div class="campo"><label for="d-programa" data-t="programa">Programa</label><input type="text" id="d-programa" maxlength="150"></div>
+          </div>
+          <div class="fila2">
+            <div class="campo"><label for="d-director" data-t="director">Director/a de tesis</label><input type="text" id="d-director" maxlength="150"></div>
+            <div class="campo"><label for="d-fecha" data-t="fechaAcad">Fecha de graduación o de ingreso</label><input type="date" id="d-fecha"></div>
+          </div>
+          <p class="ayuda-form" data-t="ayudaAcad">Los organizadores revisarán esta información antes de registrarla.</p>
+        </details>
+
+        <h3 class="seccion-form" data-t="sPublico">Perfil en el sitio del grupo</h3>
+        <label class="casilla"><input type="checkbox" id="d-publicar"> <span data-t="publicar">Acepto que mi nombre e institución aparezcan en el sitio del grupo</span></label>
+        <div class="fila2">
+          <div class="campo"><label for="d-orcid">ORCID</label><input type="text" id="d-orcid" maxlength="40" placeholder="0000-0000-0000-0000"></div>
+          <div class="campo"><label for="d-zbmath" data-t="zbmath">zbMATH (identificador de autor)</label><input type="text" id="d-zbmath" maxlength="80"></div>
+        </div>
+        <div class="campo"><label for="d-enlaces" data-t="enlaces">Enlaces públicos (uno por línea: «Texto | https://…»)</label>
+          <textarea id="d-enlaces" class="corto" maxlength="2000" placeholder="Sitio web | https://…"></textarea></div>
+        <div class="campo"><label for="d-foto" data-t="foto">Foto (opcional)</label>
+          <div class="foto-campo"><img id="d-foto-img" class="oculto" alt=""><input type="file" id="d-foto" accept="image/jpeg,image/png,image/webp"></div></div>
+        <label class="casilla"><input type="checkbox" id="d-foto-ok"> <span data-t="fotoOk">Autorizo publicar mi foto en el sitio del grupo</span></label>
+
+        <h3 class="seccion-form" data-t="sCorreos">Anuncios del seminario</h3>
+        <label class="casilla"><input type="checkbox" id="d-suscrito"> <span data-t="suscrito">Deseo recibir por correo los anuncios del Seminario Dinámica Porteña</span></label>
+
+        <h3 class="seccion-form" data-t="sComent">Comentarios para los organizadores</h3>
+        <div class="campo"><textarea id="d-comentario" class="corto" maxlength="1500" aria-label="Comentarios"></textarea></div>
+
+        <p><button type="submit" class="boton" id="enviar" data-t="enviar">Enviar mis datos</button></p>
+        <p class="vacio" id="d-vence"></p>
+      </form>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><span data-t="pie">Instituto de Matemáticas, Facultad de Ciencias, Pontificia Universidad Católica de Valparaíso</span><br>
+    Blanco Viel 596, Cerro Barón, Valparaíso, Chile &middot; <a href="mailto:dinamica.portena@pucv.cl">dinamica.portena@pucv.cl</a></p>
+  </div>
+</footer>
+<script src="../assets/panel-comun.js"></script>
+<script src="datos.js"></script>
+</body>
+</html>
