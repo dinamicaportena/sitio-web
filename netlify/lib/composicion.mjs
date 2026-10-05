@@ -11,6 +11,8 @@ import { SVG } from "mathjax-full/js/output/svg.js";
 import { liteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
 import { RegisterHTMLHandler } from "mathjax-full/js/handlers/html.js";
 import { AllPackages } from "mathjax-full/js/input/tex/AllPackages.js";
+import "../../assets/texto-latex.js";          // define globalThis.DPTexto (el mismo intérprete que usa el sitio)
+const { DPTexto } = globalThis;
 
 // Ubica los recursos tanto en desarrollo como en la función desplegada (included_files en netlify.toml)
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -49,12 +51,12 @@ function svgSeguro(svg) {
 
 // Fórmula LaTeX → {svg interno, ancho, alto, bajada} en píxeles para un tamaño de letra dado
 const cacheMath = new Map();
-function formula(tex, tam) {
-  const clave = tex + "|" + tam;
+function formula(tex, tam, destacada = false) {
+  const clave = tex + "|" + tam + "|" + destacada;
   if (cacheMath.has(clave)) return cacheMath.get(clave);
   let r;
   try {
-    const nodo = docMath.convert(tex, { display: false, em: tam, ex: tam * 0.52, containerWidth: 4000 });
+    const nodo = docMath.convert(tex, { display: destacada, em: tam, ex: tam * 0.52, containerWidth: 4000 });
     const svg = adaptor.serializeXML(adaptor.firstChild(nodo));   // serializeXML escapa las comillas de los atributos
     const ex = tam * 0.52, num = (a) => parseFloat((new RegExp(a + '="([-\\d.]+)ex"').exec(svg) || [])[1] || "0");
     const va = parseFloat((/vertical-align:\s*([-\d.]+)ex/.exec(svg) || [])[1] || "0");
@@ -65,61 +67,78 @@ function formula(tex, tam) {
   return r;
 }
 
-// Divide un texto en fichas: palabras (con estilo) y fórmulas. Admite **negrita** y $…$.
-function fichas(texto, estiloBase) {
+// Divide un párrafo (ya interpretado por DPTexto: negrita, cursiva, fórmulas, comandos de LaTeX) en fichas:
+// palabras con su estilo y fórmulas, indicando si van separadas por un espacio de lo anterior.
+// El espacio irrompible (~) une palabras en una sola ficha.
+function fichas(piezas, estiloBase) {
   const out = [];
-  const partes = String(texto).split(/(\$[^$]+\$|\*\*)/);
-  let estilo = estiloBase;
-  for (const p of partes) {
-    if (p === "**") { estilo = estilo === "negrita" ? estiloBase : "negrita"; continue; }
-    if (/^\$[^$]+\$$/.test(p)) { out.push({ math: p.slice(1, -1), estilo, pegado: false }); continue; }
-    // conserva si la palabra va pegada a lo anterior (sin espacio), p. ej. «$f$,» o «(caso $n=1$)»
-    const trozos = p.split(/(\s+)/);
-    trozos.forEach((w, i) => { if (!w) return; if (/^\s+$/.test(w)) { out.push({ espacio: true }); return; } out.push({ texto: w, estilo }); });
+  for (const p of piezas) {
+    if (p.m !== undefined) { out.push({ math: p.m }); continue; }
+    const estilo = p.negrita ? "negrita" : p.cursiva ? (estiloBase === "negrita" ? "negrita" : "cursiva") : estiloBase;
+    for (const w of p.t.split(/([ \t\n]+)/)) {
+      if (!w) continue;
+      if (/^[ \t\n]+$/.test(w)) out.push({ espacio: true }); else out.push({ texto: w, estilo });
+    }
   }
   return out;
 }
+const medir = (f, tam) => FUENTE[f.estilo].getAdvanceWidth(f.texto.replace(/\u00A0/g, " ").replace(/\u2009/g, " "), tam);
 
 // Compone un bloque de texto. Devuelve { svg, alto, lineas }.
+// Acepta los comandos de LaTeX que interpreta assets/texto-latex.js (\textbf, \emph, ~, ---, \ss, \[…\], etc.) y **negrita**.
 export function bloque(texto, o) {
   const { x, y, ancho, tam, estilo = "normal", color = "#000", alinear = "izquierda", interlineado = 1.35, justificar = false } = o;
-  const parrafos = String(texto || "").replace(/\r/g, "").split(/\n\s*\n/);
+  const bloques = DPTexto.analizar(texto);
   const esp = FUENTE.normal.getAdvanceWidth(" ", tam);
   const lineas = [];
-  for (const par of parrafos) {
-    const fs = fichas(par.replace(/\s*\n\s*/g, " ").trim(), estilo);
-    let linea = [], w = 0, pendienteEspacio = false;
+  for (const [n, b] of bloques.entries()) {
+    const sep = n === 0 ? 0 : b.tipo === "formula" || b.sigue ? tam * 0.25 : tam * 0.55;   // espacio antes del bloque
+    if (b.tipo === "formula") {
+      const m = formula(b.m, tam, true);
+      if (m) { lineas.push({ formula: m, sep }); continue; }
+      b.piezas = [{ t: "\\[" + b.m + "\\]", negrita: false, cursiva: false }];            // fórmula con error: se muestra tal cual
+    }
+    const fs = fichas(b.piezas, estilo);
+    let linea = [], w = 0, pendienteEspacio = false, primera = true;
+    const cerrar = (fin) => { lineas.push({ fichas: linea, w, fin, sep: primera ? sep : 0 }); primera = false; linea = []; w = 0; };
     for (const f of fs) {
       if (f.espacio) { pendienteEspacio = true; continue; }
       let ancho_f;
-      if (f.math !== undefined) { const m = formula(f.math, tam); if (m) { f.m = m; ancho_f = m.ancho; } else { f.texto = "$" + f.math + "$"; delete f.math; } }
-      if (f.texto !== undefined) ancho_f = FUENTE[f.estilo].getAdvanceWidth(f.texto, tam);
+      if (f.math !== undefined) { const m = formula(f.math, tam); if (m) { f.m = m; ancho_f = m.ancho; } else { f.texto = "$" + f.math + "$"; f.estilo = estilo; delete f.math; } }
+      if (f.texto !== undefined) ancho_f = medir(f, tam);
       f.w = ancho_f; f.esp = linea.length && pendienteEspacio;
       const extra = (f.esp ? esp : 0) + f.w;
-      if (linea.length && w + extra > ancho) { lineas.push({ fichas: linea, w, fin: false }); linea = []; w = 0; f.esp = false; }
+      if (linea.length && w + extra > ancho) { cerrar(false); f.esp = false; }
       linea.push(f); w += (f.esp ? esp : 0) + f.w; pendienteEspacio = false;
     }
-    lineas.push({ fichas: linea, w, fin: true, parrafo: true });
+    cerrar(true);
   }
   const alto_l = tam * interlineado;
-  let svg = "", yy = y + tam * 0.95;
-  lineas.forEach((l, i) => {
+  let svg = "", yy = y, alto = 0;
+  lineas.forEach((l) => {
+    yy += l.sep; alto += l.sep;
+    if (l.formula) {                                  // fórmula destacada: centrada en su propia línea (reducida si no cabe)
+      const k = Math.min(1, ancho / l.formula.ancho), an = l.formula.ancho * k, al = l.formula.alto * k;
+      const h = Math.max(alto_l, al + tam * 0.5), top = yy + (h - al) / 2;
+      svg += l.formula.svg.replace(/^<svg([^>]*)>/, (m0, attrs) => `<svg${attrs.replace(/\s(width|height|style)="[^"]*"/g, "")} x="${(x + (ancho - an) / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${an.toFixed(1)}" height="${al.toFixed(1)}" color="${color}">`);
+      yy += h; alto += h; return;
+    }
+    const base = yy + tam * 0.95;
     const huecos = l.fichas.filter((f) => f.esp).length;
     const extraEsp = justificar && !l.fin && huecos ? (ancho - l.w) / huecos : 0;
     let xx = alinear === "centro" ? x + (ancho - l.w) / 2 : alinear === "derecha" ? x + ancho - l.w : x;
     for (const f of l.fichas) {
       if (f.esp) xx += esp + extraEsp;
       if (f.m) {
-        const top = yy + f.m.bajada - f.m.alto;
-        svg += f.m.svg.replace(/^<svg([^>]*)>/, (m0, attrs) => `<svg${attrs.replace(/\s(width|height|style)="[^"]*"/g, "")} x="${xx.toFixed(1)}" y="${top.toFixed(1)}" width="${f.m.ancho.toFixed(1)}" height="${f.m.alto.toFixed(1)}" color="${color}">`);
+        const top = base + f.m.bajada - f.m.alto;
+        svg += f.m.svg.replace(/^<svg([^>]*)>/, (m0, attrs) => `<svg${attrs.replace(/\s(width|height|style)="[^"]*"/g, "")} x="${xx.toFixed(1)}" y="${top.toFixed(1)}" width="${f.m.ancho.toFixed(1)}" height="${f.m.alto.toFixed(1)}" color="${color}">`)
       } else {
-        svg += `<text x="${xx.toFixed(1)}" y="${yy.toFixed(1)}" font-family="Roboto" font-size="${tam}" ${ESTILO[f.estilo]} fill="${color}">${esc(f.texto)}</text>`;
+        svg += `<text x="${xx.toFixed(1)}" y="${base.toFixed(1)}" font-family="Roboto" font-size="${tam}" ${ESTILO[f.estilo]} fill="${color}" xml:space="preserve">${esc(f.texto.replace(/\u00A0/g, " ").replace(/\u2009/g, " "))}</text>`;
       }
       xx += f.w;
     }
-    yy += alto_l + (l.parrafo && i < lineas.length - 1 ? tam * 0.55 : 0);
+    yy += alto_l; alto += alto_l;
   });
-  const alto = lineas.length * alto_l + (parrafos.length - 1) * tam * 0.55;
   return { svg, alto, lineas: lineas.length };
 }
 

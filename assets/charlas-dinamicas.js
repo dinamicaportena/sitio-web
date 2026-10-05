@@ -51,9 +51,11 @@
     const caja = el("div", "expositor-foto"), img = el("img", "foto-expositor");
     img.src = c.foto; img.alt = c.expositor; img.loading = "lazy"; caja.append(img, p); return caja;
   }
+  function titulo(c) { const h = el("h3"); if (window.DPTexto) DPTexto.escribir(h, c.titulo, { enLinea: true }); else h.textContent = c.titulo; return h; }
   function resumen(c, abierto) {
     if (!c.resumen) return [];
-    const id = "res-din-" + (++n), b = el("button", "resumen-toggle"), p = el("p", "archive-resumen", c.resumen);
+    const id = "res-din-" + (++n), b = el("button", "resumen-toggle"), p = el("p", "archive-resumen");
+    if (window.DPTexto) DPTexto.escribir(p, c.resumen); else p.textContent = c.resumen;   // \textbf, \emph, ~, \[…\], etc.
     b.type = "button"; b.setAttribute("aria-controls", id); b.setAttribute("aria-expanded", String(abierto));
     b.innerHTML = abierto ? T.ocultar : T.ver; b.setAttribute("onclick", "toggleResumen(this)");
     p.id = id; if (abierto) p.style.display = "block";
@@ -61,14 +63,14 @@
   }
   function tarjeta(c) {             // formato de la portada y de «Últimas charlas»
     const d = el("div", "seminar-card"); d.dataset.seminarDate = c.fecha;
-    d.append(...etiqueta(c), tachar(el("div", "fecha", fechaLarga(c.fecha, c.hora)), c), el("h3", "", c.titulo), expositor(c, "expositor"),
+    d.append(...etiqueta(c), tachar(el("div", "fecha", fechaLarga(c.fecha, c.hora)), c), titulo(c), expositor(c, "expositor"),
              ...resumen(c, !c.cancelada), el("p", "lugar", c.sala));
     return d;
   }
   function entrada(c, archivo) {    // formato de «Seminarios anteriores» y del archivo
     const d = el("div", archivo ? "event-item archive-entry" : "event-item");
     if (archivo) d.dataset.search = [c.titulo, c.expositor, institucion(c)].join(" ").toLowerCase();
-    d.append(...(archivo ? [] : etiqueta(c)), el("div", "fecha", fechaLarga(c.fecha, archivo ? c.hora : "")), el("h3", "", c.titulo), expositor(c, ""), ...resumen(c, !archivo));
+    d.append(...(archivo ? [] : etiqueta(c)), el("div", "fecha", fechaLarga(c.fecha, archivo ? c.hora : "")), titulo(c), expositor(c, ""), ...resumen(c, !archivo));
     return d;
   }
   // Convierte una tarjeta escrita en la página en una entrada de «Seminarios anteriores»
@@ -170,7 +172,7 @@
 
   // Fórmulas: usa MathJax si la página ya lo carga; si no, lo carga solo cuando hace falta
   function formulas(nodos) {
-    if (!nodos.length || !nodos.some((x) => x.textContent.includes("$"))) return;
+    if (!nodos.length || !nodos.some((x) => /\$|\\\[/.test(x.textContent))) return;
     const componer = () => MathJax.startup.promise.then(() => MathJax.typesetPromise(nodos)).catch(() => {});
     if (window.MathJax && MathJax.startup) return componer();
     const base = document.querySelector('script[src$="charlas-dinamicas.js"]').src.replace(/charlas-dinamicas\.js.*$/, "");

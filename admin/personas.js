@@ -36,9 +36,10 @@
     investigador: (p) => p.investigador, postdoc: (p) => p.postdoc, colaborador: (p) => p.colaborador === "Sí", "colaborador-antes": (p) => p.colaborador === "Antes",
     estudiante: (p) => p.estudiante, graduado: (p) => p.graduado, expositor: (p) => p.charlas > 0, activo: (p) => p.suscripcion === "activo",
     baja: (p) => p.suscripcion === "baja", "sin-correo": (p) => !p.correo, pendientes: (p) => p.pendientes, publicar: (p) => p.publicar,
-    solicitudes: (p) => p.solicitudes > 0, "sin-respuesta": (p) => p.enlacePendiente,
+    solicitudes: (p) => p.solicitudes > 0, "sin-respuesta": (p) => p.enlacePendiente, seleccionadas: (p) => seleccion.has(p.id),
   };
   let filasActuales = [];
+  const seleccion = new Set();          // ID de las personas marcadas (se mantiene al cambiar la búsqueda o el filtro)
   function dibujar() {
     const q = sinTildes($("p-buscar").value.trim()), f = FILTROS[$("p-filtro").value];
     const filas = personas.filter((p) => (!f || f(p)) && (!q || sinTildes([p.nombre, p.correo, p.institucion, p.id].join(" ")).includes(q)));
@@ -46,7 +47,7 @@
     const activos = personas.filter((p) => p.suscripcion === "activo").length;
     $("p-cuenta").textContent = `${filas.length} de ${personas.length} personas · ${activos} suscritas a los correos`;
     const tb = $("p-tabla").querySelector("tbody"); tb.innerHTML = "";
-    if (!filas.length) tb.appendChild(el("tr", {}, el("td", { colSpan: 6, className: "vacio", textContent: personas.length ? "Sin resultados." : "Aún no hay personas en el registro: importe el Excel del registro o agregue personas." })));
+    if (!filas.length) tb.appendChild(el("tr", {}, el("td", { colSpan: 7, className: "vacio", textContent: personas.length ? "Sin resultados." : "Aún no hay personas en el registro: importe el Excel del registro o agregue personas." })));
     for (const p of filas.slice(0, 500)) {
       const roles = el("td");
       p.roles.forEach((r) => roles.appendChild(el("span", { className: "chip", textContent: r })));
@@ -56,7 +57,10 @@
       if (p.solicitudes) roles.appendChild(el("span", { className: "chip alerta", textContent: `${p.solicitudes} solicitud(es) por revisar` }));
       if (p.enlacePendiente) roles.appendChild(el("span", { className: "chip confirmar", textContent: "Enlace de datos enviado" }));
       const ver = el("button", { type: "button", className: "boton sec peq", textContent: "Ver ficha" }); ver.onclick = () => abrirFicha(p.id);
-      tb.appendChild(el("tr", {},
+      const marca = el("input", { type: "checkbox", checked: seleccion.has(p.id), ariaLabel: "Seleccionar a " + (p.nombre || p.id) });
+      marca.onchange = () => { if (marca.checked) seleccion.add(p.id); else seleccion.delete(p.id); pintarSeleccion(); };
+      tb.appendChild(el("tr", { className: seleccion.has(p.id) ? "marcada" : "" },
+        el("td", {}, marca),
         el("td", {}, el("b", { textContent: p.nombre || "(sin nombre)" }), el("span", { className: "sub", textContent: [p.id, p.correo].filter(Boolean).join(" · ") })),
         el("td", {}, p.institucion, el("span", { className: "sub", textContent: p.pais })),
         roles,
@@ -64,8 +68,25 @@
         el("td", {}, el("span", { className: "sus " + p.suscripcion, textContent: SUS[p.suscripcion] })),
         el("td", {}, ver)));
     }
-    if (filas.length > 500) tb.appendChild(el("tr", {}, el("td", { colSpan: 6, className: "vacio", textContent: `Se muestran 500 de ${filas.length}; afine la búsqueda.` })));
+    if (filas.length > 500) tb.appendChild(el("tr", {}, el("td", { colSpan: 7, className: "vacio", textContent: `Se muestran 500 de ${filas.length}; afine la búsqueda.` })));
+    pintarSeleccion();
   }
+  // Selección: casillas de la tabla; la casilla del encabezado marca o desmarca todas las de la lista actual
+  function pintarSeleccion() {
+    const n = seleccion.size, visibles = filasActuales.slice(0, 500), marcadas = visibles.filter((p) => seleccion.has(p.id)).length;
+    $("p-todos").checked = visibles.length > 0 && marcadas === visibles.length;
+    $("p-todos").indeterminate = marcadas > 0 && marcadas < visibles.length;
+    $("p-sel").classList.toggle("oculto", !n);
+    $("p-sel-n").textContent = `${n} seleccionada${n === 1 ? "" : "s"}`;
+    $("p-enlaces").textContent = n ? `Pedir actualización de datos a ${n} seleccionada${n === 1 ? "" : "s"}…` : "Pedir actualización de datos…";
+    document.querySelectorAll("#p-tabla tbody tr").forEach((tr) => { const c = tr.querySelector("input[type=checkbox]"); if (c) tr.classList.toggle("marcada", c.checked); });
+  }
+  $("p-todos").addEventListener("change", () => {
+    const visibles = filasActuales.slice(0, 500);
+    visibles.forEach((p) => ($("p-todos").checked ? seleccion.add(p.id) : seleccion.delete(p.id)));
+    dibujar();
+  });
+  $("p-limpiar").addEventListener("click", () => { seleccion.clear(); dibujar(); });
   $("p-buscar").addEventListener("input", dibujar);
   $("p-filtro").addEventListener("change", dibujar);
 
@@ -267,19 +288,23 @@
   // ---------- Envío masivo de enlaces ----------
   $("p-enlaces").addEventListener("click", () => {
     aviso("aviso-masivo", "", "");
-    const con = filasActuales.filter((p) => p.correo), sin = filasActuales.filter((p) => !p.correo);
-    $("em-resumen").textContent = `Lista actual: ${filasActuales.length} persona(s) · ${con.length} con correo recibirán su enlace` + (sin.length ? ` · ${sin.length} sin correo (no se les puede enviar).` : ".");
+    const objetivo = destinatariosEnlace(), con = objetivo.filter((p) => p.correo), sin = objetivo.filter((p) => !p.correo);
+    $("em-quienes").textContent = seleccion.size ? "Se enviará a cada una de las personas seleccionadas" : "Se enviará a cada persona de la lista actual (según la búsqueda y el filtro elegidos)";
+    $("em-resumen").textContent = `${seleccion.size ? "Seleccionadas" : "Lista actual"}: ${objetivo.length} persona(s) · ${con.length} con correo recibirán su enlace` + (sin.length ? ` · ${sin.length} sin correo (no se les puede enviar).` : ".");
     $("em-sin-correo").textContent = sin.length ? "Sin correo: " + sin.slice(0, 30).map((p) => p.nombre || p.id).join(", ") + (sin.length > 30 ? "…" : "") : "";
     $("em-enviar").disabled = !con.length;
     $("enlaces-masivo").showModal();
   });
+  // A quiénes se envía: las seleccionadas o, si no hay ninguna, la lista actual
+  const destinatariosEnlace = () => (seleccion.size ? personas.filter((p) => seleccion.has(p.id)) : filasActuales);
   $("em-enviar").addEventListener("click", async () => {
-    const con = filasActuales.filter((p) => p.correo);
+    const con = destinatariosEnlace().filter((p) => p.correo);
     if (!confirm(`¿Enviar ${con.length} correo(s), cada uno con un enlace personal? Los enlaces vigentes anteriores de esas personas se anularán.`)) return;
     $("em-enviar").disabled = true;
     try {
       const r = await DP.api("/api/admin/personas/enlaces", { method: "POST", body: { ids: con.map((p) => p.id), idioma: $("em-idioma").value } });
-      aviso("aviso-masivo", "ok", `${r.encolados} enlace(s) en cola de envío. Puede seguir el avance en la pestaña «Envíos».`); cargarSilencioso();
+      aviso("aviso-masivo", "ok", `${r.encolados} enlace(s) en cola de envío. Puede seguir el avance en la pestaña «Envíos».`);
+      seleccion.clear(); cargarSilencioso();
     } catch (e) { errorSesion(e, "aviso-masivo"); $("em-enviar").disabled = false; }
   });
 

@@ -8,7 +8,7 @@ import { almacen, nuevoId, texto, emailValido, tomarTurno, soltarTurno } from ".
 import { encolarEnvio } from "./envios.mjs";
 import { correosActivos, interpretar } from "./suscriptores.mjs";
 import { enviar, correoConfigurado } from "./correo.mjs";
-import { leerPlantillas } from "./plantillas.mjs";
+import { leerPlantillas, firmaCorreos } from "./plantillas.mjs";
 import { contenidoStore, inscStore, correo as normalizarCorreo } from "./ev.mjs";
 
 export const mensajesStore = () => almacen("mensajes");
@@ -43,7 +43,7 @@ export function limpiarMensaje(c, { permitidos }) {
     destino.correos = [...new Set(validos.map((v) => v.email))].slice(0, 500);
     if (!destino.correos.length) throw new Error("Escriba al menos un correo.");
   }
-  return { asunto, cuerpo, idioma, destino };
+  return { asunto, cuerpo, idioma, destino, firma: c?.firma !== false };   // firma: casilla «Agregar la firma» (marcada por defecto)
 }
 
 // ---------- Destinatarios ----------
@@ -81,18 +81,25 @@ const PIE = {
 
 // ---------- Envío ----------
 // m: mensaje ya validado y guardado; encola el envío y devuelve { total }
+// Texto del correo con la firma de Dinámica Porteña al final (si se pidió)
+async function conFirma(m) {
+  if (m.firma === false) return m.cuerpo;
+  const f = await firmaCorreos(m.idioma);
+  return f ? `${m.cuerpo.replace(/\s+$/, "")}\n\n${f}` : m.cuerpo;
+}
 export async function despacharMensaje(m, origen) {
   if (!correoConfigurado()) throw new Error("El envío de correos no está configurado.");
+  const cuerpo = await conFirma(m);
   const para = await destinatarios(m.destino);
   if (!para.length) throw new Error("No hay destinatarios para este correo.");
   const ev = m.slug ? await nombreEvento(m.slug) : null;
   const remitenteNombre = ev ? `${ev} · Dinámica Porteña` : "Dinámica Porteña";
   const base = { tipo: "mensaje", idioma: m.idioma, asunto: m.asunto, destinatarios: para, remitenteNombre, responderA: m.responderA || undefined, mensaje: m.id };
   let trabajo;
-  if (m.destino.tipo === "lista") trabajo = await encolarEnvio({ ...base, texto: m.cuerpo, html: htmlDeTexto(m.cuerpo) }, origen);
+  if (m.destino.tipo === "lista") trabajo = await encolarEnvio({ ...base, texto: cuerpo, html: htmlDeTexto(cuerpo) }, origen);
   else {
     const pie = m.destino.tipo === "inscritos" ? PIE.inscritos[m.idioma](ev || await nombreEvento(m.destino.slug)) : PIE.correos[m.idioma]();
-    const personal = { asunto: m.asunto, texto: m.cuerpo + pie, responderA: m.responderA || undefined };
+    const personal = { asunto: m.asunto, texto: cuerpo + pie, responderA: m.responderA || undefined };
     trabajo = await encolarEnvio({ ...base, texto: "", porDestinatario: Object.fromEntries(para.map((p) => [p, personal])) }, origen);
   }
   return { total: para.length, trabajo: trabajo.id };
@@ -104,7 +111,8 @@ export async function enviarPrueba(m, a) {
   const ev = m.slug ? await nombreEvento(m.slug) : null;
   const pie = m.destino.tipo === "lista" ? (m.idioma === "en" ? "\n\n—\n(Each subscriber receives here their personal unsubscribe link.)" : "\n\n—\n(Aquí cada suscriptor recibe su enlace personal para darse de baja.)")
     : m.destino.tipo === "inscritos" ? PIE.inscritos[m.idioma](ev || await nombreEvento(m.destino.slug)) : PIE.correos[m.idioma]();
-  await enviar({ para: a, asunto: "[PRUEBA] " + m.asunto, texto: m.cuerpo + pie, html: m.destino.tipo === "lista" ? htmlDeTexto(m.cuerpo + pie) : undefined,
+  const cuerpo = await conFirma(m);
+  await enviar({ para: a, asunto: "[PRUEBA] " + m.asunto, texto: cuerpo + pie, html: m.destino.tipo === "lista" ? htmlDeTexto(cuerpo + pie) : undefined,
                  responderA: m.responderA || undefined, remitenteNombre: ev ? `${ev} · Dinámica Porteña` : "Dinámica Porteña" });
 }
 

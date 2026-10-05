@@ -127,3 +127,4 @@ dialog.modal.ancho{max-width:980px}
 .historial ul.cambios .antes{color:#8f1f1b;text-decoration:line-through;text-decoration-color:rgba(143,31,27,.35)}
 .historial ul.cambios .despues{color:#1f6b3f}
 .charla-fila .evento-icono{display:flex;align-items:center;justify-content:center;font:700 22px 'Roboto Condensed',Arial,sans-serif;color:var(--azul)}
+.tabla tr.marcada td{background:#eef4fa}

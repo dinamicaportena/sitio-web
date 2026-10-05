@@ -43,9 +43,16 @@ TEXTOS_BASE.datos = {
   en: { asunto: "Please update your details — Dinámica Porteña",
         cuerpo: "Dear {nombre},\n\nThe Dinámica Porteña research group, at the Institute of Mathematics of the Pontifical Catholic University of Valparaíso, keeps a record of the people connected to the group and its seminar. We kindly ask you to review and, if needed, update your details (institution, email addresses, links, photo, and publication and mailing preferences) using the following personal link:\n\n{enlace}\n\nThe link is personal, can be used once, and expires on {vence}. Your previous details remain stored in our records. Your email address is never published on the website.\n\nBest regards,\nDinámica Porteña research group\n{web}" },
 };
+// Firma que se agrega al final de los correos escritos en el panel (casilla «Agregar la firma», marcada por defecto).
+// Solo se usa el texto (no lleva asunto). Marcadores: {web} {email}.
+TEXTOS_BASE.firma = {
+  es: { asunto: "", cuerpo: "Dinámica Porteña\nInstituto de Matemáticas\nPontificia Universidad Católica de Valparaíso\n{web} · {email}" },
+  en: { asunto: "", cuerpo: "Dinámica Porteña\nInstitute of Mathematics\nPontifical Catholic University of Valparaíso\n{web} · {email}" },
+};
 export const NOMBRES_TEXTOS = { anuncio: "Anuncio a la lista", recordatorio: "Recordatorio del día", certificado: "Envío del certificado al expositor",
                                 cancelada: "Aviso de cancelación", reprogramada: "Aviso de reprogramación",
-                                datos: "Enlace para que una persona actualice sus datos" };
+                                datos: "Enlace para que una persona actualice sus datos",
+                                firma: "Firma de los correos escritos en el panel" };
 
 const fusionar = (base, propio) => {
   if (!propio || typeof base !== "object" || base === null || Array.isArray(base)) return propio ?? base;
@@ -96,3 +103,10 @@ export async function leerComponentePropio(nombre) {
 
 // Reemplaza los marcadores {…} de un texto
 export const rellenar = (texto, vars) => String(texto).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+
+// Firma de los correos escritos en el panel, ya con los marcadores reemplazados («» si se dejó vacía)
+export async function firmaCorreos(idioma = "es") {
+  const { textos, datos } = await leerPlantillas();
+  const t = (textos.firma?.[idioma === "en" ? "en" : "es"]?.cuerpo || "").trim();
+  return t ? rellenar(t, { web: datos.web, email: datos.email }) : "";
+}

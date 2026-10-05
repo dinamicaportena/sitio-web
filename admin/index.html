@@ -108,10 +108,12 @@
             <option value="publicar">Publicados en el sitio</option>
             <option value="solicitudes">Con solicitudes por revisar</option>
             <option value="sin-respuesta">Enlace de datos enviado y aún sin respuesta</option>
+            <option value="seleccionadas">Solo las seleccionadas</option>
           </select>
           <span class="cuenta" id="p-cuenta"></span>
+          <span class="cuenta oculto" id="p-sel"><b id="p-sel-n"></b> <button type="button" class="boton sec peq" id="p-limpiar">Quitar selección</button></span>
         </div>
-        <div style="overflow-x:auto"><table class="tabla" id="p-tabla"><thead><tr><th>Nombre</th><th>Institución vigente</th><th>Roles</th><th>Charlas</th><th>Suscripción</th><th></th></tr></thead><tbody></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tabla" id="p-tabla"><thead><tr><th style="width:28px"><input type="checkbox" id="p-todos" aria-label="Seleccionar todas las personas de la lista"></th><th>Nombre</th><th>Institución vigente</th><th>Roles</th><th>Charlas</th><th>Suscripción</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
 
       <div id="vista-correos" class="oculto"></div>
@@ -435,7 +437,7 @@
   <div class="cab"><h2>Pedir actualización de datos</h2><button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button></div>
   <div class="cuerpo">
     <div id="aviso-masivo"></div>
-    <p>Se enviará a cada persona de la lista actual (según la búsqueda y el filtro elegidos) un correo con su enlace personal para revisar y actualizar sus datos. Cada enlace sirve una sola vez y vence en 30 días; un enlace nuevo anula el anterior. El texto del correo se edita en «Plantillas».</p>
+    <p><span id="em-quienes">Se enviará a cada persona de la lista actual (según la búsqueda y el filtro elegidos)</span> un correo con su enlace personal para revisar y actualizar sus datos. Cada enlace sirve una sola vez y vence en 30 días; un enlace nuevo anula el anterior. El texto del correo se edita en «Plantillas».</p>
     <p id="em-resumen" style="font-size:14.5px"></p>
     <div class="campo"><label for="em-idioma">Idioma del correo</label><select id="em-idioma"><option value="es">Español</option><option value="en">Inglés</option></select></div>
     <div id="em-sin-correo" class="vacio"></div>
@@ -514,6 +516,7 @@
   <div class="pie"><button type="button" class="boton sec" data-cerrar>Cerrar</button></div>
 </dialog>
 
+<script src="../assets/texto-latex.js"></script>
 <script src="../assets/panel-comun.js"></script>
 <script src="admin.js"></script>
 <script src="personas.js"></script>

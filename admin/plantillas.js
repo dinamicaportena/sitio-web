@@ -28,6 +28,7 @@
   function mostrarTexto() {
     const t = P.textos[$("t-tipo").value][$("t-idioma").value];
     $("t-asunto").value = t.asunto; $("t-cuerpo").value = t.cuerpo;
+    $("t-asunto").closest(".campo").classList.toggle("oculto", $("t-tipo").value === "firma");   // la firma no lleva asunto
   }
   $("t-tipo").addEventListener("change", mostrarTexto); $("t-idioma").addEventListener("change", mostrarTexto);
   async function guardarTexto(asunto, cuerpo) {

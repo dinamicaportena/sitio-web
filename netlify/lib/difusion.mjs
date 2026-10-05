@@ -12,7 +12,8 @@ import { leerPlantillas, rellenar, configuracionDocumentos } from "./plantillas.
 import { correosActivos } from "./suscriptores.mjs";
 import { encolarEnvio } from "./envios.mjs";
 import { enviar, correoConfigurado } from "./correo.mjs";
-import { esc } from "./composicion.mjs";
+import { esc } from "./composicion.mjs";   // (composicion.mjs también define globalThis.DPTexto)
+const { DPTexto } = globalThis;
 
 const tienda = () => almacen("sesiones");
 const materiales = () => almacen("materiales");
@@ -54,6 +55,7 @@ export async function estadoSesion(fecha) {
 async function componerCorreo(tipo, charlas, idioma, cid) {
   const { textos, datos } = await leerPlantillas();
   const t = textos[tipo][idioma], hrs = idioma === "en" ? "h" : "hrs";
+  charlas = charlas.map((c) => ({ ...c, titulo: DPTexto.plano(c.titulo) }));   // el texto del correo va sin comandos de LaTeX (\emph, ~, …)
   const lista = charlas.map((c) => `• ${c.hora} ${hrs} — ${c.expositor}${c.institucion ? ` (${c.institucion})` : ""}: ${idioma === "en" ? "“" : "«"}${c.titulo}${idioma === "en" ? "”" : "»"}`).join("\n");
   const vars = { fecha: fechaLarga(charlas[0].fecha, "", idioma), sala: charlas[0].sala, charlas: lista, web: datos.web, email: datos.email,
                  expositor: charlas.map((c) => c.expositor).join(", "), titulo: charlas.map((c) => c.titulo).join(" / "), institucion: "" };

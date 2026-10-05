@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, ...hijos) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...hijos.filter((h) => h !== null && h !== undefined)); return e; };
   const aviso = (tipo, m) => { const c = $("aviso-panel"); c.replaceChildren(); if (m) c.append(el("div", { className: "aviso " + tipo, textContent: m })); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const b = { tipo: "lista", slug: "", estados: { aprobada: true, pendiente: false, rechazada: false }, correos: "", asunto: "", cuerpo: "", idioma: "es" };
+  const b = { tipo: "lista", slug: "", estados: { aprobada: true, pendiente: false, rechazada: false }, correos: "", asunto: "", cuerpo: "", idioma: "es", firma: true };
   const ESTADO = { enviado: ["Enviado", "publicada"], rechazado: ["No aprobado", "cancelada"], "por-aprobar": ["Por aprobar", "pendiente"] };
   let info = null;
 
@@ -67,9 +67,10 @@
     tipo.onchange = () => { b.tipo = tipo.value; visibles(); };
     evento.onchange = () => { b.slug = evento.value; visibles(); };
     const asunto = el("input", { type: "text", id: "co-asunto", maxLength: 200, value: b.asunto }); asunto.oninput = () => { b.asunto = asunto.value; };
-    const cuerpo = el("textarea", { id: "co-cuerpo", value: b.cuerpo, rows: 14, placeholder: "Estimados/as:\n\n…\n\nSaludos cordiales,\nDinámica Porteña" }); cuerpo.oninput = () => { b.cuerpo = cuerpo.value; };
+    const cuerpo = el("textarea", { id: "co-cuerpo", value: b.cuerpo, rows: 14, placeholder: "Estimados/as:\n\n…\n\nSaludos cordiales," }); cuerpo.oninput = () => { b.cuerpo = cuerpo.value; };
     const idioma = el("select", { id: "co-idioma" }, el("option", { value: "es", textContent: "Español" }), el("option", { value: "en", textContent: "Inglés" })); idioma.value = b.idioma; idioma.onchange = () => { b.idioma = idioma.value; };
-    const cuerpoEnvio = (prueba) => ({ prueba, asunto: b.asunto, cuerpo: b.cuerpo, idioma: b.idioma,
+    const firma = el("input", { type: "checkbox", id: "co-firma", checked: b.firma }); firma.onchange = () => { b.firma = firma.checked; };
+    const cuerpoEnvio = (prueba) => ({ prueba, asunto: b.asunto, cuerpo: b.cuerpo, idioma: b.idioma, firma: b.firma,
       destino: { tipo: b.tipo, slug: b.slug, estados: Object.entries(b.estados).filter(([, x]) => x).map(([k]) => k), texto: b.correos } });
     const enviarBtn = el("button", { type: "button", className: "boton", textContent: "Enviar" });
     enviarBtn.onclick = async () => {
@@ -82,11 +83,12 @@
       el("p", { className: "vacio", style: "margin-top:0", textContent: "Sale desde la cuenta de Dinámica Porteña; las respuestas llegan al correo del grupo (pestaña Plantillas)." }),
       el("div", { className: "tarjeta" },
         el("div", { className: "fila2" }, el("div", { className: "campo" }, el("label", { htmlFor: "co-tipo", textContent: "Destinatarios" }), tipo),
-          el("div", { className: "campo" }, el("label", { htmlFor: "co-idioma", textContent: "Idioma del pie del correo" }), idioma)),
+          el("div", { className: "campo" }, el("label", { htmlFor: "co-idioma", textContent: "Idioma de la firma y del pie del correo" }), idioma)),
         filaEvento, filaCorreos, total,
         el("div", { className: "campo" }, el("label", { htmlFor: "co-asunto", textContent: "Asunto" }), asunto),
         el("div", { className: "campo" }, el("label", { htmlFor: "co-cuerpo", textContent: "Texto" }), cuerpo,
           el("div", { className: "ayuda", textContent: "Texto simple: deje una línea en blanco entre párrafos. Las direcciones web (https://…) quedan como enlaces." })),
+        el("label", { className: "casilla" }, firma, el("span", { textContent: "Agregar la firma de Dinámica Porteña al final (se edita en Plantillas → Textos de los correos → «Firma de los correos escritos en el panel»)" })),
         el("p", { style: "display:flex;gap:8px;flex-wrap:wrap" },
           el("button", { type: "button", className: "boton sec", textContent: "Enviarme una prueba", onclick: async () => {
             try { const r = await DP.api("/api/admin/mensajes", { method: "POST", body: cuerpoEnvio(true) }); aviso("ok", `Prueba enviada a ${r.prueba}.`); } catch (e) { aviso("error", e.message); } } }),

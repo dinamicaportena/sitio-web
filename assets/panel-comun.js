@@ -46,10 +46,10 @@ window.DP = (function () {
     return hora ? `${f} · ${hora} ${idioma === "es" ? "hrs" : "h"}` : f;
   }
 
-  // Muestra el texto con fórmulas LaTeX ($...$) renderizadas por MathJax.
+  // Muestra el texto como se verá en el sitio y en el afiche: fórmulas LaTeX ($…$, \[…\]) con MathJax y comandos de texto (\textbf, \emph, ~, …).
   let pendiente = null;
   function vistaPrevia(elemento, textoFuente) {
-    elemento.textContent = textoFuente || "";
+    if (window.DPTexto) DPTexto.escribir(elemento, textoFuente || ""); else elemento.textContent = textoFuente || "";   // mismo intérprete que el afiche
     clearTimeout(pendiente);
     pendiente = setTimeout(() => {
       if (window.MathJax && MathJax.typesetPromise) {
