@@ -20,16 +20,10 @@ const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;"
 const urlAbs = (ruta, origen) => (/^https?:\/\//.test(ruta) ? ruta : origen + ruta);
 const sustituir = (html, re, valor) => (re.test(html) ? html.replace(re, valor) : html);
 
-// El slug se saca de la URL a mano (no de context.params): al llegar reescrita desde el redirect de netlify.toml,
-// el enrutador de Netlify no siempre completa context.params para funciones invocadas por su ruta interna.
-function slugDeUrl(req) {
-  let partes = new URL(req.url).pathname.split("/").filter(Boolean);
-  if (partes[0] === ".netlify") partes = partes.slice(3);   // .netlify, functions, evento-pagina
-  return { slug: partes[0] || "", lang: partes[1] === "en" ? "en" : "es" };
-}
-
 export default async (req, context) => {
-  const { slug, lang } = slugDeUrl(req);
+  const url = new URL(req.url);
+  const slug = url.searchParams.get("slug") || "";          // lo manda el redirect de netlify.toml como «?slug=…»
+  const lang = url.searchParams.get("lang") === "en" ? "en" : "es";
   let html = PLANTILLA[lang] || PLANTILLA.es;
   try {
     const reg = slug ? await leerRegistro(slug) : null;
@@ -40,7 +34,7 @@ export default async (req, context) => {
       const titulo = `${nombre} — Dinámica Porteña`;
       const desc = String(tr(c.objetivo, lang) || "").split(/\n{2,}/)[0].slice(0, 200) ||
         (lang === "en" ? "Event page of the Dinámica Porteña group." : "Página de evento del grupo Dinámica Porteña.");
-      const origen = new URL(req.url).origin;
+      const origen = url.origin;
       html = sustituir(html, /<title>[^<]*<\/title>/, `<title>${esc(titulo)}</title>`);
       html = sustituir(html, /(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`);
       html = sustituir(html, /(<meta property="og:title" content=")[^"]*(")/, `$1${esc(titulo)}$2`);
@@ -54,4 +48,4 @@ export default async (req, context) => {
   } catch { /* se sirve la plantilla sin personalizar */ }
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" } });
 };
-export const config = { path: ["/.netlify/functions/evento-pagina/:slug", "/.netlify/functions/evento-pagina/:slug/:lang"] };
+// Sin «path»: se llega solo a través de los redirects de netlify.toml, que pasan la dirección del evento como «?slug=…».
