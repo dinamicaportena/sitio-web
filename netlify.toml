@@ -101,10 +101,10 @@
 
 [[redirects]]
   from = "/:slug/en"
-  to = "/.netlify/functions/evento-pagina?slug=:slug&lang=en"
+    to = "/.netlify/functions/evento-pagina"
   status = 200
 
 [[redirects]]
   from = "/:slug"
-  to = "/.netlify/functions/evento-pagina?slug=:slug"
+    to = "/.netlify/functions/evento-pagina"
   status = 200
