@@ -23,6 +23,17 @@ const sustituir = (html, re, valor) => (re.test(html) ? html.replace(re, valor) 
 export default async (req, context) => {
   const slug = context.params?.slug, lang = context.params?.lang === "en" ? "en" : "es";
   let html = PLANTILLA[lang] || PLANTILLA.es;
+  const depurar = new URL(req.url).searchParams.get("depurar") === "1";
+  if (depurar) {
+    let detalle = {};
+    try {
+      detalle.slug = slug; detalle.params = context.params;
+      const reg = slug ? await leerRegistro(slug) : null; detalle.reg = reg;
+      const guardado = reg ? await contenidoStore().get(slug, { type: "json" }) : null; detalle.tieneContenido = Boolean(guardado?.contenido);
+      detalle.afiche = guardado?.contenido?.afiche;
+    } catch (e) { detalle.error = e.message; detalle.stack = e.stack; }
+    return new Response(JSON.stringify(detalle, null, 2), { headers: { "Content-Type": "application/json" } });
+  }
   try {
     const reg = slug ? await leerRegistro(slug) : null;
     const guardado = reg ? await contenidoStore().get(slug, { type: "json" }) : null;
