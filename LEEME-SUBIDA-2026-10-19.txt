@@ -1,0 +1,190 @@
+SUBIDA 2026-10-19 — Mejoras al módulo de páginas de evento (LXIV Coloquio)
+================================================================================
+
+Qué cambia
+----------
+Todo lo que sigue es código del módulo general de «páginas de evento» (afecta a
+CUALQUIER evento, no solo al 64coloquio), salvo el banner y el afiche, que son
+archivos propios de ese evento.
+
+1. LaTeX en conferencistas y programa
+   Los títulos y resúmenes de los conferencistas, y los títulos de los bloques
+   del programa, ahora interpretan los mismos comandos LaTeX que el resto del
+   sitio (\textbf, acentos, ~, --, $…$, etc.), usando el mismo intérprete que ya
+   se usa en las charlas del seminario.
+
+2. Comité científico/organizador
+   - Botón «Copiar el comité científico aquí» en el comité organizador.
+   - Nuevo interruptor «Un solo comité para ambas funciones»: si se activa, la
+     página publica un solo comité combinado («Comité científico y
+     organizador») en vez de los dos por separado. Ya quedó activado en el
+     64coloquio.
+   - Botón «Invitar al panel» directo en cada fila con correo: suma a esa
+     persona como colaborador/a del panel sin pasar por la pestaña
+     Administradores. El correo de invitación, si la fila viene de un comité,
+     saluda por nombre y agradece formar parte del comité (en tuteo), en vez
+     del texto genérico de administración.
+
+3. Aviso de secciones ocultas
+   Si alguna de las 7 secciones de la página (Objetivo, Conferencistas, etc.)
+   está oculta, ahora aparece un aviso arriba, junto al estado de publicación,
+   para no publicar la página vacía por error.
+
+4. Nombre corto de la cabecera
+   Ya no nace copiando el nombre completo del evento; si se deja vacío, la
+   página usa el nombre completo automáticamente.
+
+5. Imagen de portada (banner) y afiche
+   Pestaña General → «Identidad del evento»: dos campos nuevos.
+   - «Imagen de portada (banner)»: fondo del encabezado de la página, con una
+     capa oscura para que el texto en blanco se lea bien.
+   - «Afiche»: agrega un botón «Descargar afiche» en la página, se usa como
+     imagen al compartir el enlace (WhatsApp, redes — requiere el punto 6) y se
+     adjunta automáticamente en los correos que se envíen a los inscritos del
+     evento.
+   Ya quedaron cargados para el 64coloquio (assets/eventos/64coloquio/).
+
+6. Imagen al compartir el enlace (Open Graph)
+   Cambio técnico: dinamicaportena.cl/<evento>/ y /<evento>/en ahora pasan por
+   una función nueva (evento-pagina.mjs) que completa el título, la
+   descripción y la imagen para compartir en el servidor, antes de entregar la
+   página (la función deja la plantilla sin tocar si algo falla, así que no
+   hay riesgo de que la página deje de cargar). Es el cambio con más partes
+   nuevas de esta subida: conviene probarlo apenas quede publicado (paso 5 de
+   «Cómo probar» abajo).
+
+7. Correos con banner como cabecera
+   Los correos a la lista de Dinámica Porteña y a los inscritos de un evento
+   ahora se envían también en HTML con el banner como cabecera, si el evento
+   tiene uno cargado. Sin banner, siguen siendo texto plano como siempre.
+
+8. Plantilla «Save the date»
+   Pestaña Correos del evento: botón que precarga asunto y texto para avisar
+   la fecha a la lista de Dinámica Porteña, con el nombre, las fechas y el
+   lugar ya cargados del evento. Queda editable antes de enviar.
+
+9. Reordenar los comités arrastrando
+   En las tablas de Comité científico y Comité organizador, cada fila tiene un
+   asa (⠿) a la izquierda: se puede arrastrar una fila sobre otra para cambiar
+   el orden en que aparecen en la página. Los demás (auspiciantes, enlaces del
+   menú) siguen sin esta opción.
+
+10. Iconos de información
+   Las columnas Rol (ES), Correo y Teléfono de los comités tienen un icono
+   «i» junto al título: al pasar el mouse explica qué significa ese campo y
+   que, si hay correo o teléfono, se publican en la página del evento.
+
+11. Charla o póster, con resumen
+   El formulario de inscripción ya no pregunta solo «¿desea presentar una
+   charla o póster?» con una casilla: ahora es una lista desplegable
+   (Charla / Póster / No), y si elige una de las dos aparece también un campo
+   de Resumen (además del título). Se guarda, se ve en el panel (Inscripciones)
+   y se exporta en el CSV. Compatible con inscripciones anteriores (si las
+   hubiera): siguen mostrándose igual que antes.
+
+12. Vista previa del formulario de inscripción para administradores
+   Antes, nadie veía el formulario de inscripción hasta que estuviera abierto
+   al público (ni siquiera los administradores). Ahora, cualquier
+   administrador del evento (central o colaborador/a invitado desde el
+   comité) ve los campos del formulario con un aviso «Vista previa» aunque la
+   inscripción todavía esté cerrada, para poder revisarlo y opinar si falta
+   algún campo. No se puede enviar de verdad mientras siga cerrada (el envío
+   real sigue bloqueado del lado del servidor).
+
+13. Aviso de LaTeX en el formulario
+   Los campos «Título propuesto» y «Resumen propuesto» del formulario de
+   inscripción ahora dicen que se puede usar LaTeX (antes solo lo decía el
+   Resumen).
+
+No incluye (ya se activó directamente en el sitio en vivo, no requiere subir
+código): el comité científico/organizador con sus tres integrantes, el
+contenido general del 64coloquio (fechas, objetivo, etc.), ni la activación
+del interruptor de comité único.
+
+IMPORTANTE — tercer intento
+-----------------------------
+Van dos cosas corregidas desde el primer paquete: (a) la primera subida no
+incluyó todos los archivos (GitHub no completó la carga); (b) evento-pagina.mjs
+tenía un error — dependía de un dato que Netlify no estaba completando para
+leer la dirección del evento desde la URL; ya se corrigió para leerla
+directamente del enlace, sin depender de eso.
+Para evitar que la subida vuelva a quedar incompleta, en el paso 2 de «Cómo
+subir», antes de hacer clic en «Commit changes», revise la lista de archivos
+que GitHub muestra en «Changes» (se despliega debajo del cuadro de arrastre):
+tienen que aparecer exactamente estos 15 archivos con estas rutas (sin la
+carpeta Subida-2026-10-19 por delante):
+  assets/evento.css
+  assets/evento.js
+  assets/eventos/64coloquio/afiche.jpg
+  assets/eventos/64coloquio/banner.jpg
+  evento/admin/admin.css
+  evento/admin/admin.js
+  evento/index-en.html
+  evento/index.html
+  netlify.toml
+  netlify/functions/envios-background.mjs
+  netlify/functions/ev-admin.mjs
+  netlify/functions/ev-publico.mjs
+  netlify/functions/evento-pagina.mjs
+  netlify/lib/ev.mjs
+  netlify/lib/mensajes.mjs
+Si GitHub muestra menos de 15, o alguna ruta sale con «Subida-2026-10-19/»
+adelante, no haga commit: borre los archivos agregados (la «x» de cada uno en
+esa lista) y vuelva a arrastrar.
+
+Archivos (15): carpeta Subida-2026-10-19
+  evento/index.html, evento/index-en.html          (cargan el intérprete LaTeX, el botón de afiche, charla/póster/resumen)
+  assets/evento.js                                  (LaTeX, comité único, banner, afiche, charla/póster/resumen, vista previa del formulario)
+  assets/evento.css                                 (estilos del banner)
+  evento/admin/admin.js                             (todos los cambios del panel: comités, arrastrar, iconos, charla/póster/resumen)
+  evento/admin/admin.css                            (estilos del arrastre y los iconos de información)
+  netlify/lib/ev.mjs                                (nombre corto vacío, correo de invitación por comité)
+  netlify/lib/mensajes.mjs                          (adjunto del afiche, banner en HTML, helpers)
+  netlify/functions/envios-background.mjs           (adjuntos/HTML por URL pública, no solo desde Netlify Blobs)
+  netlify/functions/ev-admin.mjs                     (invitación con nombre/comité, alta manual con charla/póster/resumen, envía «origen» a la prueba de correo)
+  netlify/functions/ev-publico.mjs                   (inscripción con charla/póster/resumen; indica si quien mira es administrador)
+  netlify/functions/evento-pagina.mjs                (nueva: título/descripción/imagen para compartir)
+  netlify.toml                                       (incluye las plantillas HTML en el paquete de la función; /:slug y /:slug/en pasan por evento-pagina)
+  assets/eventos/64coloquio/banner.jpg, afiche.jpg   (imágenes del 64coloquio)
+
+Cómo subir (un commit, 15 créditos)
+-----------------------------------
+1. GitHub → dinamicaportena/sitio-web → rama main → Add file → Upload files.
+2. Abra la carpeta Subida-2026-10-19 y arrastre TODO SU CONTENIDO (las carpetas
+   assets, evento, netlify y el archivo netlify.toml), no la carpeta misma,
+   para que los archivos queden en la raíz y reemplacen a los anteriores.
+3. Commit directly to the main branch → Commit changes.
+4. Netlify → Deploys: espere a que la publicación termine como «Published».
+
+Cómo probar
+-----------
+1. dinamicaportena.netlify.app/64coloquio/ → el encabezado debe verse con el
+   banner de fondo y texto en blanco; debe aparecer el botón «Descargar
+   afiche» junto a «Inscripción» y «Ver programa».
+2. Panel del evento → Organización → el interruptor «Un solo comité» debe
+   estar activado y mostrar una sola tabla con Godofredo, Kendry y Carlos;
+   debe verse el botón «Invitar al panel» en esas filas.
+3. Panel del evento → General → debe seguir mostrando los campos «Imagen de
+   portada» y «Afiche» ya cargados.
+4. Panel del evento → Correos → botón «Usar plantilla: Save the date» debe
+   precargar el asunto y el texto; «Enviarme una prueba» debe llegar con el
+   banner arriba (si se usa con destinatario «Lista» o «Inscritos»).
+5. Ver código fuente (Ctrl/Cmd+U) de dinamicaportena.netlify.app/64coloquio/:
+   debe aparecer <meta property="og:image" content="…/assets/eventos/64coloquio/afiche.jpg">
+   y el <title> debe decir «LXIV Coloquio Nacional de Sistemas Dinámicos —
+   Dinámica Porteña» (no el genérico «Evento — Dinámica Porteña»). Si no
+   aparece, avise para seguir revisando.
+6. Cualquier otro evento (o uno de prueba) debe seguir funcionando igual que
+   antes (sin banner, sin afiche, sin comité único): es el comportamiento por
+   defecto si esos campos quedan vacíos.
+7. Panel del evento → Organización: arrastrar una fila del comité (desde el
+   ⠿) sobre otra debe cambiar el orden; el ícono «i» junto a Rol/Correo/
+   Teléfono debe mostrar su explicación al pasar el mouse.
+8. dinamicaportena.netlify.app/64coloquio/#inscripcion, con sesión de
+   administrador iniciada: debe verse el formulario completo con el aviso
+   «Vista previa» y la lista desplegable «¿Deseas presentar una charla o un
+   póster?» (con el campo Resumen apareciendo al elegir Charla o Póster, y
+   ambos con la nota de que se puede usar LaTeX). Sin sesión, debe seguir sin
+   verse nada (inscripción cerrada).
+
+No contiene datos personales nuevos. No subir el Excel del registro.

@@ -20,20 +20,17 @@ const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;"
 const urlAbs = (ruta, origen) => (/^https?:\/\//.test(ruta) ? ruta : origen + ruta);
 const sustituir = (html, re, valor) => (re.test(html) ? html.replace(re, valor) : html);
 
+// El slug se saca de la URL a mano (no de context.params): al llegar reescrita desde el redirect de netlify.toml,
+// el enrutador de Netlify no siempre completa context.params para funciones invocadas por su ruta interna.
+function slugDeUrl(req) {
+  let partes = new URL(req.url).pathname.split("/").filter(Boolean);
+  if (partes[0] === ".netlify") partes = partes.slice(3);   // .netlify, functions, evento-pagina
+  return { slug: partes[0] || "", lang: partes[1] === "en" ? "en" : "es" };
+}
+
 export default async (req, context) => {
-  const slug = context.params?.slug, lang = context.params?.lang === "en" ? "en" : "es";
+  const { slug, lang } = slugDeUrl(req);
   let html = PLANTILLA[lang] || PLANTILLA.es;
-  const depurar = new URL(req.url).searchParams.get("depurar") === "1";
-  if (depurar) {
-    let detalle = {};
-    try {
-      detalle.slug = slug; detalle.params = context.params;
-      const reg = slug ? await leerRegistro(slug) : null; detalle.reg = reg;
-      const guardado = reg ? await contenidoStore().get(slug, { type: "json" }) : null; detalle.tieneContenido = Boolean(guardado?.contenido);
-      detalle.afiche = guardado?.contenido?.afiche;
-    } catch (e) { detalle.error = e.message; detalle.stack = e.stack; }
-    return new Response(JSON.stringify(detalle, null, 2), { headers: { "Content-Type": "application/json" } });
-  }
   try {
     const reg = slug ? await leerRegistro(slug) : null;
     const guardado = reg ? await contenidoStore().get(slug, { type: "json" }) : null;
