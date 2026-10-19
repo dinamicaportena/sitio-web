@@ -24,6 +24,10 @@ export default async (req, context) => {
   const url = new URL(req.url);
   const slug = url.searchParams.get("slug") || "";          // lo manda el redirect de netlify.toml como «?slug=…»
   const lang = url.searchParams.get("lang") === "en" ? "en" : "es";
+  if (url.searchParams.get("depurar") === "1") {
+    const h = {}; for (const [k, v] of req.headers.entries()) h[k] = v;
+    return new Response(JSON.stringify({ reqUrl: req.url, slug, lang, search: Object.fromEntries(url.searchParams), headers: h }, null, 2), { headers: { "Content-Type": "application/json" } });
+  }
   let html = PLANTILLA[lang] || PLANTILLA.es;
   try {
     const reg = slug ? await leerRegistro(slug) : null;
