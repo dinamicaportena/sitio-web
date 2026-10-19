@@ -13,6 +13,7 @@ import { correosActivos } from "../lib/suscriptores.mjs";
 
 const NIVELES = ["investigador", "postdoc", "doctorado", "magister", "pregrado", "otro"];
 const ESTADOS = ["pendiente", "aprobada", "rechazada"];
+const TIPOS_PRES = ["charla", "poster"];
 
 export default async (req, context) => {
   let slug; try { slug = validarSlug(context.params?.slug); } catch { return error("El evento no existe.", 404); }
@@ -61,7 +62,8 @@ export default async (req, context) => {
       if (a && !c.reenviar) return error("Ese correo ya es administrador de este evento.", 409);
       const nuevo = !a;
       if (nuevo) { a = { email, rol: "colaborador", agregado: new Date().toISOString(), agregadoPor: p.email }; reg.admins.push(a); await registroStore().setJSON(slug, reg); }
-      const invitacion = await invitarAdmin({ origen, slug, nombre: await nombreEvento(), email, rol: a.rol, por: p.email });
+      const comite = ["cientifico", "organizador", "ambos"].includes(c.comite) ? c.comite : null;
+      const invitacion = await invitarAdmin({ origen, slug, nombre: await nombreEvento(), email, rol: a.rol, por: p.email, nombrePersona: texto(c.nombrePersona, 200), comite });
       return json({ admins: reg.admins, invitacion }, nuevo ? 201 : 200);
     }
     if (req.method === "DELETE") {
@@ -85,7 +87,7 @@ export default async (req, context) => {
         const datos = limpiarMensaje({ ...c, destino: { ...(c.destino || {}), slug } }, { permitidos: ["inscritos", "lista"] });
         const contacto = correo((await contenidoStore().get(slug, { type: "json" }))?.contenido?.contacto?.email);
         const responderA = emailValido(contacto) ? contacto : p.email;      // las respuestas llegan al contacto del evento
-        if (c.prueba) { await enviarPrueba({ ...datos, slug, responderA }, p.email); return json({ ok: true, prueba: p.email }); }
+        if (c.prueba) { await enviarPrueba({ ...datos, slug, responderA }, p.email, origen); return json({ ok: true, prueba: p.email }); }
         if (!puedeAdministrar(p)) return error("Solo el responsable del evento puede enviar correos; usted puede enviarse una prueba.", 403);
         const m = await crearMensaje({ datos, autor: p.email, slug, origen, responderA, porAprobar: datos.destino.tipo === "lista" && p.rol !== "central" });
         return json(resumenMensaje(m), 201);
@@ -109,8 +111,9 @@ export default async (req, context) => {
       const nuevoId = email ? sha256(email).slice(0, 24) : tokenAleatorio(12);
       if (await s.get(`${slug}/${nuevoId}`, { type: "json" })) return error("Ya existe una inscripción con ese correo.", 409);
       const ahora = new Date().toISOString();
+      const tipoPresentacion = TIPOS_PRES.includes(c.tipoPresentacion) ? c.tipoPresentacion : "";
       const ficha = { id: nuevoId, estado: ESTADOS.includes(c.estado) ? c.estado : "aprobada", creada: ahora, actualizada: ahora, nombre, institucion, pais, email,
-        nivel: NIVELES.includes(c.nivel) ? c.nivel : "otro", charla: Boolean(c.charla), tituloCharla: texto(c.tituloCharla, 250), observaciones: texto(c.observaciones, 600),
+        nivel: NIVELES.includes(c.nivel) ? c.nivel : "otro", charla: Boolean(tipoPresentacion), tipoPresentacion, tituloCharla: texto(c.tituloCharla, 250), resumen: texto(c.resumen, 3000), observaciones: texto(c.observaciones, 600),
         publicar: Boolean(c.publicar), suscribir: Boolean(c.suscribir) && Boolean(email), idioma: "es", ingresadaPor: p.email };
       if (ficha.estado === "aprobada" && ficha.suscribir) {
         try { ficha.suscripcion = (await suscribirDesdeEvento({ email, nombre, slug, por: p.email })) ? "suscrita" : "ya estaba o se dio de baja"; }

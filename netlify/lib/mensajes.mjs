@@ -16,12 +16,13 @@ const ESTADOS_INSC = ["aprobada", "pendiente", "rechazada"];
 const leer = (n) => process.env[n] ?? globalThis.Netlify?.env?.get?.(n);
 export const correosAviso = () => (leer("AVISO_EMAILS") || leer("ADMIN_EMAILS") || "").split(",").map((x) => x.trim()).filter(Boolean);
 
-// ---------- Texto → HTML (párrafos y enlaces) ----------
+// ---------- Texto → HTML (párrafos y enlaces; banner opcional como cabecera) ----------
 const escHtml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-export function htmlDeTexto(cuerpo) {
+export function htmlDeTexto(cuerpo, { banner } = {}) {
   const enlazar = (s) => escHtml(s).replace(/\bhttps?:\/\/[^\s<>"]+[^\s<>".,;:!?)»]/g, (u) => `<a href="${u}" style="color:#1a4269">${u}</a>`);
   const parrafos = String(cuerpo).split(/\n\s*\n/).map((p) => `<p style="margin:0 0 14px;font:15px/1.5 Arial,Helvetica,sans-serif;color:#26292c">${enlazar(p).replace(/\n/g, "<br>")}</p>`);
-  return `<div style="max-width:640px">${parrafos.join("")}</div>`;
+  const img = banner ? `<img src="${escHtml(banner)}" alt="" width="640" style="width:100%;max-width:640px;height:auto;display:block;margin:0 0 20px;border:0">` : "";
+  return `<div style="max-width:640px">${img}${parrafos.join("")}</div>`;
 }
 
 // ---------- Validación ----------
@@ -47,7 +48,20 @@ export function limpiarMensaje(c, { permitidos }) {
 }
 
 // ---------- Destinatarios ----------
-const nombreEvento = async (slug) => (await contenidoStore().get(slug, { type: "json" }))?.contenido?.nombre?.es || slug;
+const contenidoEvento = async (slug) => (await contenidoStore().get(slug, { type: "json" }))?.contenido;
+const nombreEvento = async (slug) => (await contenidoEvento(slug))?.nombre?.es || slug;
+// Afiche del evento (si tiene uno cargado en «Identidad del evento»): se adjunta en los correos a sus inscritos.
+const urlAbs = (ruta, origen) => (/^https?:\/\//.test(ruta) ? ruta : origen + ruta);
+async function adjuntoAfiche(slug, nombreEv, origen) {
+  const c = await contenidoEvento(slug);
+  if (!c?.afiche) return [];
+  return [{ nombre: `Afiche - ${nombreEv}.jpg`, tipo: "image/jpeg", url: urlAbs(c.afiche, origen) }];
+}
+// Banner del evento (si tiene uno cargado en «Identidad del evento»): cabecera de los correos en HTML.
+async function bannerEvento(slug, origen) {
+  const c = await contenidoEvento(slug);
+  return c?.imagenPortada ? urlAbs(c.imagenPortada, origen) : null;
+}
 async function inscritos(slug, estados) {
   const s = inscStore(), { blobs } = await s.list({ prefix: slug + "/" });
   const todas = (await Promise.all(blobs.map((b) => s.get(b.key, { type: "json" })))).filter(Boolean);
@@ -93,27 +107,32 @@ export async function despacharMensaje(m, origen) {
   const para = await destinatarios(m.destino);
   if (!para.length) throw new Error("No hay destinatarios para este correo.");
   const ev = m.slug ? await nombreEvento(m.slug) : null;
+  const banner = m.slug ? await bannerEvento(m.slug, origen) : null;
   const remitenteNombre = ev ? `${ev} · Dinámica Porteña` : "Dinámica Porteña";
-  const base = { tipo: "mensaje", idioma: m.idioma, asunto: m.asunto, destinatarios: para, remitenteNombre, responderA: m.responderA || undefined, mensaje: m.id };
+  const adjuntos = m.destino.tipo === "inscritos" ? await adjuntoAfiche(m.destino.slug, ev || await nombreEvento(m.destino.slug), origen) : [];
+  const base = { tipo: "mensaje", idioma: m.idioma, asunto: m.asunto, destinatarios: para, remitenteNombre, responderA: m.responderA || undefined, mensaje: m.id, adjuntos };
   let trabajo;
-  if (m.destino.tipo === "lista") trabajo = await encolarEnvio({ ...base, texto: cuerpo, html: htmlDeTexto(cuerpo) }, origen);
+  if (m.destino.tipo === "lista") trabajo = await encolarEnvio({ ...base, texto: cuerpo, html: htmlDeTexto(cuerpo, { banner }) }, origen);
   else {
     const pie = m.destino.tipo === "inscritos" ? PIE.inscritos[m.idioma](ev || await nombreEvento(m.destino.slug)) : PIE.correos[m.idioma]();
-    const personal = { asunto: m.asunto, texto: cuerpo + pie, responderA: m.responderA || undefined };
+    const personal = { asunto: m.asunto, texto: cuerpo + pie, responderA: m.responderA || undefined, html: banner ? htmlDeTexto(cuerpo + pie, { banner }) : undefined };
     trabajo = await encolarEnvio({ ...base, texto: "", porDestinatario: Object.fromEntries(para.map((p) => [p, personal])) }, origen);
   }
   return { total: para.length, trabajo: trabajo.id };
 }
 
 // Prueba: el mismo correo solo a quien lo escribe, marcado [PRUEBA]
-export async function enviarPrueba(m, a) {
+export async function enviarPrueba(m, a, origen) {
   if (!correoConfigurado()) throw new Error("El envío de correos no está configurado.");
   const ev = m.slug ? await nombreEvento(m.slug) : null;
+  const banner = m.slug ? await bannerEvento(m.slug, origen) : null;
   const pie = m.destino.tipo === "lista" ? (m.idioma === "en" ? "\n\n—\n(Each subscriber receives here their personal unsubscribe link.)" : "\n\n—\n(Aquí cada suscriptor recibe su enlace personal para darse de baja.)")
     : m.destino.tipo === "inscritos" ? PIE.inscritos[m.idioma](ev || await nombreEvento(m.destino.slug)) : PIE.correos[m.idioma]();
   const cuerpo = await conFirma(m);
-  await enviar({ para: a, asunto: "[PRUEBA] " + m.asunto, texto: cuerpo + pie, html: m.destino.tipo === "lista" ? htmlDeTexto(cuerpo + pie) : undefined,
-                 responderA: m.responderA || undefined, remitenteNombre: ev ? `${ev} · Dinámica Porteña` : "Dinámica Porteña" });
+  const adjuntos = m.destino.tipo === "inscritos" ? await adjuntoAfiche(m.destino.slug, ev || await nombreEvento(m.destino.slug), origen) : [];
+  const html = (m.destino.tipo === "lista" || banner) ? htmlDeTexto(cuerpo + pie, { banner }) : undefined;
+  await enviar({ para: a, asunto: "[PRUEBA] " + m.asunto, texto: cuerpo + pie, html,
+                 responderA: m.responderA || undefined, remitenteNombre: ev ? `${ev} · Dinámica Porteña` : "Dinámica Porteña", adjuntos });
 }
 
 // Crea y, según el caso, envía o deja por aprobar. Devuelve el mensaje guardado.

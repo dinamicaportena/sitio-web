@@ -11,6 +11,11 @@ section[id]{scroll-margin-top:56px}
 
 /* Portada del evento */
 .hero.evento .wrap{padding:56px 20px 48px}
+.hero.evento{background-size:cover;background-position:center}
+.hero.evento.con-imagen .eyebrow,.hero.evento.con-imagen h1,.hero.evento.con-imagen .hero-meta,.hero.evento.con-imagen .hero-meta .v,.hero.evento.con-imagen .estado-insc{color:#fff}
+.hero.evento.con-imagen .hero-meta .k{color:rgba(255,255,255,.75)}
+.hero.evento.con-imagen .btn.secondary{color:#fff;border-color:#fff}
+.hero.evento.con-imagen .btn.secondary:hover{background:#fff;color:var(--azul-oscuro)}
 .hero .eyebrow{font-family:'Roboto Condensed',Arial,sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--rojo-texto);margin:0 0 10px}
 .hero.evento h1{font-size:38px;max-width:760px}
 .hero-meta{display:flex;flex-wrap:wrap;gap:10px 28px;margin:6px 0 26px;font-size:16px;color:var(--texto)}

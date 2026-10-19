@@ -108,15 +108,22 @@
         bi("Texto de la sección", ins, "texto", { area: true })),
       bloque("Contacto", campo("Correo de contacto del evento", cont, "email", { tipo: "email" })),
       bloque("Identidad del evento",
-        el("p", { className: "nota-ayuda", textContent: "Nombre corto de la cabecera, institución anfitriona, texto sobre el título y los enlaces del menú y del pie. " }),
+        el("p", { className: "nota-ayuda", textContent: "Nombre corto de la cabecera, institución anfitriona, texto sobre el título y los enlaces del menú y del pie. Si deja el nombre corto vacío, se usa el nombre completo del evento." }),
         bi("Nombre corto (cabecera)", D, "marca"), bi("Institución anfitriona", D, "institucion"), bi("Texto sobre el título", D, "eyebrow"),
+        campo("Imagen de portada (banner, opcional)", D, "imagenPortada", { ph: "https://… o /assets/…jpg", ayuda: "Se muestra como fondo del encabezado, con una capa oscura para que el texto se lea bien. Vacío = fondo liso." }),
+        campo("Afiche (opcional)", D, "afiche", { ph: "https://… o /assets/…jpg", ayuda: "Agrega un botón «Descargar afiche» en la página, se usa como imagen al compartir el enlace (redes, WhatsApp) y se adjunta en los correos a los inscritos de este evento." }),
         el("h4", { textContent: "Enlaces del menú superior", style: "margin:14px 0 6px" }),
         tablaFilas(enlaces, [["Texto (ES)", "texto", "es"], ["Text (EN)", "texto", "en"], ["Enlace (https://…)", "url"]], () => ({ texto: { es: "", en: "" }, url: "" }), "+ Agregar enlace"),
         el("h4", { textContent: "Enlace del pie de página", style: "margin:14px 0 6px" }),
         bi("Texto del enlace", D.pieEnlace, "texto"), campo("Dirección del enlace", D.pieEnlace, "url", { ph: "https://… (vacío = sin enlace)" })),
       bloque("Secciones de la página",
         el("p", { className: "nota-ayuda", textContent: "Elija qué secciones se muestran y, si lo desea, cambie su título (vacío = título estándar)." }),
-        ...SECCIONES.map(([id, nombre]) => { const k = ((D.secciones = D.secciones || {})[id] = D.secciones[id] || { visible: true, titulo: { es: "", en: "" } }); return el("div", { className: "sec-fila" }, casilla(nombre, k, "visible"), bi("Título", k, "titulo")); })),
+        ...SECCIONES.map(([id, nombre]) => {
+          const k = ((D.secciones = D.secciones || {})[id] = D.secciones[id] || { visible: true, titulo: { es: "", en: "" } });
+          const c = casilla(nombre, k, "visible");
+          c.querySelector("input").addEventListener("change", () => pintarEstado());
+          return el("div", { className: "sec-fila" }, c, bi("Título", k, "titulo"));
+        })),
       bloque("Copia de seguridad",
         el("p", { className: "nota-ayuda", textContent: "Descargue el contenido actual como archivo, o cargue uno anterior (quedará como cambio sin guardar hasta que pulse «Guardar cambios»)." }),
         el("div", { className: "acciones-seccion" },
@@ -201,33 +208,89 @@
     return v;
   }
 
-  function tablaFilas(arr, columnas, nuevo, textoAgregar) {
-    const t = el("table", { className: "mini-tabla" }, el("thead", {}, el("tr", {}, ...columnas.map((c) => el("th", { textContent: c[0] })), el("th"))));
+  const icono = (texto) => el("span", { className: "icono-info", title: texto, textContent: "i" });
+  function tablaFilas(arr, columnas, nuevo, textoAgregar, extra, arrastrable) {
+    const t = el("table", { className: "mini-tabla" }, el("thead", {}, el("tr", {},
+      arrastrable ? el("th", { style: "width:22px" }) : null,
+      ...columnas.map((c) => el("th", {}, c[0], c[3] ? icono(c[3]) : null)),
+      extra ? el("th") : null, el("th"))));
     const tb = el("tbody");
+    let arrastrando = null;
     arr.forEach((fila, i) => {
       const tr = el("tr");
+      if (arrastrable) {
+        tr.draggable = true;
+        tr.append(el("td", { className: "asa-arrastre", title: "Arrastrar para reordenar", textContent: "⠿" }));
+        tr.addEventListener("dragstart", (ev) => { arrastrando = i; tr.classList.add("arrastrando"); ev.dataTransfer.effectAllowed = "move"; });
+        tr.addEventListener("dragend", () => { tr.classList.remove("arrastrando"); arrastrando = null; });
+        tr.addEventListener("dragover", (ev) => { ev.preventDefault(); tr.classList.add("sobre-arrastre"); });
+        tr.addEventListener("dragleave", () => tr.classList.remove("sobre-arrastre"));
+        tr.addEventListener("drop", (ev) => {
+          ev.preventDefault(); tr.classList.remove("sobre-arrastre");
+          if (arrastrando === null || arrastrando === i) return;
+          const [mov] = arr.splice(arrastrando, 1); arr.splice(i, 0, mov);
+          marcar(); dibujar();
+        });
+      }
       columnas.forEach(([, key, bil]) => {
         const obj = bil ? asegurarBi(fila, key) : fila, k = bil || key;
         const inp = el("input", { type: "text", value: obj[k] || "" }); inp.oninput = () => { obj[k] = inp.value; marcar(); }; tr.append(el("td", {}, inp));
       });
+      if (extra) tr.append(el("td", {}, extra(fila) || ""));
       tr.append(el("td", {}, el("button", { type: "button", className: "quitar", textContent: "×", title: "Eliminar", onclick: () => quitar(arr, i, "esta fila") })));
       tb.append(tr);
     });
     t.append(tb);
     return el("div", {}, t, el("button", { type: "button", className: "boton sec peq", textContent: textoAgregar, onclick: () => { arr.push(nuevo()); marcar(); dibujar(); } }));
   }
-  function vOrganizacion() {
+  async function vOrganizacion() {
     const cie = (D.cientifico = D.cientifico || []), org = (D.organizadores = D.organizadores || []), aus = (D.auspiciantes = D.auspiciantes || []), part = (D.participantes = D.participantes || []);
     const area = el("textarea", { className: "alto" });
     area.value = part.map((p) => [p.nombre || "", p.institucion || "", p.pais || ""].join("; ")).join("\n");
     area.oninput = () => { D.participantes = area.value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [nombre, institucion = "", pais = ""] = l.split(";").map((x) => x.trim()); return { nombre, institucion, pais }; }); marcar(); };
-    const colsComite = [["Nombre", "nombre"], ["Institución", "institucion"], ["Rol (ES)", "rol", "es"], ["Role (EN)", "rol", "en"], ["Correo", "email"], ["Teléfono", "telefono"]];
+    const colsComite = [["Nombre", "nombre"], ["Institución", "institucion"], ["Rol (ES)", "rol", "es", "Se muestra bajo el nombre en la página; vacío = sin rol visible."], ["Role (EN)", "rol", "en"],
+      ["Correo", "email", null, "Se publica en la página del evento; con un correo válido, puede invitarla al panel. Déjelo vacío si no quiere mostrarlo."],
+      ["Teléfono", "telefono", null, "Se publica en la página del evento. Déjelo vacío si no quiere mostrarlo."]];
     const nuevoMiembro = () => ({ nombre: "", institucion: "", rol: { es: "", en: "" }, email: "", telefono: "" });
+    const unico = Boolean(D.comiteUnico);
+    const toggleUnico = casilla("Un solo comité para ambas funciones (científico y organizador)", D, "comiteUnico");
+    toggleUnico.querySelector("input").addEventListener("change", () => { marcar(); dibujar(); });
+
+    // Acceso al panel directo desde el comité: si la fila tiene un correo válido, se puede invitar a esa persona como colaborador/a
+    let admins = []; try { admins = await DP.api(API + "/admins"); } catch (e) { /* sin lista: no se ofrece la acción */ }
+    const porCorreo = new Map(admins.map((a) => [a.email.toLowerCase(), a]));
+    const ROL_CHIP = { responsable: "Responsable", colaborador: "Administrador/a", central: "Admin. central" };
+    const accionAdmin = (tipoComite) => (fila) => {
+      const email = String(fila.email || "").trim().toLowerCase();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+      const a = porCorreo.get(email);
+      if (a) return el("span", { className: "chip ok", textContent: ROL_CHIP[a.rol] || a.rol });
+      if (!esResp()) return el("span", { className: "sub", textContent: "Sin acceso al panel" });
+      const b = el("button", { type: "button", className: "boton sec peq", textContent: "Invitar al panel", onclick: async () => {
+        b.disabled = true;
+        try {
+          const r = await DP.api(API + "/admins", { method: "POST", body: { email, nombrePersona: fila.nombre || "", comite: tipoComite } });
+          aviso("aviso-panel", "ok", r.invitacion?.enviado ? `Invitación enviada a ${email}.` : `No se pudo enviar el correo (${r.invitacion?.motivo || "motivo desconocido"}). Comparta este enlace: ${r.invitacion?.enlace}`);
+          dibujar();
+        } catch (e) { b.disabled = false; aviso("aviso-panel", "error", e.message); }
+      } });
+      return b;
+    };
+
     return el("div", {},
-      bloque("Comité científico", el("p", { className: "nota-ayuda", textContent: "Si queda vacío, la página no muestra este comité. Los correos y teléfonos que escriba aquí SE PUBLICAN en la página del evento." }),
-        tablaFilas(cie, colsComite, nuevoMiembro, "+ Agregar integrante")),
-      bloque("Comité organizador", el("p", { className: "nota-ayuda", textContent: "Los correos y teléfonos que escriba aquí SE PUBLICAN en la página del evento; déjelos vacíos si no desea mostrarlos." }),
-        tablaFilas(org, colsComite, nuevoMiembro, "+ Agregar integrante")),
+      bloque(unico ? "Comité científico y organizador" : "Comité científico",
+        toggleUnico,
+        el("p", { className: "nota-ayuda", textContent: (unico
+          ? "Esta lista se publica como un solo comité, con ambas funciones. "
+          : "") + "Si queda vacío, la página no muestra este comité. Los correos y teléfonos que escriba aquí SE PUBLICAN en la página del evento. Con un correo válido, puede invitar a esa persona a entrar al panel del evento." }),
+        tablaFilas(cie, colsComite, nuevoMiembro, "+ Agregar integrante", accionAdmin(unico ? "ambos" : "cientifico"), true)),
+      unico ? null : bloque("Comité organizador", el("p", { className: "nota-ayuda", textContent: "Los correos y teléfonos que escriba aquí SE PUBLICAN en la página del evento; déjelos vacíos si no desea mostrarlos. Con un correo válido, puede invitar a esa persona a entrar al panel del evento." }),
+        cie.length ? el("div", { className: "acciones-seccion", style: "margin-bottom:10px" },
+          el("button", { type: "button", className: "boton sec peq", textContent: "Copiar el comité científico aquí", onclick: () => {
+            if (org.length && !confirm("Esto reemplaza el comité organizador actual por una copia del comité científico. ¿Continuar?")) return;
+            D.organizadores = cie.map((m) => ({ ...m, rol: { ...m.rol } })); marcar(); dibujar();
+          } })) : null,
+        tablaFilas(org, colsComite, nuevoMiembro, "+ Agregar integrante", accionAdmin("organizador"), true)),
       bloque("Auspiciantes y colaboradores", tablaFilas(aus, [["Nombre", "nombre"], ["Enlace (https://…)", "url"], ["Logo (URL, opcional)", "logo"]], () => ({ nombre: "", url: "", logo: "" }), "+ Agregar auspiciante")),
       bloque("Participantes ingresados a mano", el("p", { className: "nota-ayuda", textContent: "Una persona por línea, con el formato «Nombre; Institución; País». Se suman a quienes se inscriban en línea, fueran aprobados y autoricen aparecer en la lista." }),
         el("div", { className: "campo" }, area)));
@@ -235,6 +298,7 @@
 
   // ---------- inscripciones ----------
   const NIVELES = { investigador: "Investigador/a o profesor/a", postdoc: "Postdoctorado", doctorado: "Doctorado", magister: "Magíster", pregrado: "Pregrado", otro: "Otra" };
+  const TIPO_PRES_LABEL = { charla: "Charla", poster: "Póster" };
   async function cargarInscripciones() {
     try { inscripciones = await DP.api(API + "/inscripciones"); actualizarPendientes(); if (vista === "inscripciones") dibujar(); }
     catch (e) { if (e.estado === 401) return sesionVencida(); aviso("aviso-panel", "error", e.message); }
@@ -270,7 +334,10 @@
         tb.append(el("tr", {},
           el("td", {}, el("strong", { textContent: i.nombre }), el("span", { className: "sub", textContent: i.email })),
           el("td", {}, document.createTextNode(i.institucion || ""), el("span", { className: "sub", textContent: [i.pais, NIVELES[i.nivel]].filter(Boolean).join(" · ") })),
-          el("td", {}, i.charla ? el("span", {}, el("span", { className: "chip", textContent: "Charla/póster" }), el("span", { className: "sub", textContent: i.tituloCharla || "" })) : document.createTextNode("—"),
+          el("td", {}, i.tipoPresentacion ? el("span", {}, el("span", { className: "chip", textContent: TIPO_PRES_LABEL[i.tipoPresentacion] || "Charla/póster" }),
+              i.tituloCharla ? el("span", { className: "sub", textContent: i.tituloCharla }) : null,
+              i.resumen ? el("span", { className: "sub", title: i.resumen, textContent: i.resumen.length > 140 ? i.resumen.slice(0, 140) + "…" : i.resumen }) : null)
+            : i.charla ? el("span", {}, el("span", { className: "chip", textContent: "Charla/póster" }), el("span", { className: "sub", textContent: i.tituloCharla || "" })) : document.createTextNode("—"),
             i.observaciones ? el("span", { className: "sub", textContent: "Obs.: " + i.observaciones }) : null,
             i.suscribir ? el("span", { className: "sub", textContent: "Pidió recibir las novedades de Dinámica Porteña" + (i.suscripcion ? ` (${i.suscripcion})` : " (se suscribe al aprobar la inscripción)") }) : null,
             i.anterior ? el("span", { className: "sub", textContent: `Reenviada por la persona; versión anterior: ${i.anterior.nombre} (${i.anterior.institucion}, ${i.anterior.pais}), ${i.anterior.estado}${i.anterior.publicar ? ", publicable" : ""}.` }) : null),
@@ -279,19 +346,20 @@
       });
     }
     const csv = () => {
-      const cols = ["nombre", "email", "institucion", "pais", "nivel", "charla", "tituloCharla", "observaciones", "publicar", "estado", "creada"];
+      const cols = ["nombre", "email", "institucion", "pais", "nivel", "tipoPresentacion", "tituloCharla", "resumen", "observaciones", "publicar", "estado", "creada"];
       const esc = (x) => '"' + String(x ?? "").replace(/"/g, '""') + '"';
       descargar(`inscripciones-${SLUG}.csv`, "﻿" + [cols.join(","), ...inscripciones.map((i) => cols.map((c) => esc(i[c])).join(","))].join("\n"), "text/csv");
     };
     const copiar = async () => { const l = inscripciones.filter((i) => i.estado === "aprobada").map((i) => i.email).join(", "); try { await navigator.clipboard.writeText(l); aviso("aviso-panel", "ok", "Correos de las inscripciones aprobadas copiados."); } catch { aviso("aviso-panel", "error", "No se pudo copiar al portapapeles."); } };
     const alta = el("div", { className: "bloque oculto" });
-    const f = { nombre: "", email: "", institucion: "", pais: "", nivel: "investigador", charla: false, tituloCharla: "", publicar: false, estado: "aprobada" };
+    const f = { nombre: "", email: "", institucion: "", pais: "", nivel: "investigador", tipoPresentacion: "", tituloCharla: "", resumen: "", publicar: false, estado: "aprobada" };
     alta.append(el("h3", { textContent: "Agregar inscripción manualmente" }),
       el("p", { className: "nota-ayuda", textContent: "Funciona aunque el plazo haya terminado o la inscripción esté cerrada. El correo es opcional, pero no puede repetirse." }),
       el("div", { className: "fila2" }, campo("Nombre completo", f, "nombre"), campo("Correo electrónico (opcional)", f, "email", { tipo: "email" })),
       el("div", { className: "fila2" }, campo("Institución", f, "institucion"), campo("País", f, "pais")),
       el("div", { className: "fila2" }, seleccion("Situación académica", f, "nivel", Object.entries(NIVELES)), seleccion("Estado", f, "estado", [["aprobada", "Aprobada"], ["pendiente", "Pendiente"]])),
-      casilla("Presentará charla o póster", f, "charla"), campo("Título (opcional)", f, "tituloCharla"),
+      seleccion("¿Charla o póster?", f, "tipoPresentacion", [["", "No"], ["charla", "Charla"], ["poster", "Póster"]]),
+      campo("Título (opcional)", f, "tituloCharla"), campo("Resumen (opcional)", f, "resumen", { area: true }),
       casilla("Mostrar nombre e institución en la lista pública (cuenta con su autorización)", f, "publicar"),
       casilla("Pidió recibir las novedades de Dinámica Porteña (se suscribe a la lista si la inscripción queda aprobada)", f, "suscribir"),
       el("div", { className: "acciones-seccion" },
@@ -313,6 +381,36 @@
   // ---------- correos ----------
   // A los inscritos (los envía el responsable) o a la lista de Dinámica Porteña (queda por aprobar por un administrador central).
   const borrador = { tipo: "inscritos", estados: { aprobada: true, pendiente: false, rechazada: false }, asunto: "", cuerpo: "", idioma: "es" };
+  const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const MESES_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function rangoFechasSimple(inicio, fin, en) {
+    if (!inicio) return en ? "dates to be confirmed" : "fechas por confirmar";
+    const p = (f) => ({ a: f.slice(0, 4), m: Number(f.slice(5, 7)), d: f.length > 7 ? Number(f.slice(8, 10)) : null });
+    const i = p(inicio), f = fin ? p(fin) : i, meses = en ? MESES_EN : MESES_ES;
+    if (en) return i.a === f.a && i.m === f.m && i.d && f.d ? `${meses[i.m - 1]} ${i.d}${f.d !== i.d ? "–" + f.d : ""}, ${i.a}` : i.d ? `${meses[i.m - 1]} ${i.d}, ${i.a}` : `${meses[i.m - 1]} ${i.a}`;
+    return i.a === f.a && i.m === f.m && i.d && f.d ? `${f.d !== i.d ? i.d + " al " + f.d : i.d} de ${meses[i.m - 1]} de ${i.a}` : i.d ? `${i.d} de ${meses[i.m - 1]} de ${i.a}` : `${meses[i.m - 1]} de ${i.a}`;
+  }
+  // Fecha con la preposición correcta: «el 13 de enero…» (un día), «del 13 al 15 de enero…» (rango), «en enero de 2027» (sin día)
+  function fraseFechas(inicio, fin, en) {
+    const f = rangoFechasSimple(inicio, fin, en);
+    if (!inicio) return en ? f : f;
+    const p = (x) => ({ a: x.slice(0, 4), m: Number(x.slice(5, 7)), d: x.length > 7 ? Number(x.slice(8, 10)) : null });
+    const i = p(inicio), j = fin ? p(fin) : i;
+    if (!i.d) return (en ? "in " : "en ") + f;
+    const rango = fin && (i.d !== j.d || i.m !== j.m || i.a !== j.a);
+    return en ? (rango ? f : "on " + f) : (rango ? "del " : "el ") + f;
+  }
+  // Plantilla «Save the date»: asunto y cuerpo listos para la lista de Dinámica Porteña, con los datos ya cargados del evento.
+  function plantillaSaveTheDate(en) {
+    const nombreEv = tx(D.nombre) || tx(D.marca) || (en ? "the event" : "el evento");
+    const fechas = fraseFechas(D.inicio, D.fin, en), lugar = tx(D.lugar);
+    const asunto = `Save the date — ${nombreEv}`;
+    const enlace = `${location.origin}/${SLUG}/${en ? "en" : ""}`;
+    const cuerpo = en
+      ? `Dear colleagues,\n\nWe are writing to let you know that ${nombreEv} will take place ${fechas}${lugar ? `, at ${lugar}` : ""}.\n\nSave the date. More information will be published soon on the event's website:\n\n${enlace}\n\nBest regards,\nOrganizing committee`
+      : `Estimados/as:\n\nLes escribimos para contarles que ${nombreEv} se realizará ${fechas}${lugar ? `, en el ${lugar}` : ""}.\n\nGuarden la fecha. Pronto se publicará más información en el sitio del evento:\n\n${enlace}\n\nSaludos cordiales,\nComité organizador`;
+    return { asunto, cuerpo };
+  }
   const ESTADO_MSJ = { enviado: ["Enviado", "ok"], "por-aprobar": ["Por aprobar", "alerta"], rechazado: ["No aprobado", "no"] };
   async function vCorreos() {
     const v = el("div");
@@ -334,6 +432,13 @@
     const cuerpo = el("textarea", { className: "alto", value: borrador.cuerpo, placeholder: "Estimados/as:\n\n…\n\nSaludos cordiales,\nComité organizador" }); cuerpo.oninput = () => { borrador.cuerpo = cuerpo.value; };
     cuerpo.rows = 12;
     const idioma = el("select", {}, el("option", { value: "es", textContent: "Español" }), el("option", { value: "en", textContent: "Inglés" })); idioma.value = borrador.idioma; idioma.onchange = () => { borrador.idioma = idioma.value; };
+    const plantillaBtn = el("button", { type: "button", className: "boton sec peq", textContent: "Usar plantilla: Save the date", onclick: () => {
+      if ((borrador.asunto || borrador.cuerpo) && !confirm("Esto reemplaza el asunto y el texto escritos. ¿Continuar?")) return;
+      const p = plantillaSaveTheDate(idioma.value === "en");
+      borrador.tipo = "lista"; tipo.value = "lista"; estados.classList.add("oculto");
+      borrador.asunto = asunto.value = p.asunto; borrador.cuerpo = cuerpo.value = p.cuerpo;
+      pintarTotal();
+    } });
     const cuerpoEnvio = (prueba) => ({ prueba, asunto: borrador.asunto, cuerpo: borrador.cuerpo, idioma: borrador.idioma,
       destino: { tipo: borrador.tipo, estados: Object.entries(borrador.estados).filter(([, x]) => x).map(([k]) => k) } });
     const enviarBtn = el("button", { type: "button", className: "boton", textContent: "Enviar", disabled: !info.puedeEnviar });
@@ -352,6 +457,7 @@
       catch (e) { if (e.estado === 401) return sesionVencida(); aviso("aviso-panel", "error", e.message); } } });
     v.append(el("p", { className: "nota-ayuda", textContent: "Los correos salen desde la cuenta de Dinámica Porteña, con el nombre del evento como remitente. Las respuestas llegan al correo de contacto del evento (pestaña Organización) o, si no hay, al suyo." }),
       bloque("Escribir un correo",
+        el("div", { className: "acciones-seccion", style: "margin-bottom:10px" }, plantillaBtn),
         el("div", { className: "fila2" }, el("div", { className: "campo" }, el("label", { textContent: "Destinatarios" }), tipo), el("div", { className: "campo" }, el("label", { textContent: "Idioma del pie del correo" }), idioma)),
         estados, total,
         el("div", { className: "campo" }, el("label", { textContent: "Asunto" }), asunto),
@@ -421,6 +527,12 @@
     const cb = el("input", { type: "checkbox", id: "en-sitio", checked: YO.enSitio === true, disabled: !esResp() });
     cb.onchange = async () => { try { const r = await DP.api(API + "/estado", { method: "PUT", body: { enSitio: cb.checked } }); YO.enSitio = r.enSitio; pintarEstado(); } catch (e) { cb.checked = !cb.checked; aviso("aviso-panel", "error", e.message); } };
     c.append(el("label", { className: "en-sitio", htmlFor: "en-sitio", style: "display:block;flex-basis:100%;margin-top:8px" }, cb, document.createTextNode(" Mostrar también este evento (nombre, fechas, lugar y breve descripción) en la pestaña «Eventos» y en la portada del sitio de Dinámica Porteña." + (YO.enSitio && !pub ? " Aparecerá cuando publique la página." : ""))));
+    if (D) {
+      const cfg = D.secciones || {}, ocultas = SECCIONES.filter(([id]) => (cfg[id] || {}).visible === false);
+      if (ocultas.length) c.append(el("div", { className: "aviso info", style: "flex-basis:100%;margin-top:8px" },
+        el("strong", { textContent: `${ocultas.length} de ${SECCIONES.length} secciones ocultas: ` }),
+        document.createTextNode(ocultas.map(([, n]) => n).join(", ") + ". Revise «Secciones de la página» en General antes de publicar.")));
+    }
   }
 
   // ---------- acceso ----------

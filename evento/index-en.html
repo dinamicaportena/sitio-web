@@ -57,6 +57,7 @@
     <div class="hero-meta" id="c-meta"></div>
     <a class="btn" href="#inscripcion">Registration</a>
     <a class="btn secondary" href="#programa">View program</a>
+    <a class="btn secondary" href="#" id="c-afiche-link" download hidden>Download poster</a>
     <span class="estado-insc" id="c-estado-insc"></span>
   </div>
 </div>
@@ -122,8 +123,14 @@
               <option value="pregrado">Undergraduate student</option>
               <option value="otro">Other</option>
             </select></div>
-          <label class="casilla"><input type="checkbox" id="i-charla" name="charla"> <span>I would like to give a talk or poster</span></label>
-          <div class="campo" id="i-titulo-campo" hidden><label for="i-titulo">Proposed title (optional)</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"></div>
+          <div class="campo"><label for="i-tipo">Would you like to give a talk or a poster?</label>
+            <select id="i-tipo" name="tipoPresentacion">
+              <option value="">No, I only wish to attend</option>
+              <option value="charla">Talk</option>
+              <option value="poster">Poster</option>
+            </select></div>
+          <div class="campo" id="i-titulo-campo" hidden><label for="i-titulo">Proposed title</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"></div>
+          <div class="campo" id="i-resumen-campo" hidden><label for="i-resumen">Proposed abstract</label><textarea id="i-resumen" name="resumen" maxlength="3000"></textarea><div class="ayuda">You may write formulas in LaTeX between dollar signs $…$.</div></div>
           <div class="campo"><label for="i-obs">Remarks (optional)</label><textarea id="i-obs" name="observaciones" maxlength="600"></textarea><div class="ayuda">For example, accessibility or dietary requirements.</div></div>
           <label class="casilla"><input type="checkbox" id="i-publicar" name="publicar"> <span>I authorize my name and institution to appear in the public list of participants.</span></label>
           <label class="casilla"><input type="checkbox" id="i-suscribir" name="suscribir"> <span>I would like to receive news from Dinámica Porteña (seminar and events) by email. I can unsubscribe at any time.</span></label>
@@ -161,6 +168,7 @@
     <span id="c-pie-enlace"><a href="/">Dinámica Porteña group website</a></span></p>
   </div>
 </footer>
+<script src="/assets/texto-latex.js"></script>
 <script src="/assets/evento.js" defer></script>
 <script src="/assets/site.js" defer></script>
 </body>

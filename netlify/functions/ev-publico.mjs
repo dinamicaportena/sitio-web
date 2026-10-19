@@ -6,6 +6,7 @@ import { json, error, leerJSON, texto, emailValido, sha256 } from "../lib/comun.
 import { leerRegistro, permiso, contenidoStore, inscStore, validarSlug } from "../lib/ev.mjs";
 
 const NIVELES = ["investigador", "postdoc", "doctorado", "magister", "pregrado", "otro"];
+const TIPOS_PRES = ["charla", "poster"];
 const hoyChile = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });
 
 async function inscritosPublicos(slug) {
@@ -36,8 +37,9 @@ export default async (req, context) => {
     if (!emailValido(email)) return error("Ingrese un correo electrónico válido.");
     if (!c.privacidad) return error("Debe aceptar el tratamiento de sus datos para inscribirse.");
     const id = sha256(email).slice(0, 24), s = inscStore(), previa = await s.get(`${slug}/${id}`, { type: "json" }), ahora = new Date().toISOString();
+    const tipoPresentacion = TIPOS_PRES.includes(c.tipoPresentacion) ? c.tipoPresentacion : "";
     const nueva = { id, nombre, institucion, pais, email, nivel: NIVELES.includes(c.nivel) ? c.nivel : "otro",
-      charla: Boolean(c.charla), tituloCharla: texto(c.tituloCharla, 250), observaciones: texto(c.observaciones, 600), publicar: Boolean(c.publicar),
+      charla: Boolean(tipoPresentacion), tipoPresentacion, tituloCharla: texto(c.tituloCharla, 250), resumen: texto(c.resumen, 3000), observaciones: texto(c.observaciones, 600), publicar: Boolean(c.publicar),
       suscribir: Boolean(c.suscribir),                           // se suscribe a la lista de Dinámica Porteña cuando se aprueba la inscripción
       idioma: c.idioma === "en" ? "en" : "es", estado: "pendiente", creada: previa?.creada || ahora, actualizada: ahora };
     // Si el correo ya estaba inscrito, la nueva versión vuelve a revisión (no hereda la aprobación) y se guarda la anterior,
@@ -50,7 +52,7 @@ export default async (req, context) => {
   if (req.method !== "GET") return error("Método no permitido.", 405);
   if (!publicado && !p) return error("Este evento aún no está publicado.", 404);
   let inscritos = []; try { inscritos = await inscritosPublicos(slug); } catch { /* lista vacía */ }
-  const cuerpo = { slug, estado: reg.estado, contenido: guardado?.contenido || null, inscritos, vistaPrevia: !publicado };
+  const cuerpo = { slug, estado: reg.estado, contenido: guardado?.contenido || null, inscritos, vistaPrevia: !publicado, esAdmin: Boolean(p) };
   return json(cuerpo, 200, publicado && !p
     ? { "Cache-Control": "public, max-age=30", "Netlify-CDN-Cache-Control": "public, durable, max-age=60, stale-while-revalidate=120" } : {});   // cambios visibles en 1–3 minutos
 };

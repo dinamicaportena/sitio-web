@@ -32,6 +32,11 @@
 .sec-fila .casilla{font-weight:600}
 .mini-tabla td input{min-width:90px}
 .bloque{overflow-x:auto}
+.icono-info{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--texto-suave);
+  color:var(--texto-suave);font:700 10px/1 Arial,sans-serif;cursor:help;margin-left:5px;vertical-align:middle}
+.asa-arrastre{width:22px;text-align:center;color:var(--texto-suave);cursor:grab;user-select:none;letter-spacing:-1px}
+.mini-tabla tbody tr.arrastrando{opacity:.4}
+.mini-tabla tbody tr.sobre-arrastre{box-shadow:inset 0 2px 0 var(--azul)}
 .estado-evento{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid var(--borde);border-radius:6px;padding:10px 14px;margin:0 0 16px;font-size:14.5px}
 /* Correos */
 .fila-casillas{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 6px}

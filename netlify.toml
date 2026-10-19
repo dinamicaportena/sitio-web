@@ -5,8 +5,9 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  # fuentes e imágenes de las plantillas que usan las funciones al generar documentos
-  included_files = ["netlify/lib/fuentes/**", "netlify/lib/plantillas/**"]
+  # fuentes e imágenes de las plantillas que usan las funciones al generar documentos, y las plantillas HTML
+  # de las páginas de evento (evento-pagina.mjs las sirve con el título y la imagen para compartir completados)
+  included_files = ["netlify/lib/fuentes/**", "netlify/lib/plantillas/**", "evento/index.html", "evento/index-en.html"]
   # módulos con archivos binarios o de datos propios: se instalan tal cual, sin empaquetar
   external_node_modules = ["@resvg/resvg-js", "pdfkit", "mathjax-full"]
 
@@ -100,10 +101,10 @@
 
 [[redirects]]
   from = "/:slug/en"
-  to = "/evento/index-en.html"
+  to = "/.netlify/functions/evento-pagina/:slug/en"
   status = 200
 
 [[redirects]]
   from = "/:slug"
-  to = "/evento/index.html"
+  to = "/.netlify/functions/evento-pagina/:slug"
   status = 200

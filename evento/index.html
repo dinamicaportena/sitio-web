@@ -57,6 +57,7 @@
     <div class="hero-meta" id="c-meta"></div>
     <a class="btn" href="#inscripcion">Inscripción</a>
     <a class="btn secondary" href="#programa">Ver programa</a>
+    <a class="btn secondary" href="#" id="c-afiche-link" download hidden>Descargar afiche</a>
     <span class="estado-insc" id="c-estado-insc"></span>
   </div>
 </div>
@@ -122,8 +123,14 @@
               <option value="pregrado">Estudiante de pregrado</option>
               <option value="otro">Otra</option>
             </select></div>
-          <label class="casilla"><input type="checkbox" id="i-charla" name="charla"> <span>Deseo presentar una charla o póster</span></label>
-          <div class="campo" id="i-titulo-campo" hidden><label for="i-titulo">Título propuesto (opcional)</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"></div>
+          <div class="campo"><label for="i-tipo">¿Deseas presentar una charla o un póster?</label>
+            <select id="i-tipo" name="tipoPresentacion">
+              <option value="">No, solo deseo participar</option>
+              <option value="charla">Charla</option>
+              <option value="poster">Póster</option>
+            </select></div>
+          <div class="campo" id="i-titulo-campo" hidden><label for="i-titulo">Título propuesto</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"></div>
+          <div class="campo" id="i-resumen-campo" hidden><label for="i-resumen">Resumen propuesto</label><textarea id="i-resumen" name="resumen" maxlength="3000"></textarea><div class="ayuda">Puede escribir fórmulas en LaTeX entre signos $…$.</div></div>
           <div class="campo"><label for="i-obs">Observaciones (opcional)</label><textarea id="i-obs" name="observaciones" maxlength="600"></textarea><div class="ayuda">Por ejemplo, requerimientos de accesibilidad o alimentación.</div></div>
           <label class="casilla"><input type="checkbox" id="i-publicar" name="publicar"> <span>Autorizo que mi nombre e institución aparezcan en la lista pública de participantes.</span></label>
           <label class="casilla"><input type="checkbox" id="i-suscribir" name="suscribir"> <span>Deseo recibir las novedades de Dinámica Porteña (seminario y eventos) en mi correo. Puedo darme de baja en cualquier momento.</span></label>
@@ -161,6 +168,7 @@
     <span id="c-pie-enlace"><a href="/">Sitio del grupo Dinámica Porteña</a></span></p>
   </div>
 </footer>
+<script src="/assets/texto-latex.js"></script>
 <script src="/assets/evento.js" defer></script>
 <script src="/assets/site.js" defer></script>
 </body>

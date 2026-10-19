@@ -20,10 +20,10 @@ const PIE_HTML = {
 async function adjuntosDe(t) {
   if (!t.adjuntos?.length) return [];
   const archivos = almacen("materiales");
-  return Promise.all(t.adjuntos.map(async (a) => ({
-    filename: a.nombre, contentType: a.tipo, ...(a.cid ? { cid: a.cid } : {}),
-    content: Buffer.from(await archivos.get(a.clave, { type: "arrayBuffer" })),
-  })));
+  return Promise.all(t.adjuntos.map(async (a) => a.url
+    ? { filename: a.nombre, contentType: a.tipo, path: a.url }                 // archivo público del sitio (p. ej. el afiche de un evento)
+    : { filename: a.nombre, contentType: a.tipo, ...(a.cid ? { cid: a.cid } : {}),
+        content: Buffer.from(await archivos.get(a.clave, { type: "arrayBuffer" })) }));
 }
 
 export default async (req) => {
@@ -58,7 +58,7 @@ export default async (req) => {
           }
           const idioma = t.idioma === "en" ? "en" : "es", enlace = enlaceBaja(para, base);
           try {
-            if (propio) await enviar({ para, asunto: propio.asunto, texto: propio.texto, responderA: propio.responderA, remitenteNombre: t.remitenteNombre }, transporte);
+            if (propio) await enviar({ para, asunto: propio.asunto, texto: propio.texto, html: propio.html, responderA: propio.responderA, remitenteNombre: t.remitenteNombre, adjuntos }, transporte);
             else await enviar({ para, asunto: t.asunto, texto: t.texto + PIE[idioma](enlace), remitenteNombre: t.remitenteNombre, responderA: t.responderA,
                            html: t.html ? t.html + PIE_HTML[idioma](enlace) : undefined, adjuntos,
                            cabeceras: { "List-Unsubscribe": `<${enlaceBajaDirecto(para, base)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } },

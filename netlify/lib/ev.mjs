@@ -70,7 +70,7 @@ export async function listarRegistros() {
 export function contenidoInicial(nombre) {
   const bi = (v = "") => ({ es: v, en: v });
   return {
-    nombre: bi(nombre), marca: bi(nombre), eyebrow: bi(), institucion: bi(),
+    nombre: bi(nombre), marca: bi(), eyebrow: bi(), institucion: bi(),
     enlaces: [{ texto: bi("Dinámica Porteña"), url: "https://www.dinamicaportena.cl/" }],
     pieEnlace: { texto: { es: "Sitio del grupo Dinámica Porteña", en: "Dinámica Porteña group website" }, url: "https://www.dinamicaportena.cl/" },
     inicio: null, fin: null, lugar: bi(), direccion: "",
@@ -116,9 +116,44 @@ export async function eventosDeModulos() {
 // ---------- Correo de invitación a administradores ----------
 const ROL_ES = { responsable: "responsable (administra el evento y a sus administradores)", colaborador: "colaborador (edita el contenido y las inscripciones)" };
 const ROL_EN = { responsable: "lead administrator (manages the event and its administrators)", colaborador: "collaborator (edits the content and the registrations)" };
-export async function invitarAdmin({ origen, slug, nombre, email, rol, por }) {
+const ROL_ES_SIMPLE = { responsable: "responsable", colaborador: "colaborador" };
+const ROL_EN_SIMPLE = { responsable: "lead administrator", colaborador: "collaborator" };
+const COMITE_ES = { cientifico: "Comité Científico", organizador: "Comité Organizador", ambos: "Comité Científico y Organizador" };
+const COMITE_EN = { cientifico: "Scientific Committee", organizador: "Organizing Committee", ambos: "Scientific and Organizing Committee" };
+// nombrePersona y comite (opcionales): cuando la invitación sale de una fila del comité científico/organizador,
+// el correo saluda por nombre y agradece formar parte del comité, en vez del texto genérico de administración.
+export async function invitarAdmin({ origen, slug, nombre, email, rol, por, nombrePersona, comite }) {
   const enlace = `${origen}/${slug}/admin/`;
-  const texto_ = `Estimado/a:
+  const saludoEs = nombrePersona ? `Estimado/a ${nombrePersona}:` : "Estimado/a:";
+  const saludoEn = nombrePersona ? `Dear ${nombrePersona},` : "Dear colleague,";
+  // Desde el comité (comite definido): tuteo, consistente de principio a fin. Invitación genérica (sin comite): de usted, como antes.
+  const texto_ = comite ? `${saludoEs}
+
+Muchas gracias por formar parte del ${COMITE_ES[comite] || "Comité"} del evento «${nombre}». Para que puedas ayudar a completar la información del evento y revisar las inscripciones, tienes acceso al panel del evento, con el rol de ${ROL_ES_SIMPLE[rol] || rol}.
+
+Para ingresar, abre el siguiente enlace y usa la cuenta de Google asociada a este correo (${email}):
+
+${enlace}
+
+Desde ese panel tendrás acceso y podrás gestionar la información del evento.
+
+Saludos cordiales,
+Dinámica Porteña
+
+—
+
+${saludoEn}
+
+Thank you very much for being part of the ${COMITE_EN[comite] || "Committee"} of the event "${nombre}". To help you complete the event's information and review registrations, you have been given access to the event panel, with the role of ${ROL_EN_SIMPLE[rol] || rol}.
+
+To sign in, open the link below and use the Google account associated with this email address (${email}):
+
+${enlace}
+
+From that panel you will have access and will be able to manage the event's information.
+
+Best regards,
+Dinámica Porteña` : `${saludoEs}
 
 ${por} le ha invitado a administrar la página del evento «${nombre}» en el sitio de Dinámica Porteña, con el rol de ${ROL_ES[rol] || rol}.
 
@@ -133,7 +168,7 @@ Dinámica Porteña
 
 —
 
-Dear colleague,
+${saludoEn}
 
 ${por} has invited you to administer the page of the event "${nombre}" on the Dinámica Porteña website, as ${ROL_EN[rol] || rol}.
 

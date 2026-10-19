@@ -20,6 +20,7 @@
     errCampos: "Please complete name, institution, country and a valid email, and accept the data policy.",
     insCerrada: "Registration is not open at the moment.", irFormulario: "Open the registration form →",
     cafe: "Coffee break", almuerzo: "Lunch", sinTitulo: "Session",
+    comiteUnico: "Scientific and Organizing Committee", organizador: "Organizing committee",
   } : {
     porConfirmar: "Por confirmar", fechasPC: "Fechas por confirmar",
     sinConf: "Los conferencistas se anunciarán próximamente.", sinProg: "El programa se publicará próximamente.",
@@ -35,6 +36,7 @@
     errCampos: "Complete nombre, institución, país y un correo válido, y acepte el uso de los datos.",
     insCerrada: "La inscripción no está abierta por el momento.", irFormulario: "Abrir el formulario de inscripción →",
     cafe: "Pausa café", almuerzo: "Almuerzo", sinTitulo: "Sesión",
+    comiteUnico: "Comité científico y organizador", organizador: "Comité organizador",
   };
   const MESES = EN ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     : ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -71,6 +73,8 @@
       contenedor.append(n);
     });
   }
+  // Igual intérprete que el resto del sitio (\textbf, acentos, ~, --, $…$, etc.); si no cargó, texto plano.
+  const escribirTexto = (elemento, fuente, opts) => { if (window.DPTexto) DPTexto.escribir(elemento, fuente, opts); else elemento.textContent = fuente || ""; };
   const vacio = (c, msg) => c.replaceChildren(el("p", "vacio-nota", msg));
   const iniciales = (n) => (n || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
@@ -78,7 +82,7 @@
   const SECCIONES = ["objetivo", "conferencistas", "programa", "participantes", "inscripcion", "info", "organizacion"];
   // Identidad del evento y estructura (marca, institución, menú, pie, secciones visibles y sus títulos): todo editable desde el panel.
   function identidad(c) {
-    if (tr(c.marca)) $("c-marca").textContent = tr(c.marca);
+    $("c-marca").textContent = tr(c.marca) || tr(c.nombre) || "Evento";
     if (c.institucion !== undefined) { $("c-inst").textContent = tr(c.institucion); $("c-pie-inst").textContent = tr(c.institucion); }
     if (c.eyebrow !== undefined) $("c-eyebrow").textContent = tr(c.eyebrow);
     if (Array.isArray(c.enlaces)) {
@@ -103,6 +107,13 @@
   function portada(c) {
     const nombre = tr(c.nombre) || document.title;
     document.title = nombre; $("c-nombre").textContent = nombre;
+    const hero = document.querySelector(".hero.evento"), img = soloHttp(c.imagenPortada);
+    if (hero) {
+      hero.classList.toggle("con-imagen", Boolean(img));
+      hero.style.backgroundImage = img ? `linear-gradient(rgba(8,20,45,.6),rgba(8,20,45,.6)), url("${img}")` : "";
+    }
+    const afiche = $("c-afiche-link"), urlAfiche = soloHttp(c.afiche);
+    if (afiche) { afiche.hidden = !urlAfiche; if (urlAfiche) afiche.href = urlAfiche; }
     const meta = $("c-meta"); meta.replaceChildren();
     const item = (k, v) => { const d = el("div", "item"); d.append(el("span", "k", k), el("span", "v", v)); meta.append(d); };
     item(EN ? "Dates" : "Fechas", rangoFechas(c.inicio, c.fin));
@@ -140,9 +151,9 @@
         if (soloHttp(x.foto) || /^assets\//.test(x.foto || "")) { const im = el("img"); im.src = x.foto; im.alt = x.nombre; im.loading = "lazy"; av.append(im); } else av.textContent = iniciales(x.nombre);
         const cu = el("div", "cuerpo");
         cu.append(el("div", "nombre", x.nombre), el("div", "institucion", [x.institucion, x.pais].filter(Boolean).join(", ")));
-        if (tr(x.titulo)) cu.append(el("div", "titulo-charla", tr(x.titulo)));
+        if (tr(x.titulo)) { const dt = el("div", "titulo-charla"); escribirTexto(dt, tr(x.titulo), { enLinea: true }); cu.append(dt); }
         if (tr(x.resumen)) {
-          const r = el("div", "resumen"); parrafos(r, tr(x.resumen)); r.id = "res-" + (x.id || x.nombre);
+          const r = el("div", "resumen"); escribirTexto(r, tr(x.resumen)); r.id = "res-" + (x.id || x.nombre);
           const b = el("button", "resumen-toggle", T.verRes); b.type = "button"; b.setAttribute("aria-expanded", "false"); b.setAttribute("aria-controls", r.id);
           b.onclick = () => { const ab = s.classList.toggle("abierto"); b.textContent = ab ? T.ocultarRes : T.verRes; b.setAttribute("aria-expanded", String(ab)); };
           cu.append(b, r);
@@ -165,7 +176,7 @@
         s.append(el("div", "hora", b.hora || ""));
         const q = el("div");
         const titulo = tr(b.titulo) || (conf && tr(conf.titulo)) || (tipo === "pausa" ? T.cafe : tipo === "almuerzo" ? T.almuerzo : T.sinTitulo);
-        q.append(el("div", "t", titulo));
+        const dt = el("div", "t"); escribirTexto(dt, titulo, { enLinea: true }); q.append(dt);
         if (conf) {
           const quien = el("div", "quien", [conf.nombre, conf.institucion].filter(Boolean).join(" — "));
           q.append(quien);
@@ -204,12 +215,18 @@
     q.addEventListener("input", filtrar); filtrar(); cont.append(barra, ul, msg);
   }
 
-  function inscripcion(c) {
+  function inscripcion(c, esAdmin) {
     const i = c.inscripcion || {}, t = $("c-inscripcion-texto"), f = $("c-inscripcion-form");
     t.replaceChildren(); parrafos(t, tr(i.texto));
     const externo = soloHttp(i.formularioExterno);
     const pasado = i.fechaLimite && new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" }) > i.fechaLimite;
-    if (!i.abierta || pasado) { f.hidden = true; if (!tr(i.texto)) t.append(el("p", "vacio-nota", T.insCerrada)); return; }
+    if (!i.abierta || pasado) {
+      if (esAdmin && !externo) {        // administradores: ven y pueden opinar sobre los campos del formulario aunque aún no esté abierto
+        t.prepend(el("p", "aviso-preview", EN ? "Preview: registration is not open to the public yet; this form cannot be submitted." : "Vista previa: la inscripción todavía no está abierta al público; este formulario no se puede enviar."));
+        f.hidden = false; return;
+      }
+      f.hidden = true; if (!tr(i.texto)) t.append(el("p", "vacio-nota", T.insCerrada)); return;
+    }
     if (externo) { f.replaceChildren(); const a = el("a", "btn", T.irFormulario); a.href = externo; a.target = "_blank"; a.rel = "noopener"; f.append(a); return; }
     f.hidden = false;
   }
@@ -245,12 +262,18 @@
     a.replaceChildren(); k.replaceChildren();
     const cfg = c.secciones || {};
     const sub = (id, def) => { const t = (cfg[id] || {}).titulo; if (t && tr(t)) $("t-" + id).textContent = tr(t); else if (def) $("t-" + id).textContent = def; };
-    const cien = (c.cientifico || []).filter((x) => x && x.nombre);
-    ci.hidden = $("t-cientifico").hidden = !cien.length;
-    if (cien.length) comite(ci, cien);
-    const org = (c.organizadores || []).filter((x) => x && x.nombre);
-    if (!org.length) vacio(o, T.sinOrg); else comite(o, org);
-    sub("cientifico"); sub("organizadores"); sub("auspiciantes");
+    const cien = (c.cientifico || []).filter((x) => x && x.nombre), org = (c.organizadores || []).filter((x) => x && x.nombre);
+    if (c.comiteUnico) {                           // una sola lista (comité científico) con ambas funciones
+      ci.hidden = $("t-cientifico").hidden = true;
+      $("t-organizadores").textContent = T.comiteUnico;
+      if (!cien.length) vacio(o, T.sinOrg); else comite(o, cien);
+    } else {
+      ci.hidden = $("t-cientifico").hidden = !cien.length;
+      if (cien.length) comite(ci, cien);
+      $("t-organizadores").textContent = T.organizador;
+      if (!org.length) vacio(o, T.sinOrg); else comite(o, org);
+    }
+    sub("auspiciantes");
     const aus = (c.auspiciantes || []).filter((x) => x && x.nombre);
     $("t-auspiciantes").hidden = !aus.length; a.hidden = !aus.length;
     if (aus.length) {
@@ -267,8 +290,9 @@
     if (email) { k.append(document.createTextNode(T.contacto + " ")); const l = el("a", "", email); l.href = "mailto:" + email; k.append(l, document.createTextNode(".")); }
   }
 
-  function dibujar(c, inscritos) {
-    [identidad, portada, objetivo, conferencistas, programa, inscripcion, info, organizacion].forEach((fn) => { try { fn(c); } catch (e) { console.error(fn.name, e); } });
+  function dibujar(c, inscritos, esAdmin) {
+    [identidad, portada, objetivo, conferencistas, programa, info, organizacion].forEach((fn) => { try { fn(c); } catch (e) { console.error(fn.name, e); } });
+    try { inscripcion(c, esAdmin); } catch (e) { console.error("inscripcion", e); }
     try { participantes(c, inscritos); } catch (e) { console.error("participantes", e); }
     if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise().catch(() => {});
   }
@@ -276,14 +300,14 @@
   // ---------- formulario de inscripción ----------
   function formulario() {
     const f = $("form-insc"); if (!f) return;
-    const charla = $("i-charla"), campoT = $("i-titulo-campo"), aviso = $("insc-aviso"), boton = $("i-enviar");
-    charla.addEventListener("change", () => { campoT.hidden = !charla.checked; });
+    const tipoPres = $("i-tipo"), campoT = $("i-titulo-campo"), campoR = $("i-resumen-campo"), aviso = $("insc-aviso"), boton = $("i-enviar");
+    tipoPres.addEventListener("change", () => { const con = Boolean(tipoPres.value); campoT.hidden = !con; campoR.hidden = !con; });
     const msg = (tipo, m) => { aviso.replaceChildren(); if (m) { const d = el("div", "aviso " + tipo, m); aviso.append(d); d.scrollIntoView({ block: "nearest" }); } };
     f.addEventListener("submit", async (ev) => {
       ev.preventDefault(); msg("", "");
       const d = Object.fromEntries(new FormData(f).entries());
       const cuerpo = { nombre: (d.nombre || "").trim(), email: (d.email || "").trim(), institucion: (d.institucion || "").trim(), pais: (d.pais || "").trim(),
-        nivel: d.nivel, charla: charla.checked, tituloCharla: d.tituloCharla || "", observaciones: d.observaciones || "",
+        nivel: d.nivel, tipoPresentacion: tipoPres.value, tituloCharla: d.tituloCharla || "", resumen: d.resumen || "", observaciones: d.observaciones || "",
         publicar: $("i-publicar").checked, suscribir: $("i-suscribir") ? $("i-suscribir").checked : false, privacidad: $("i-priv").checked, web: d.web || "", idioma: L };
       if (!cuerpo.nombre || !cuerpo.institucion || !cuerpo.pais || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cuerpo.email) || !cuerpo.privacidad) return msg("error", T.errCampos);
       boton.disabled = true; const antes = boton.textContent; boton.textContent = T.enviando;
@@ -291,7 +315,7 @@
         const r = await fetch("/api/evento/" + SLUG + "/inscripcion", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || T.errGeneral);
-        f.reset(); campoT.hidden = true; msg("ok", T.okNuevo);
+        f.reset(); campoT.hidden = true; campoR.hidden = true; msg("ok", T.okNuevo);
       } catch (e) { msg("error", e.message && !/Failed to fetch|NetworkError/.test(e.message) ? e.message : T.errGeneral); }
       boton.disabled = false; boton.textContent = antes;
     });
@@ -326,7 +350,7 @@
     if (!d || !d.contenido) return noDisponible(estado === 404);
     $("c-preview").hidden = !d.vistaPrevia;
     if (d.vistaPrevia) noIndexar();
-    dibujar(d.contenido, d.inscritos || []);
+    dibujar(d.contenido, d.inscritos || [], Boolean(d.esAdmin));
   }
   arrancar();
 })();
