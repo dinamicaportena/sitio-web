@@ -11,8 +11,8 @@ import { leerRegistro, contenidoStore } from "../lib/ev.mjs";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const PLANTILLA = {
-  es: readFileSync(path.join(aqui, "../../evento/index.html"), "utf8"),
-  en: readFileSync(path.join(aqui, "../../evento/index-en.html"), "utf8"),
+es: readFileSync(path.join(aqui, "../../evento/index.html"), "utf8"),
+en: readFileSync(path.join(aqui, "../../evento/index-en.html"), "utf8"),
 };
 
 const tr = (v, l) => (v == null ? "" : typeof v === "string" ? v : v[l] || v.es || v.en || "");
@@ -20,36 +20,34 @@ const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;"
 const urlAbs = (ruta, origen) => (/^https?:\/\//.test(ruta) ? ruta : origen + ruta);
 const sustituir = (html, re, valor) => (re.test(html) ? html.replace(re, valor) : html);
 
+// El redirect de netlify.toml reescribe la ruta hacia esta función, pero req.url sigue mostrando la URL original
+// pedida por quien visita (p. ej. /64coloquio/): el nombre del evento se saca de ahí, no de context.params ni de «?slug=».
 export default async (req, context) => {
-  const url = new URL(req.url);
-  const slug = url.searchParams.get("slug") || "";          // lo manda el redirect de netlify.toml como «?slug=…»
-  const lang = url.searchParams.get("lang") === "en" ? "en" : "es";
-  if (url.searchParams.get("depurar") === "1") {
-    const h = {}; for (const [k, v] of req.headers.entries()) h[k] = v;
-    return new Response(JSON.stringify({ reqUrl: req.url, slug, lang, search: Object.fromEntries(url.searchParams), headers: h }, null, 2), { headers: { "Content-Type": "application/json" } });
-  }
-  let html = PLANTILLA[lang] || PLANTILLA.es;
-  try {
-    const reg = slug ? await leerRegistro(slug) : null;
-    const guardado = reg ? await contenidoStore().get(slug, { type: "json" }) : null;
-    const c = guardado?.contenido;
-    if (reg && c) {
-      const nombre = tr(c.nombre, lang) || "Evento";
-      const titulo = `${nombre} — Dinámica Porteña`;
-      const desc = String(tr(c.objetivo, lang) || "").split(/\n{2,}/)[0].slice(0, 200) ||
-        (lang === "en" ? "Event page of the Dinámica Porteña group." : "Página de evento del grupo Dinámica Porteña.");
-      const origen = url.origin;
-      html = sustituir(html, /<title>[^<]*<\/title>/, `<title>${esc(titulo)}</title>`);
-      html = sustituir(html, /(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`);
-      html = sustituir(html, /(<meta property="og:title" content=")[^"]*(")/, `$1${esc(titulo)}$2`);
-      html = sustituir(html, /(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`);
-      if (c.afiche) {
-        const img = esc(urlAbs(c.afiche, origen));
-        html = sustituir(html, /(<meta name="twitter:card" content=")[^"]*(")/, `$1summary_large_image$2`);
-        html = html.replace("</head>", `<meta property="og:image" content="${img}">\n</head>`);
-      }
-    }
-  } catch { /* se sirve la plantilla sin personalizar */ }
-  return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" } });
+let partes = new URL(req.url).pathname.split("/").filter(Boolean);
+if (partes[0] === ".netlify") partes = partes.slice(3);
+const slug = partes[0] || "", lang = partes[1] === "en" ? "en" : "es";
+let html = PLANTILLA[lang] || PLANTILLA.es;
+try {
+const reg = slug ? await leerRegistro(slug) : null;
+const guardado = reg ? await contenidoStore().get(slug, { type: "json" }) : null;
+const c = guardado?.contenido;
+if (reg && c) {
+const nombre = tr(c.nombre, lang) || "Evento";
+const titulo = `${nombre} — Dinámica Porteña`;
+const desc = String(tr(c.objetivo, lang) || "").split(/\n{2,}/)[0].slice(0, 200) ||
+(lang === "en" ? "Event page of the Dinámica Porteña group." : "Página de evento del grupo Dinámica Porteña.");
+const origen = new URL(req.url).origin;
+html = sustituir(html, /<title>[^<]*<\/title>/, `<title>${esc(titulo)}</title>`);
+html = sustituir(html, /(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`);
+html = sustituir(html, /(<meta property="og:title" content=")[^"]*(")/, `$1${esc(titulo)}$2`);
+html = sustituir(html, /(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`);
+if (c.afiche) {
+const img = esc(urlAbs(c.afiche, origen));
+html = sustituir(html, /(<meta name="twitter:card" content=")[^"]*(")/, `$1summary_large_image$2`);
+html = html.replace("</head>", `<meta property="og:image" content="${img}">\n</head>`);
+}
+}
+} catch { /* se sirve la plantilla sin personalizar */ }
+return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" } });
 };
-// Sin «path»: se llega solo a través de los redirects de netlify.toml, que pasan la dirección del evento como «?slug=…».
+// Sin «path»: se llega solo a través de los redirects de netlify.toml.
