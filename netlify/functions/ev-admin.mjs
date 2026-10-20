@@ -7,7 +7,7 @@
 //                                                (queda por aprobar por un administrador central); { prueba: true } lo envía solo a quien escribe
 //   GET/POST/DELETE /api/evadmin/:slug/admins    lista / invitar { email, reenviar? } / quitar { email } (invitar y quitar: responsable o central)
 import { json, error, leerJSON, texto, emailValido, sha256, tokenAleatorio } from "../lib/comun.mjs";
-import { leerRegistro, registroStore, contenidoStore, inscStore, permiso, puedeAdministrar, validarContenido, validarSlug, correo, invitarAdmin, filaComite, guardarArchivoEvento } from "../lib/ev.mjs";
+import { leerRegistro, registroStore, contenidoStore, inscStore, permiso, puedeAdministrar, validarContenido, validarSlug, correo, invitarAdmin, filaComite, guardarArchivoEvento, origenPublico } from "../lib/ev.mjs";
 import { limpiarMensaje, crearMensaje, enviarPrueba, listarMensajes, resumenMensaje, conteoInscritos, suscribirDesdeEvento } from "../lib/mensajes.mjs";
 import { correosActivos } from "../lib/suscriptores.mjs";
 
@@ -22,7 +22,7 @@ export default async (req, context) => {
   const p = permiso(req, reg);
   if (!p) return error("Debe iniciar sesión con una cuenta autorizada para este evento.", 401);
   const [, , , , recurso, id] = new URL(req.url).pathname.split("/");
-  const origen = new URL(req.url).origin, nombreEvento = async () => (await contenidoStore().get(slug, { type: "json" }))?.contenido?.nombre?.es || slug;
+  const origen = origenPublico(new URL(req.url).origin), nombreEvento = async () => (await contenidoStore().get(slug, { type: "json" }))?.contenido?.nombre?.es || slug;
 
   // ---- imágenes (logos, banner, afiche, cabecera): cualquier administrador del evento ----
   if (recurso === "archivos" && req.method === "POST") {

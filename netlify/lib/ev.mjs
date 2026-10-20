@@ -337,3 +337,12 @@ export async function guardarArchivoEvento(slug, dataURL) {
   await archivosStore().set(`${slug}/${id}`, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length), { metadata: { tipo: m[1] } });
   return `/api/evento/${slug}/archivo/${id}`;
 }
+
+// ---------- Dirección pública del sitio para los enlaces de los correos ----------
+// Netlify puede entregar a las funciones la dirección interna (…netlify.app); en los correos se usa siempre la pública.
+// Se puede fijar con la variable de entorno SITIO_URL (p. ej. https://dinamicaportena.cl).
+export function origenPublico(origen) {
+  const fija = (process.env.SITIO_URL ?? globalThis.Netlify?.env?.get?.("SITIO_URL") ?? "").trim().replace(/\/+$/, "");
+  if (/^https?:\/\/[^/]+$/.test(fija)) return fija;
+  return "https://dinamicaportena.cl";
+}

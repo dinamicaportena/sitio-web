@@ -5,12 +5,12 @@
 //   DELETE /api/admin/paginas-evento/:slug    elimina el evento, su contenido y sus inscripciones ({ confirmar: slug })
 import { json, error, leerJSON, texto, emailValido } from "../lib/comun.mjs";
 import { sesion } from "../lib/comun.mjs";
-import { registroStore, contenidoStore, inscStore, listarRegistros, leerRegistro, validarSlug, slugDe, correo, contenidoInicial, invitarAdmin } from "../lib/ev.mjs";
+import { registroStore, contenidoStore, inscStore, listarRegistros, leerRegistro, validarSlug, slugDe, correo, contenidoInicial, invitarAdmin, origenPublico } from "../lib/ev.mjs";
 
 export default async (req, context) => {
   const admin = sesion(req);
   if (!admin) return error("Debe iniciar sesión.", 401);
-  const origen = new URL(req.url).origin, { slug: slugParam } = context.params || {};
+  const origen = origenPublico(new URL(req.url).origin), { slug: slugParam } = context.params || {};
 
   if (!slugParam && req.method === "GET") {
     const regs = await listarRegistros();

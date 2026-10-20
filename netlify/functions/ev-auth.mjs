@@ -7,7 +7,7 @@
 //   POST /api/evauth/acceso      { token, slug } — entra con ese enlace
 import { json, error, leerJSON, verificarGoogle, correosAutorizados, crearCookieSesion, cookieCierre, sesion } from "../lib/comun.mjs";
 import { leerRegistro, permiso, crearCookieEv, RECORDAR_S, cookieEvCierre, sesionEv, validarSlug, correo, contenidoStore, accesosStore,
-  enviarEnlaceAcceso, leerTokenAcceso } from "../lib/ev.mjs";
+  enviarEnlaceAcceso, leerTokenAcceso, origenPublico } from "../lib/ev.mjs";
 import { emailValido, peticionAjena } from "../lib/comun.mjs";
 import { createHash } from "node:crypto";
 const hash = (x) => createHash("sha256").update(String(x)).digest("hex").slice(0, 40);
@@ -58,7 +58,7 @@ export default async (req) => {
     await s.setJSON(clave, { t: Date.now() });
     try {
       const contenido = (await contenidoStore().get(slug, { type: "json" }))?.contenido;
-      await enviarEnlaceAcceso({ origen: url.origin, slug, email, contenido, idioma: c?.idioma === "en" ? "en" : "es", recordar: c?.recordar === true });
+      await enviarEnlaceAcceso({ origen: origenPublico(url.origin), slug, email, contenido, idioma: c?.idioma === "en" ? "en" : "es", recordar: c?.recordar === true });
     } catch (e) { console.error("enlace de acceso:", e.message); }
     return respuesta;
   }
