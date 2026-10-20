@@ -79,7 +79,55 @@
     s.addEventListener("change", () => { obj[key] = s.value; marcar(); });
     return el("div", { className: "campo" }, el("label", { htmlFor: id, textContent: etiqueta }), s);
   }
-  const bloque = (titulo, ...hijos) => el("div", { className: "bloque" }, titulo ? el("h3", { textContent: titulo }) : null, ...hijos);
+  // Bloques del panel plegables: clic en el título; el estado se recuerda en este navegador (por evento y título)
+  const plegados = (() => { try { return new Set(JSON.parse(localStorage.getItem("dp-ev-plegados-" + SLUG) || "[]")); } catch (e) { return new Set(); } })();
+  const guardarPlegados = () => { try { localStorage.setItem("dp-ev-plegados-" + SLUG, JSON.stringify([...plegados])); } catch (e) { /* sin almacenamiento */ } };
+  function bloque(titulo, ...hijos) {
+    const b = el("div", { className: "bloque" }, ...hijos);
+    if (!titulo) return b;
+    const clave = vista + "|" + titulo;
+    const h = el("h3", { className: "bloque-titulo", tabIndex: 0, title: "Mostrar u ocultar", textContent: titulo });
+    const alternar = () => { const p = b.classList.toggle("plegado"); if (p) plegados.add(clave); else plegados.delete(clave); guardarPlegados(); };
+    h.addEventListener("click", alternar);
+    h.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alternar(); } });
+    b.prepend(h); if (plegados.has(clave)) b.classList.add("plegado");
+    return b;
+  }
+
+  // Subir una imagen (PNG, JPG o WebP, hasta 4 MB) al almacén del evento; devuelve su dirección pública
+  function elegirImagen() {
+    return new Promise((ok, mal) => {
+      const f = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp" });
+      f.onchange = () => {
+        const a = f.files && f.files[0]; if (!a) return ok(null);
+        if (!/^image\/(png|jpeg|webp)$/.test(a.type)) return mal(new Error("Use una imagen PNG, JPG o WebP."));
+        if (a.size > 4 * 1024 * 1024) return mal(new Error("La imagen supera el tamaño máximo de 4 MB."));
+        const r = new FileReader();
+        r.onload = async () => { try { ok((await DP.api(API + "/archivos", { method: "POST", body: { datos: r.result } })).url); } catch (e) { mal(e); } };
+        r.onerror = () => mal(new Error("No se pudo leer el archivo.")); r.readAsDataURL(a);
+      };
+      f.click();
+    });
+  }
+  function botonSubir(alSubir, texto = "Subir imagen…") {
+    const b = el("button", { type: "button", className: "boton sec peq", textContent: texto });
+    b.onclick = async () => {
+      b.disabled = true; const t = b.textContent; b.textContent = "Subiendo…";
+      try { const url = await elegirImagen(); if (url) alSubir(url); } catch (e) { aviso("aviso-panel", "error", e.message); window.scrollTo({ top: 0, behavior: "smooth" }); }
+      b.disabled = false; b.textContent = t;
+    };
+    return b;
+  }
+  // Campo de imagen: dirección (editable) + «Subir imagen…» + miniatura
+  function campoImagen(etiqueta, obj, key, opts = {}) {
+    const c = campo(etiqueta, obj, key, opts), inp = c.querySelector("input");
+    const mini = el("img", { className: "mini-imagen", alt: "" });
+    const ver = () => { const u = obj[key] || ""; mini.hidden = !/^(https?:\/\/|\/)/.test(u); if (!mini.hidden) mini.src = u; };
+    inp.addEventListener("input", ver); ver();
+    const fila = el("div", { className: "fila-imagen" }, botonSubir((url) => { obj[key] = url; inp.value = url; ver(); marcar(); }), mini);
+    inp.after(fila);
+    return c;
+  }
   const mover = (arr, i, d) => { const j = i + d; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; marcar(); dibujar(); };
   const quitar = (arr, i, que) => { if (confirm(`¿Eliminar ${que}?`)) { arr.splice(i, 1); marcar(); dibujar(); } };
   function accionesItem(arr, i, que) {
@@ -106,23 +154,30 @@
         el("div", { className: "fila2" }, campo("Fecha límite (opcional)", ins, "fechaLimite", { tipo: "date" }),
           campo("Formulario externo (opcional)", ins, "formularioExterno", { ph: "https://…", ayuda: "Si lo completa, el sitio mostrará un botón a este enlace en vez del formulario propio." })),
         bi("Texto de la sección", ins, "texto", { area: true })),
-      bloque("Contacto", campo("Correo de contacto del evento", cont, "email", { tipo: "email" })),
+      bloque("Contacto y redes sociales", campo("Correo de contacto del evento", cont, "email", { tipo: "email" }),
+        el("p", { className: "nota-ayuda", textContent: "Cuentas del evento o del grupo en redes sociales (dirección completa, https://…). Se muestran en la página como «Síguenos»; vacío = no se muestra." }),
+        (() => { const r = (D.redes = D.redes || {}); return el("div", { className: "fila2" },
+          campo("Instagram", r, "instagram", { ph: "https://www.instagram.com/…" }), campo("Facebook", r, "facebook", { ph: "https://www.facebook.com/…" }),
+          campo("X (Twitter)", r, "x", { ph: "https://x.com/…" }), campo("LinkedIn", r, "linkedin", { ph: "https://www.linkedin.com/…" }),
+          campo("YouTube", r, "youtube", { ph: "https://www.youtube.com/…" })); })()),
       bloque("Identidad del evento",
         el("p", { className: "nota-ayuda", textContent: "Nombre corto de la cabecera, institución anfitriona, texto sobre el título y los enlaces del menú y del pie. Si deja el nombre corto vacío, se usa el nombre completo del evento." }),
         bi("Nombre corto (cabecera)", D, "marca"), bi("Institución anfitriona", D, "institucion"), bi("Texto sobre el título", D, "eyebrow"),
-        campo("Imagen de portada (banner, opcional)", D, "imagenPortada", { ph: "https://… o /assets/…jpg", ayuda: "Se muestra como fondo del encabezado, con una capa oscura para que el texto se lea bien. Vacío = fondo liso." }),
-        campo("Afiche (opcional)", D, "afiche", { ph: "https://… o /assets/…jpg", ayuda: "Agrega un botón «Descargar afiche» en la página, se usa como imagen al compartir el enlace (redes, WhatsApp) y se adjunta en los correos a los inscritos de este evento." }),
+        el("p", { className: "nota-ayuda", textContent: "El banner, el afiche y la cabecera de los correos están en la pestaña «Recursos»." }),
         el("h4", { textContent: "Enlaces del menú superior", style: "margin:14px 0 6px" }),
         tablaFilas(enlaces, [["Texto (ES)", "texto", "es"], ["Text (EN)", "texto", "en"], ["Enlace (https://…)", "url"]], () => ({ texto: { es: "", en: "" }, url: "" }), "+ Agregar enlace"),
         el("h4", { textContent: "Enlace del pie de página", style: "margin:14px 0 6px" }),
         bi("Texto del enlace", D.pieEnlace, "texto"), campo("Dirección del enlace", D.pieEnlace, "url", { ph: "https://… (vacío = sin enlace)" })),
       bloque("Secciones de la página",
-        el("p", { className: "nota-ayuda", textContent: "Elija qué secciones se muestran y, si lo desea, cambie su título (vacío = título estándar)." }),
+        el("p", { className: "nota-ayuda", textContent: "Elija qué secciones se muestran, cuáles aparecen desplegadas al abrir la página (las demás se abren con un clic en su título o desde el menú) y, si lo desea, cambie su título (vacío = título estándar)." }),
         ...SECCIONES.map(([id, nombre]) => {
           const k = ((D.secciones = D.secciones || {})[id] = D.secciones[id] || { visible: true, titulo: { es: "", en: "" } });
+          if (k.abierta === undefined) k.abierta = ABIERTA_POR_DEFECTO.includes(id);
           const c = casilla(nombre, k, "visible");
           c.querySelector("input").addEventListener("change", () => pintarEstado());
-          return el("div", { className: "sec-fila" }, c, bi("Título", k, "titulo"));
+          const a = casilla("Desplegada al abrir la página", k, "abierta");
+          a.classList.add("sub-casilla");
+          return el("div", { className: "sec-fila" }, el("div", { className: "sec-casillas" }, c, a), bi("Título", k, "titulo"));
         })),
       bloque("Copia de seguridad",
         el("p", { className: "nota-ayuda", textContent: "Descargue el contenido actual como archivo, o cargue uno anterior (quedará como cambio sin guardar hasta que pulse «Guardar cambios»)." }),
@@ -132,6 +187,8 @@
           el("input", { type: "file", id: "f-import", accept: "application/json,.json", className: "oculto", onchange: importar }))));
     return v;
   }
+  // Secciones que la página muestra desplegadas si el panel no indica otra cosa (igual que en assets/evento.js)
+  const ABIERTA_POR_DEFECTO = ["objetivo", "conferencistas", "programa", "info"];
   const SECCIONES = [["objetivo", "Objetivo"], ["conferencistas", "Conferencistas"], ["programa", "Programa"], ["participantes", "Participantes"], ["inscripcion", "Inscripción"], ["info", "Información práctica"], ["organizacion", "Organización"]];
   function descargar(nombre, contenido, tipo) {
     const a = el("a", { href: URL.createObjectURL(new Blob([contenido], { type: tipo + ";charset=utf-8" })), download: nombre }); document.body.append(a); a.click(); a.remove();
@@ -232,44 +289,54 @@
           marcar(); dibujar();
         });
       }
-      columnas.forEach(([, key, bil]) => {
+      columnas.forEach(([, key, bil, , opciones, imagen]) => {
         const obj = bil ? asegurarBi(fila, key) : fila, k = bil || key;
-        const inp = el("input", { type: "text", value: obj[k] || "" }); inp.oninput = () => { obj[k] = inp.value; marcar(); }; tr.append(el("td", {}, inp));
+        if (opciones) {                                // columna con lista desplegable: [[valor, texto], …]
+          const sel = el("select", {}, ...opciones.map(([v, t]) => el("option", { value: v, textContent: t })));
+          sel.value = obj[k] || ""; sel.onchange = () => { obj[k] = sel.value; marcar(); }; tr.append(el("td", {}, sel));
+          return;
+        }
+        const inp = el("input", { type: "text", value: obj[k] || "" }); inp.oninput = () => { obj[k] = inp.value; marcar(); };
+        if (imagen) {                                  // columna de imagen: dirección + «Subir…» + miniatura
+          const mini = el("img", { className: "mini-imagen", alt: "" });
+          const ver = () => { const u = obj[k] || ""; mini.hidden = !/^(https?:\/\/|\/)/.test(u); if (!mini.hidden) mini.src = u; };
+          inp.addEventListener("input", ver); ver();
+          tr.append(el("td", {}, el("div", { className: "celda-imagen" }, mini, inp, botonSubir((url) => { obj[k] = url; inp.value = url; ver(); marcar(); }, "Subir…"))));
+          return;
+        }
+        tr.append(el("td", {}, inp));
       });
       if (extra) tr.append(el("td", {}, extra(fila) || ""));
       tr.append(el("td", {}, el("button", { type: "button", className: "quitar", textContent: "×", title: "Eliminar", onclick: () => quitar(arr, i, "esta fila") })));
       tb.append(tr);
     });
     t.append(tb);
-    return el("div", {}, t, el("button", { type: "button", className: "boton sec peq", textContent: textoAgregar, onclick: () => { arr.push(nuevo()); marcar(); dibujar(); } }));
+    return el("div", {}, el("div", { className: "tabla-desplazable" }, t), el("button", { type: "button", className: "boton sec peq", textContent: textoAgregar, onclick: () => { arr.push(nuevo()); marcar(); dibujar(); } }));
   }
   async function vOrganizacion() {
     const cie = (D.cientifico = D.cientifico || []), org = (D.organizadores = D.organizadores || []), aus = (D.auspiciantes = D.auspiciantes || []), part = (D.participantes = D.participantes || []);
     const area = el("textarea", { className: "alto" });
     area.value = part.map((p) => [p.nombre || "", p.institucion || "", p.pais || ""].join("; ")).join("\n");
     area.oninput = () => { D.participantes = area.value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [nombre, institucion = "", pais = ""] = l.split(";").map((x) => x.trim()); return { nombre, institucion, pais }; }); marcar(); };
-    const colsComite = [["Nombre", "nombre"], ["Institución", "institucion"], ["Rol (ES)", "rol", "es", "Se muestra bajo el nombre en la página; vacío = sin rol visible."], ["Role (EN)", "rol", "en"],
-      ["Correo", "email", null, "Se publica en la página del evento; con un correo válido, puede invitarla al panel. Déjelo vacío si no quiere mostrarlo."],
-      ["Teléfono", "telefono", null, "Se publica en la página del evento. Déjelo vacío si no quiere mostrarlo."]];
-    const nuevoMiembro = () => ({ nombre: "", institucion: "", rol: { es: "", en: "" }, email: "", telefono: "" });
+    const nuevoMiembro = () => ({ nombre: "", institucion: "", rol: { es: "", en: "" }, email: "", telefono: "", saludo: "", idioma: "es" });
     const unico = Boolean(D.comiteUnico);
     const toggleUnico = casilla("Un solo comité para ambas funciones (científico y organizador)", D, "comiteUnico");
     toggleUnico.querySelector("input").addEventListener("change", () => { marcar(); dibujar(); });
 
-    // Acceso al panel directo desde el comité: si la fila tiene un correo válido, se puede invitar a esa persona como colaborador/a
+    // Acceso al panel directo desde el comité: si la ficha tiene un correo válido, se puede invitar a esa persona como colaborador/a
     let admins = []; try { admins = await DP.api(API + "/admins"); } catch (e) { /* sin lista: no se ofrece la acción */ }
     const porCorreo = new Map(admins.map((a) => [a.email.toLowerCase(), a]));
-    const ROL_CHIP = { responsable: "Responsable", colaborador: "Administrador/a", central: "Admin. central" };
-    const accionAdmin = (tipoComite) => (fila) => {
+    const ROL_CHIP = { responsable: "Responsable", colaborador: "Con acceso al panel", central: "Admin. central" };
+    const accionAdmin = (tipoComite, fila) => {
       const email = String(fila.email || "").trim().toLowerCase();
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
       const a = porCorreo.get(email);
       if (a) return el("span", { className: "chip ok", textContent: ROL_CHIP[a.rol] || a.rol });
-      if (!esResp()) return el("span", { className: "sub", textContent: "Sin acceso al panel" });
-      const b = el("button", { type: "button", className: "boton sec peq", textContent: "Invitar al panel", onclick: async () => {
-        b.disabled = true;
+      if (!esResp()) return null;
+      const b = el("button", { type: "button", className: "boton sec peq", textContent: "Invitar al panel", onclick: async (ev) => {
+        ev.stopPropagation(); b.disabled = true;
         try {
-          const r = await DP.api(API + "/admins", { method: "POST", body: { email, nombrePersona: fila.nombre || "", comite: tipoComite } });
+          const r = await DP.api(API + "/admins", { method: "POST", body: { email, nombrePersona: fila.nombre || "", comite: tipoComite, saludo: fila.saludo || "", idioma: fila.idioma || "es" } });
           aviso("aviso-panel", "ok", r.invitacion?.enviado ? `Invitación enviada a ${email}.` : `No se pudo enviar el correo (${r.invitacion?.motivo || "motivo desconocido"}). Comparta este enlace: ${r.invitacion?.enlace}`);
           dibujar();
         } catch (e) { b.disabled = false; aviso("aviso-panel", "error", e.message); }
@@ -277,24 +344,57 @@
       return b;
     };
 
+    // Integrantes como fichas desplegables (resumen: nombre, institución y acceso; al abrir, todos los datos). Se reordenan arrastrando.
+    function fichasComite(arr, tipoComite) {
+      const lista = el("div", { className: "fichas" });
+      let arrastrando = null;
+      arr.forEach((m, i) => {
+        if (m._abierto === undefined) setAbierto(m, !m.nombre);
+        const f = el("div", { className: "ficha" + (m._abierto ? " abierta" : "") });
+        f.draggable = true;
+        f.addEventListener("dragstart", (ev) => { arrastrando = i; f.classList.add("arrastrando"); ev.dataTransfer.effectAllowed = "move"; });
+        f.addEventListener("dragend", () => { f.classList.remove("arrastrando"); arrastrando = null; });
+        f.addEventListener("dragover", (ev) => { ev.preventDefault(); f.classList.add("sobre-arrastre"); });
+        f.addEventListener("dragleave", () => f.classList.remove("sobre-arrastre"));
+        f.addEventListener("drop", (ev) => { ev.preventDefault(); f.classList.remove("sobre-arrastre"); if (arrastrando === null || arrastrando === i) return; const [mv] = arr.splice(arrastrando, 1); arr.splice(i, 0, mv); marcar(); dibujar(); });
+        const nombre = el("strong", { textContent: m.nombre || "(sin nombre)" }), inst = el("span", { className: "sub", textContent: m.institucion || "" });
+        const cab = el("div", { className: "ficha-cab", title: "Clic para ver o editar los datos" },
+          el("span", { className: "asa-arrastre", title: "Arrastrar para reordenar", textContent: "⠿" }),
+          el("span", { className: "ficha-nombre" }, nombre, inst),
+          accionAdmin(tipoComite, m),
+          el("span", { className: "ficha-flecha", textContent: "▾" }),
+          el("button", { type: "button", className: "quitar", textContent: "×", title: "Eliminar", onclick: (ev) => { ev.stopPropagation(); quitar(arr, i, "a " + (m.nombre || "este integrante")); } }));
+        cab.addEventListener("click", (ev) => { if (ev.target.closest("button")) return; setAbierto(m, !m._abierto); f.classList.toggle("abierta", m._abierto); });
+        const rol = asegurarBi(m, "rol");
+        const cuerpo = el("div", { className: "ficha-cuerpo" },
+          el("div", { className: "fila2" }, campo("Nombre", m, "nombre"), campo("Institución", m, "institucion")),
+          el("div", { className: "fila2" }, campo("Rol (ES)", rol, "es", { ayuda: "Bajo el nombre; vacío = sin rol." }), campo("Role (EN)", rol, "en")),
+          el("div", { className: "fila2" }, campo("Correo", m, "email", { tipo: "email", ayuda: "Se publica. Permite invitar al panel." }), campo("Teléfono", m, "telefono", { ayuda: "Se publica." })),
+          el("div", { className: "fila2" }, seleccion("Saludo en la invitación", m, "saludo", [["", "Estimado/a"], ["Estimado", "Estimado"], ["Estimada", "Estimada"]]),
+            seleccion("Idioma de la invitación", m, "idioma", [["es", "Español"], ["en", "English"]])));
+        cuerpo.querySelectorAll("input").forEach((x) => x.addEventListener("input", () => { nombre.textContent = m.nombre || "(sin nombre)"; inst.textContent = m.institucion || ""; }));
+        f.append(cab, cuerpo); lista.append(f);
+      });
+      return el("div", {}, lista, el("button", { type: "button", className: "boton sec peq", textContent: "+ Agregar integrante", onclick: () => { const n = nuevoMiembro(); setAbierto(n, true); arr.push(n); marcar(); dibujar(); } }));
+    }
+    const nota = el("p", { className: "nota-ayuda", textContent: "Los correos y teléfonos SE PUBLICAN en la página del evento (déjelos vacíos si no desea mostrarlos). Con un correo válido, puede invitar a esa persona al panel; el saludo y el idioma de la invitación no se publican." });
+
     return el("div", {},
-      bloque(unico ? "Comité científico y organizador" : "Comité científico",
-        toggleUnico,
-        el("p", { className: "nota-ayuda", textContent: (unico
-          ? "Esta lista se publica como un solo comité, con ambas funciones. "
-          : "") + "Si queda vacío, la página no muestra este comité. Los correos y teléfonos que escriba aquí SE PUBLICAN en la página del evento. Con un correo válido, puede invitar a esa persona a entrar al panel del evento." }),
-        tablaFilas(cie, colsComite, nuevoMiembro, "+ Agregar integrante", accionAdmin(unico ? "ambos" : "cientifico"), true)),
-      unico ? null : bloque("Comité organizador", el("p", { className: "nota-ayuda", textContent: "Los correos y teléfonos que escriba aquí SE PUBLICAN en la página del evento; déjelos vacíos si no desea mostrarlos. Con un correo válido, puede invitar a esa persona a entrar al panel del evento." }),
-        cie.length ? el("div", { className: "acciones-seccion", style: "margin-bottom:10px" },
-          el("button", { type: "button", className: "boton sec peq", textContent: "Copiar el comité científico aquí", onclick: () => {
-            if (org.length && !confirm("Esto reemplaza el comité organizador actual por una copia del comité científico. ¿Continuar?")) return;
-            D.organizadores = cie.map((m) => ({ ...m, rol: { ...m.rol } })); marcar(); dibujar();
-          } })) : null,
-        tablaFilas(org, colsComite, nuevoMiembro, "+ Agregar integrante", accionAdmin("organizador"), true)),
-      bloque("Auspiciantes y colaboradores", tablaFilas(aus, [["Nombre", "nombre"], ["Enlace (https://…)", "url"], ["Logo (URL, opcional)", "logo"]], () => ({ nombre: "", url: "", logo: "" }), "+ Agregar auspiciante")),
+      bloque("Comités", toggleUnico, nota,
+        unico
+          ? el("div", { className: "comite-unico" }, el("h4", { textContent: "Comité científico y organizador" }), fichasComite(cie, "ambos"))
+          : el("div", { className: "columnas-comite" },
+              el("div", {}, el("h4", { textContent: "Comité científico" }), fichasComite(cie, "cientifico")),
+              el("div", {}, el("h4", { textContent: "Comité organizador" }),
+                cie.length && !org.length ? el("button", { type: "button", className: "boton sec peq", style: "margin-bottom:8px", textContent: "Copiar el comité científico aquí", onclick: () => { D.organizadores = cie.map((m) => ({ ...m, rol: { ...m.rol } })); marcar(); dibujar(); } }) : null,
+                fichasComite(org, "organizador")))),
+      bloque("Apoyan (logos de instituciones y grupos)",
+        el("p", { className: "nota-ayuda", textContent: "Logo: suba un archivo (idealmente PNG con fondo transparente, o JPG con fondo blanco; versión horizontal y a color; al menos 800 píxeles de ancho y hasta 4 MB) o pegue su dirección. Cualquier integrante de los comités puede agregar el de su institución." }),
+        tablaFilas(aus, [["Nombre", "nombre"], ["Enlace (https://…)", "url"], ["Logo", "logo", null, null, null, true]], () => ({ nombre: "", url: "", logo: "" }), "+ Agregar institución")),
       bloque("Participantes ingresados a mano", el("p", { className: "nota-ayuda", textContent: "Una persona por línea, con el formato «Nombre; Institución; País». Se suman a quienes se inscriban en línea, fueran aprobados y autoricen aparecer en la lista." }),
         el("div", { className: "campo" }, area)));
   }
+
 
   // ---------- inscripciones ----------
   const NIVELES = { investigador: "Investigador/a o profesor/a", postdoc: "Postdoctorado", doctorado: "Doctorado", magister: "Magíster", pregrado: "Pregrado", otro: "Otra" };
@@ -510,8 +610,108 @@
     return v;
   }
 
-  const VISTAS = { general: vGeneral, conferencistas: vConferencistas, programa: vPrograma, info: vInfo, organizacion: vOrganizacion, inscripciones: vInscripciones, correos: vCorreos, admins: vAdmins };
-  async function dibujarVista() { document.querySelectorAll(".pestana").forEach((p) => p.classList.toggle("activa", p.dataset.vista === vista)); $("vista").replaceChildren(await VISTAS[vista]()); }
+  // ---------- Recursos: afiche (automático o archivo), banner, cabecera de correos y logos ----------
+  const AFICHE_AUTO = "/api/evento/" + SLUG + "/afiche.jpg";
+  const tr2 = (v) => (typeof v === "string" ? v : (v && (v.es || v.en)) || "");
+  // Mismos valores por omisión que el servidor (netlify/lib/afiche-evento.mjs), para mostrarlos como sugerencia
+  function plantillaPorDefecto() {
+    const nombre = tr2(D.nombre).trim(), m = /^([IVXLCDM]+)\s+(.*)$/i.exec(nombre), resto = m ? m[2] : nombre, i = resto.toLowerCase().lastIndexOf(" de ");
+    return { numeral: m ? m[1].toUpperCase() : "", superior: i > 0 ? resto.slice(0, i + 3) : "", titulo: i > 0 ? resto.slice(i + 4) : resto,
+      lugar: [tr2(D.lugar), D.direccion].filter(Boolean).join("\n") };
+  }
+  // Texto sugerido para publicar en redes (Instagram, Facebook, LinkedIn…), con la imagen 4:5 del afiche
+  function textoDifusion() {
+    const MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const f = (x) => (/^\d{4}-\d{2}-\d{2}$/.test(x || "") ? x.split("-").map(Number) : null), a = f(D.inicio), b = f(D.fin) || a;
+    const fechas = !a ? "" : a[1] === b[1] && a[0] === b[0] ? `${a[2]}${b[2] !== a[2] ? " al " + b[2] : ""} de ${MES[a[1] - 1]} de ${a[0]}` : `${a[2]} de ${MES[a[1] - 1]} al ${b[2]} de ${MES[b[1] - 1]} de ${b[0]}`;
+    const i = D.inscripcion || {}, url = "dinamicaportena.cl/" + SLUG;
+    return [tr2(D.nombre), [fechas, tr2(D.lugar)].filter(Boolean).join(" · "), "",
+      i.abierta ? (i.fechaLimite ? `Inscripciones abiertas hasta el ${f(i.fechaLimite) ? f(i.fechaLimite)[2] + " de " + MES[f(i.fechaLimite)[1] - 1] : i.fechaLimite}.` : "Inscripciones abiertas.") : "Pronto más información.",
+      `Información: ${url}`, "", "#SistemasDinámicos #Matemáticas #DinámicaPorteña"].join("\n");
+  }
+  function difusion() {
+    const area = el("textarea", { className: "alto" }); area.value = D.textoDifusion || textoDifusion();
+    area.oninput = () => { D.textoDifusion = area.value; marcar(); };
+    const imgRedes = D.afiche === AFICHE_AUTO ? "/api/evento/" + SLUG + "/afiche-redes.jpg" : D.afiche || "";
+    const copiar = el("button", { type: "button", className: "boton sec peq", textContent: "Copiar texto", onclick: async () => { try { await navigator.clipboard.writeText(area.value); copiar.textContent = "Texto copiado"; } catch (e) { area.select(); } } });
+    const compartirB = el("button", { type: "button", className: "boton peq", textContent: "Compartir (teléfono)…", onclick: async () => {
+      try {
+        const blob = await (await fetch(imgRedes)).blob(), f = new File([blob], "afiche.jpg", { type: blob.type || "image/jpeg" });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], text: area.value });
+        else aviso("aviso-panel", "info", "Este navegador no permite compartir imágenes directamente: descargue la imagen y copie el texto.");
+      } catch (e) { /* cancelado */ }
+    } });
+    return [
+      el("p", { className: "nota-ayuda", textContent: "Para publicar en Instagram, Facebook, LinkedIn o X: descargue la imagen para redes (4:5, 1080 × 1350, el formato vertical de Instagram) y copie el texto sugerido. Desde un teléfono, «Compartir» abre el menú del sistema con la imagen y el texto, y permite elegir la red. La página del evento tiene además botones para compartir el enlace." }),
+      el("div", { className: "campo" }, el("label", { textContent: "Texto sugerido (editable)" }), area,
+        el("div", { className: "ayuda", textContent: "Se arma con el nombre, las fechas, el lugar y la inscripción; si lo modifica, se guarda con «Guardar cambios». Para volver al texto automático, bórrelo y guarde." })),
+      el("div", { className: "acciones-seccion" }, copiar,
+        imgRedes ? el("a", { className: "boton sec peq", href: imgRedes, download: "afiche-redes.jpg", textContent: "Descargar imagen para redes" }) : null,
+        imgRedes && navigator.share ? compartirB : null)];
+  }
+  function vRecursos() {
+    const sucio = JSON.stringify(D) !== original;            // antes de crear valores por omisión
+    const v = el("div"), A = (D.afichePlantilla = D.afichePlantilla || {}), def = plantillaPorDefecto();
+    const modo = D.afiche === AFICHE_AUTO ? "auto" : D.afiche ? "archivo" : "ninguno";
+    const sel = el("select", {}, el("option", { value: "auto", textContent: "Automático: se arma con la información del panel (recomendado)" }),
+      el("option", { value: "archivo", textContent: "Imagen propia (subir un archivo)" }), el("option", { value: "ninguno", textContent: "Sin afiche" }));
+    sel.value = modo;
+    sel.onchange = () => { D.afiche = sel.value === "auto" ? AFICHE_AUTO : sel.value === "ninguno" ? "" : (D.afiche === AFICHE_AUTO ? "" : D.afiche || ""); marcar(); dibujar(); };
+    const texto = (etq, key, opts = {}) => {
+      const c = campo(etq, A, key, opts), ctl = c.querySelector("input,textarea");
+      if (A[key] === undefined) { ctl.value = ""; ctl.placeholder = (def[key] || "").replace(/\n/g, " / ") || opts.ph || ""; }
+      return c;
+    };
+    const incluir = (etq, key) => {                          // marcadas por omisión (vacío = incluir)
+      const c = el("input", { type: "checkbox", checked: A[key] !== false });
+      c.addEventListener("change", () => { A[key] = c.checked; marcar(); });
+      return el("label", { className: "casilla" }, c, el("span", { textContent: etq }));
+    };
+    let bloqueAfiche;
+    if (modo === "auto") {
+      const marca = () => "?v=" + Date.now();
+      const imgC = el("img", { className: "afiche-previa", alt: "Vista previa del afiche (carta)", src: AFICHE_AUTO + marca() });
+      const imgR = el("img", { className: "afiche-previa redes", alt: "Vista previa del afiche (redes)", src: "/api/evento/" + SLUG + "/afiche-redes.jpg" + marca() });
+      const actualizar = () => { const m = marca(); imgC.src = AFICHE_AUTO + m; imgR.src = "/api/evento/" + SLUG + "/afiche-redes.jpg" + m; };
+      bloqueAfiche = el("div", {},
+        el("p", { className: "nota-ayuda", textContent: "El afiche se arma solo con lo que haya en el panel: nombre, fechas y lugar, conferencistas, comités, logos de quienes apoyan, inscripción y un código QR a la página. Cada vez que se guarda un cambio (por ejemplo, un nuevo integrante o un logo), el afiche se actualiza; en la página, los correos y al compartir el enlace se usa siempre la versión vigente." }),
+        el("div", { className: "fila2" }, texto("Número o edición", "numeral", { ph: "LXIV" }), texto("Línea superior", "superior", { ph: "Coloquio de" })),
+        el("div", { className: "fila2" }, texto("Título (una línea por renglón)", "titulo", { area: true }), texto("Lugar (una línea por renglón)", "lugar", { area: true })),
+        el("p", { className: "nota-ayuda", textContent: "Si deja un campo vacío, se usa lo que aparece en gris (tomado del nombre y el lugar del evento)." }),
+        campoImagen("Imagen de fondo", A, "fondo", { ph: "/assets/…jpg o «Subir imagen…»", ayuda: "Vertical, idealmente con espacio libre arriba a la derecha para el título (como el fractal del 64coloquio). Vacío = fondo blanco." }),
+        el("div", { className: "casillas-afiche" }, incluir("Conferencistas", "conferencistas"), incluir("Comités", "comites"), incluir("Logos de quienes apoyan", "logos"), incluir("Inscripción, dirección y código QR", "inscripcion")),
+        el("p", { className: "nota-ayuda", textContent: "Si la información no cabe, el afiche reduce el tamaño de la letra y, como último recurso, omite primero el comité organizador y luego el científico (sobre todo en la versión para redes)." }),
+        sucio ? el("div", { className: "aviso info", textContent: "Hay cambios sin guardar: la vista previa muestra la última versión guardada. Guarde y pulse «Actualizar vista previa»." }) : null,
+        el("div", { className: "acciones-seccion" },
+          el("button", { type: "button", className: "boton sec peq", textContent: "Actualizar vista previa", onclick: actualizar }),
+          el("a", { className: "boton sec peq", href: "/api/evento/" + SLUG + "/afiche.pdf", target: "_blank", rel: "noopener", textContent: "PDF para imprimir (carta)" }),
+          el("a", { className: "boton sec peq", href: AFICHE_AUTO, target: "_blank", rel: "noopener", textContent: "Imagen (JPG)" }),
+          el("a", { className: "boton sec peq", href: "/api/evento/" + SLUG + "/afiche-redes.jpg", target: "_blank", rel: "noopener", textContent: "Versión para redes (4:5)" })),
+        el("div", { className: "previas-afiche" }, el("figure", {}, imgC, el("figcaption", { textContent: "Carta (PDF e imagen)" })), el("figure", {}, imgR, el("figcaption", { textContent: "Redes sociales (4:5)" }))));
+    } else if (modo === "archivo") {
+      bloqueAfiche = campoImagen("Afiche (imagen)", D, "afiche", { ph: "https://…, /assets/…jpg o «Subir imagen…»" });
+    }
+    v.append(
+      bloque("Afiche",
+        el("p", { className: "nota-ayuda", textContent: "El afiche agrega el botón «Descargar afiche» en la página, es la imagen que aparece al compartir el enlace (WhatsApp, redes) y se adjunta en los correos a los inscritos." }),
+        el("div", { className: "campo" }, el("label", { textContent: "Origen del afiche" }), sel), bloqueAfiche || null),
+      bloque("Difusión en redes sociales", ...difusion()),
+      bloque("Banner de la página",
+        campoImagen("Imagen de portada (banner)", D, "imagenPortada", { ph: "https://…, /assets/…jpg o «Subir imagen…»", ayuda: "Fondo del encabezado de la página. Vacío = fondo liso." }),
+        casilla("El banner ya incluye el nombre del evento, las fechas y el lugar escritos en la imagen", D, "bannerConTitulo"),
+        el("p", { className: "nota-ayuda", textContent: "Con la casilla marcada, el banner se muestra completo y sin capa oscura, y la página no repite encima el título, las fechas y el lugar. Sin marcar, se le pone una capa oscura y el título en blanco encima." })),
+      bloque("Cabecera de los correos",
+        campoImagen("Imagen de cabecera", D, "cabeceraCorreo", { ph: "https://…, /assets/…jpg o «Subir imagen…»", ayuda: "Encabeza los correos del evento (lista de Dinámica Porteña, inscritos e invitaciones al panel). Conviene una versión más baja del banner (por ejemplo 1280 × 380 px). Vacío = se usa el banner." })),
+      bloque("Logos de quienes apoyan",
+        el("p", { className: "nota-ayuda", textContent: "Se editan en la pestaña «Organización»; aparecen en la página y en el afiche." }),
+        el("div", { className: "logos-recursos" }, ...((D.auspiciantes || []).filter((a) => a && a.nombre).map((a) => el("figure", {},
+          a.logo ? el("img", { src: a.logo, alt: a.nombre }) : el("div", { className: "sin-logo", textContent: "Sin logo" }), el("figcaption", { textContent: a.nombre })))))));
+    return v;
+  }
+
+  const VISTAS = { recursos: vRecursos, general: vGeneral, conferencistas: vConferencistas, programa: vPrograma, info: vInfo, organizacion: vOrganizacion, inscripciones: vInscripciones, correos: vCorreos, admins: vAdmins };
+  async function dibujarVista() {
+    if (vista === "admins" && !esResp()) vista = "general"; document.querySelectorAll(".pestana").forEach((p) => p.classList.toggle("activa", p.dataset.vista === vista)); $("vista").replaceChildren(await VISTAS[vista]()); }
   const dibujar = dibujarVista;
 
   // Estado de publicación del evento (solo el responsable o un administrador central lo cambia)
@@ -537,15 +737,28 @@
 
   // ---------- acceso ----------
   function rotular() { const t = tx(D.marca) || tx(D.nombre); if (t) { document.querySelector(".group-name").textContent = t; document.title = "Panel — " + t; } document.querySelectorAll(".ver-sitio").forEach((a) => { a.href = "/" + SLUG + "/"; }); }
+  // Pestaña «Recursos» (afiche, banner, cabecera de correos y logos), antes de «Correos»
+  (() => {
+    const c = document.querySelector('.pestana[data-vista="correos"]');
+    if (!c || document.querySelector('.pestana[data-vista="recursos"]')) return;
+    const b = el("button", { className: "pestana", textContent: "Recursos" }); b.dataset.vista = "recursos"; c.before(b);
+  })();
+  // La pestaña Administradores solo la ven el responsable del evento y los administradores centrales
+  function pestanasSegunRol() {
+    const t = document.querySelector('.pestana[data-vista="admins"]'); if (t) t.hidden = !esResp();
+    if (vista === "admins" && !esResp()) vista = "general";
+  }
   async function iniciar(quien) {
-    YO = quien; $("acceso").classList.add("oculto"); $("panel").classList.remove("oculto");
+    YO = quien; pestanasSegunRol(); $("acceso").classList.add("oculto"); $("panel").classList.remove("oculto");
     $("usuario").textContent = `${quien.email} · ${ROLES[quien.rol] || quien.rol}`;
     try { const r = await DP.api(API + "/contenido"); D = r.contenido || {}; VERSION = r.actualizado; YO.estado = r.estado; YO.enSitio = r.enSitio; }
     catch (e) { if (e.estado === 401) return location.reload(); aviso("aviso-panel", "error", e.message); D = {}; }
-    original = JSON.stringify(D); marcar(); pintarEstado(); await dibujar(); cargarInscripciones(); rotular();
+    original = JSON.stringify(D); marcar(); pintarEstado(); await dibujar();
+    original = JSON.stringify(D); marcar(); cargarInscripciones(); rotular();   // los valores por omisión que crean las vistas no cuentan como cambios
   }
   async function mostrarAcceso() {
     $("acceso").classList.remove("oculto");
+    formularioEnlace();
     let clientId; try { clientId = (await DP.api("/api/config")).googleClientId; } catch (e) { return aviso("aviso-acceso", "error", "El sitio aún no está configurado para el acceso con Google (falta GOOGLE_CLIENT_ID en Netlify)."); }
     await new Promise((ok) => { const t = setInterval(() => { if (window.google && google.accounts) { clearInterval(t); ok(); } }, 100); });
     google.accounts.id.initialize({ client_id: clientId, ux_mode: "popup", callback: async (resp) => {
@@ -561,12 +774,45 @@
     } });
     google.accounts.id.renderButton($("boton-google"), { theme: "outline", size: "large", text: "signin_with", locale: "es" });
   }
+  // Alternativa a Google: enlace de acceso enviado al correo con que la persona fue invitada (válido 30 min, un solo uso)
+  function formularioEnlace() {
+    if ($("acceso-enlace")) return;
+    const intro = document.querySelector("#acceso .tarjeta p");
+    if (intro) intro.textContent = "Ingrese con la cuenta de Google asociada al correo con que fue invitado/a a administrar este evento, o pida un enlace de acceso a ese correo.";
+    const correoIn = el("input", { type: "email", placeholder: "su correo", autocomplete: "email", style: "flex:1;min-width:0" });
+    const msg = el("p", { className: "nota-ayuda", style: "margin:8px 0 0" });
+    const btn = el("button", { type: "button", className: "boton sec", textContent: "Enviarme un enlace" });
+    const recordar = el("input", { type: "checkbox", checked: false, style: "width:auto;margin:0 6px 0 0" });
+    btn.onclick = async () => {
+      const email = correoIn.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = "Escriba un correo válido."; return; }
+      btn.disabled = true;
+      try {
+        await DP.api("/api/evauth/enlace", { method: "POST", body: { email, slug: SLUG, idioma: (navigator.language || "es").startsWith("en") ? "en" : "es", recordar: recordar.checked } });
+        msg.textContent = `Si ${email} está autorizado para administrar este evento, en unos minutos recibirá un correo con un enlace de acceso (válido por 30 minutos). Revise también la carpeta de spam.`;
+      } catch (e) { msg.textContent = e.message; }
+      setTimeout(() => { btn.disabled = false; }, 60000);
+    };
+    correoIn.addEventListener("keydown", (e) => { if (e.key === "Enter") btn.click(); });
+    $("boton-google").after(el("div", { id: "acceso-enlace", style: "margin-top:22px;padding-top:16px;border-top:1px solid var(--borde);text-align:left" },
+      el("p", { style: "margin:0 0 8px;font-size:14.5px", textContent: "¿Su correo no es de Google? Reciba un enlace de acceso:" }),
+      el("div", { style: "display:flex;gap:8px;flex-wrap:wrap" }, correoIn, btn),
+      el("label", { style: "display:flex;align-items:center;margin:10px 0 0;font-size:13.5px;color:var(--texto-suave);cursor:pointer" }, recordar,
+        "Recordar este equipo por 30 días (no lo marque en un computador compartido)"), msg));
+  }
 
   $("pestanas").addEventListener("click", (e) => { const b = e.target.closest(".pestana"); if (!b) return; vista = b.dataset.vista; aviso("aviso-panel", "", ""); dibujar(); });
   $("guardar").onclick = () => guardar();
   $("descartar").onclick = async () => { if (!confirm("¿Descartar los cambios sin guardar?")) return; try { const r = await DP.api(API + "/contenido"); D = r.contenido || D; VERSION = r.actualizado; original = JSON.stringify(D); marcar(); dibujar(); } catch (e) { aviso("aviso-panel", "error", e.message); } };
   $("salir").onclick = async () => { try { await DP.api("/api/evauth/logout", { method: "POST", body: {} }); } catch (e) {} if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); location.reload(); };
   (async () => {
+    // Entrada con un enlace de acceso (?acceso=…): se canjea una sola vez y se quita de la dirección
+    const token = new URLSearchParams(location.search).get("acceso");
+    if (token) {
+      history.replaceState(null, "", location.pathname + location.hash);
+      try { return iniciar(await DP.api("/api/evauth/acceso", { method: "POST", body: { token, slug: SLUG } })); }
+      catch (e) { $("acceso").classList.remove("oculto"); aviso("aviso-acceso", "error", e.message); formularioEnlace(); return mostrarAcceso(); }
+    }
     try { iniciar(await DP.api("/api/evauth/me?slug=" + encodeURIComponent(SLUG))); }
     catch (e) { if (e.estado === 403 || e.estado === 404) { $("acceso").classList.remove("oculto"); aviso("aviso-acceso", "error", e.message); } await mostrarAcceso(); }
   })();

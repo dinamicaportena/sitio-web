@@ -57,10 +57,12 @@ async function adjuntoAfiche(slug, nombreEv, origen) {
   if (!c?.afiche) return [];
   return [{ nombre: `Afiche - ${nombreEv}.jpg`, tipo: "image/jpeg", url: urlAbs(c.afiche, origen) }];
 }
-// Banner del evento (si tiene uno cargado en «Identidad del evento»): cabecera de los correos en HTML.
+// Cabecera de los correos en HTML: la imagen propia para correos («Cabecera de los correos» en Identidad del evento)
+// o, si no hay, el banner de portada del evento.
 async function bannerEvento(slug, origen) {
   const c = await contenidoEvento(slug);
-  return c?.imagenPortada ? urlAbs(c.imagenPortada, origen) : null;
+  const img = c?.cabeceraCorreo || c?.imagenPortada;
+  return img ? urlAbs(img, origen) : null;
 }
 async function inscritos(slug, estados) {
   const s = inscStore(), { blobs } = await s.list({ prefix: slug + "/" });

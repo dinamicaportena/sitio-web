@@ -7,7 +7,7 @@
 //                                                (queda por aprobar por un administrador central); { prueba: true } lo envía solo a quien escribe
 //   GET/POST/DELETE /api/evadmin/:slug/admins    lista / invitar { email, reenviar? } / quitar { email } (invitar y quitar: responsable o central)
 import { json, error, leerJSON, texto, emailValido, sha256, tokenAleatorio } from "../lib/comun.mjs";
-import { leerRegistro, registroStore, contenidoStore, inscStore, permiso, puedeAdministrar, validarContenido, validarSlug, correo, invitarAdmin } from "../lib/ev.mjs";
+import { leerRegistro, registroStore, contenidoStore, inscStore, permiso, puedeAdministrar, validarContenido, validarSlug, correo, invitarAdmin, filaComite, guardarArchivoEvento } from "../lib/ev.mjs";
 import { limpiarMensaje, crearMensaje, enviarPrueba, listarMensajes, resumenMensaje, conteoInscritos, suscribirDesdeEvento } from "../lib/mensajes.mjs";
 import { correosActivos } from "../lib/suscriptores.mjs";
 
@@ -23,6 +23,12 @@ export default async (req, context) => {
   if (!p) return error("Debe iniciar sesión con una cuenta autorizada para este evento.", 401);
   const [, , , , recurso, id] = new URL(req.url).pathname.split("/");
   const origen = new URL(req.url).origin, nombreEvento = async () => (await contenidoStore().get(slug, { type: "json" }))?.contenido?.nombre?.es || slug;
+
+  // ---- imágenes (logos, banner, afiche, cabecera): cualquier administrador del evento ----
+  if (recurso === "archivos" && req.method === "POST") {
+    const c = await leerJSON(req); if (!c) return error("Solicitud no válida.");
+    try { return json({ url: await guardarArchivoEvento(slug, c.datos) }, 201); } catch (e) { return error(e.message); }
+  }
 
   // ---- contenido ----
   if (recurso === "contenido") {
@@ -62,8 +68,17 @@ export default async (req, context) => {
       if (a && !c.reenviar) return error("Ese correo ya es administrador de este evento.", 409);
       const nuevo = !a;
       if (nuevo) { a = { email, rol: "colaborador", agregado: new Date().toISOString(), agregadoPor: p.email }; reg.admins.push(a); await registroStore().setJSON(slug, reg); }
-      const comite = ["cientifico", "organizador", "ambos"].includes(c.comite) ? c.comite : null;
-      const invitacion = await invitarAdmin({ origen, slug, nombre: await nombreEvento(), email, rol: a.rol, por: p.email, nombrePersona: texto(c.nombrePersona, 200), comite });
+      // Datos de la persona: los enviados desde la fila del comité (aunque aún no se hayan guardado) o, si no vienen
+      // (p. ej. «Reenviar invitación» desde Administradores), los de su fila guardada en el comité.
+      const contenido = (await contenidoStore().get(slug, { type: "json" }))?.contenido || {};
+      const guardada = filaComite(contenido, email), suya = filaComite(contenido, p.email);
+      const comite = ["cientifico", "organizador", "ambos"].includes(c.comite) ? c.comite : guardada?.comite || null;
+      const persona = {
+        nombre: texto(c.nombrePersona, 200) || guardada?.fila?.nombre || "",
+        saludo: ["Estimado", "Estimada"].includes(c.saludo) ? c.saludo : guardada?.fila?.saludo || "",
+        idioma: ["es", "en"].includes(c.idioma) ? c.idioma : guardada?.fila?.idioma || "es",
+      };
+      const invitacion = await invitarAdmin({ origen, slug, email, rol: a.rol, por: p.email, contenido, comite, persona, invitante: { nombre: suya?.fila?.nombre || "" } });
       return json({ admins: reg.admins, invitacion }, nuevo ? 201 : 200);
     }
     if (req.method === "DELETE") {
@@ -141,4 +156,4 @@ export default async (req, context) => {
   }
   return error("Ruta o método no permitido.", 404);
 };
-export const config = { path: ["/api/evadmin/:slug/contenido", "/api/evadmin/:slug/estado", "/api/evadmin/:slug/admins", "/api/evadmin/:slug/mensajes", "/api/evadmin/:slug/inscripciones", "/api/evadmin/:slug/inscripciones/:id"] };
+export const config = { path: ["/api/evadmin/:slug/archivos", "/api/evadmin/:slug/contenido", "/api/evadmin/:slug/estado", "/api/evadmin/:slug/admins", "/api/evadmin/:slug/mensajes", "/api/evadmin/:slug/inscripciones", "/api/evadmin/:slug/inscripciones/:id"] };

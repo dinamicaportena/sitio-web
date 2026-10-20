@@ -20,7 +20,7 @@
     errCampos: "Please complete name, institution, country and a valid email, and accept the data policy.",
     insCerrada: "Registration is not open at the moment.", irFormulario: "Open the registration form →",
     cafe: "Coffee break", almuerzo: "Lunch", sinTitulo: "Session",
-    comiteUnico: "Scientific and Organizing Committee", organizador: "Organizing committee",
+    comiteUnico: "Scientific and Organizing Committee", organizador: "Organizing committee", apoyan: "Supported by",
   } : {
     porConfirmar: "Por confirmar", fechasPC: "Fechas por confirmar",
     sinConf: "Los conferencistas se anunciarán próximamente.", sinProg: "El programa se publicará próximamente.",
@@ -36,7 +36,7 @@
     errCampos: "Complete nombre, institución, país y un correo válido, y acepte el uso de los datos.",
     insCerrada: "La inscripción no está abierta por el momento.", irFormulario: "Abrir el formulario de inscripción →",
     cafe: "Pausa café", almuerzo: "Almuerzo", sinTitulo: "Sesión",
-    comiteUnico: "Comité científico y organizador", organizador: "Comité organizador",
+    comiteUnico: "Comité científico y organizador", organizador: "Comité organizador", apoyan: "Apoyan",
   };
   const MESES = EN ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     : ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -110,7 +110,32 @@
     const hero = document.querySelector(".hero.evento"), img = soloHttp(c.imagenPortada);
     if (hero) {
       hero.classList.toggle("con-imagen", Boolean(img));
-      hero.style.backgroundImage = img ? `linear-gradient(rgba(8,20,45,.6),rgba(8,20,45,.6)), url("${img}")` : "";
+      // Si el banner ya trae el nombre, las fechas y el lugar escritos en la imagen (como el afiche), se oculta el
+      // título que normalmente se dibuja encima en blanco, para no repetir la misma información dos veces.
+      const conTitulo = Boolean(img && c.bannerConTitulo);
+      hero.classList.toggle("banner-con-titulo", conTitulo);
+      if (conTitulo) {
+        // El banner ya es la portada completa: se muestra entero, sin capa oscura y sin recortes (ver evento.css). Se
+        // toman su proporción y el color de sus bordes izquierdo y derecho para rellenar el ancho sobrante en pantallas
+        // muy anchas sin que se note el borde de la imagen.
+        hero.style.backgroundImage = "";
+        hero.style.setProperty("--banner", `url("${img}")`);
+        const im = new Image();
+        im.onload = () => {
+          if (im.naturalWidth && im.naturalHeight) hero.style.setProperty("--banner-ratio", String(im.naturalWidth / im.naturalHeight));
+          try {
+            const cv = document.createElement("canvas"); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+            const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+            const col = (x) => { const p = cx.getImageData(x, Math.floor(im.naturalHeight / 2), 1, 1).data; return `rgb(${p[0]},${p[1]},${p[2]})`; };
+            hero.style.setProperty("--banner-izq", col(2));
+            hero.style.setProperty("--banner-der", col(im.naturalWidth - 3));
+          } catch (e) { /* imagen de otro dominio: se usan los colores por defecto */ }
+        };
+        im.src = img;
+      } else {
+        hero.style.removeProperty("--banner");
+        hero.style.backgroundImage = img ? `linear-gradient(rgba(8,20,45,.6),rgba(8,20,45,.6)), url("${img}")` : "";
+      }
     }
     const afiche = $("c-afiche-link"), urlAfiche = soloHttp(c.afiche);
     if (afiche) { afiche.hidden = !urlAfiche; if (urlAfiche) afiche.href = urlAfiche; }
@@ -120,7 +145,12 @@
     if (tr(c.lugar)) item(EN ? "Venue" : "Lugar", tr(c.lugar));
     const i = c.inscripcion || {}, est = $("c-estado-insc");
     const vencida = i.fechaLimite && new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" }) > i.fechaLimite;
-    est.textContent = i.abierta && !vencida ? (i.fechaLimite ? T.hasta(fechaCorta(i.fechaLimite)) : T.abierta) : T.cerrada;
+    // Botón «Inscripción» solo con la inscripción abierta; el estado solo se muestra si hay fecha límite (si está cerrada no
+    // se dice nada: no hay botón y la sección explica cuándo se abrirá)
+    const abiertaInsc = Boolean(i.abierta && !vencida);
+    document.querySelectorAll('.hero a[href="#inscripcion"]').forEach((a) => { if (!abiertaInsc) a.hidden = true; });
+    est.textContent = abiertaInsc && i.fechaLimite ? T.hasta(fechaCorta(i.fechaLimite)) : "";
+    est.hidden = !est.textContent;
     const d = document.querySelector('meta[name="description"]');
     if (d && c.inicio) d.content = `${nombre} · ${rangoFechas(c.inicio, c.fin)} · ${tr(c.lugar)}`;
   }
@@ -240,15 +270,17 @@
     cont.append(g);
   }
 
-  function comite(cont, lista) {
+  // Integrante: nombre destacado; debajo, institución y rol; correo y teléfono como enlaces discretos
+  function comite(cont, lista, dosColumnas) {
     cont.replaceChildren();
-    const ul = el("ul", "org-lista");
+    const ul = el("ul", "org-lista" + (dosColumnas ? " dos-columnas" : ""));
     lista.forEach((x) => {
-      const li = el("li"); li.append(document.createTextNode([x.nombre, x.institucion].filter(Boolean).join(" — ")));
-      if (tr(x.rol)) li.append(el("span", "rol", tr(x.rol)));
+      const li = el("li"); li.append(el("span", "org-nombre", x.nombre));
+      const sub = [x.institucion, tr(x.rol)].filter(Boolean).join(" · ");
+      if (sub) li.append(el("span", "org-inst", sub));
       if (x.email || x.telefono) {
-        const c = el("span", "rol");
-        if (x.email) { const a = el("a", "", x.email); a.href = "mailto:" + x.email; c.append(a); }
+        const c = el("span", "org-contacto");
+        if (x.email) { const e = String(x.email).trim(), a = el("a", "", e); a.href = "mailto:" + e; c.append(a); }
         if (x.email && x.telefono) c.append(document.createTextNode(" · "));
         if (x.telefono) { const a = el("a", "", x.telefono); a.href = "tel:" + x.telefono.replace(/[^\d+]/g, ""); c.append(a); }
         li.append(c);
@@ -263,17 +295,27 @@
     const cfg = c.secciones || {};
     const sub = (id, def) => { const t = (cfg[id] || {}).titulo; if (t && tr(t)) $("t-" + id).textContent = tr(t); else if (def) $("t-" + id).textContent = def; };
     const cien = (c.cientifico || []).filter((x) => x && x.nombre), org = (c.organizadores || []).filter((x) => x && x.nombre);
-    if (c.comiteUnico) {                           // una sola lista (comité científico) con ambas funciones
+    // Los dos comités lado a lado en pantallas anchas (uno bajo el otro en celular): se agrupan una sola vez
+    let grilla = document.querySelector("#organizacion .comites-grid");
+    if (!grilla) {
+      grilla = el("div", "comites-grid");
+      const colC = el("div", "comite-col"), colO = el("div", "comite-col");
+      $("t-cientifico").before(grilla);
+      colC.append($("t-cientifico"), ci); colO.append($("t-organizadores"), o); grilla.append(colC, colO);
+    }
+    if (c.comiteUnico) {                           // una sola lista (comité científico) con ambas funciones, en dos columnas
       ci.hidden = $("t-cientifico").hidden = true;
       $("t-organizadores").textContent = T.comiteUnico;
-      if (!cien.length) vacio(o, T.sinOrg); else comite(o, cien);
+      grilla.classList.add("unico");
+      if (!cien.length) vacio(o, T.sinOrg); else comite(o, cien, true);
     } else {
       ci.hidden = $("t-cientifico").hidden = !cien.length;
+      grilla.classList.toggle("unico", !cien.length);
       if (cien.length) comite(ci, cien);
       $("t-organizadores").textContent = T.organizador;
       if (!org.length) vacio(o, T.sinOrg); else comite(o, org);
     }
-    sub("auspiciantes");
+    sub("auspiciantes", T.apoyan);            // título por omisión: «Apoyan» (editable en el panel)
     const aus = (c.auspiciantes || []).filter((x) => x && x.nombre);
     $("t-auspiciantes").hidden = !aus.length; a.hidden = !aus.length;
     if (aus.length) {
@@ -281,8 +323,11 @@
       aus.forEach((x) => {
         const u = soloHttp(x.url), n = el(u ? "a" : "div", "sponsor");
         if (u) { n.href = u; n.target = "_blank"; n.rel = "noopener"; }
-        if (soloHttp(x.logo) || /^assets\//.test(x.logo || "")) { const im = el("img"); im.src = x.logo; im.alt = ""; n.append(im); }
-        n.append(document.createTextNode(x.nombre)); w.append(n);
+        // Con logo, se muestra solo el logo (el nombre queda como texto alternativo y al pasar el mouse); sin logo, el nombre
+        if (soloHttp(x.logo) || /^assets\//.test(x.logo || "")) {
+          const im = el("img"); im.src = x.logo; im.alt = x.nombre; n.title = x.nombre; n.classList.add("solo-logo"); n.append(im);
+        } else n.append(document.createTextNode(x.nombre));
+        w.append(n);
       });
       a.append(w);
     }
@@ -290,7 +335,89 @@
     if (email) { k.append(document.createTextNode(T.contacto + " ")); const l = el("a", "", email); l.href = "mailto:" + email; k.append(l, document.createTextNode(".")); }
   }
 
+  // ---------- secciones desplegables ----------
+  // Cada sección se abre o se cierra con un clic en su título. Al cargar, se muestran desplegadas las que el panel indica
+  // («Desplegada al abrir la página»); un enlace del menú o de la portada (#programa, #inscripcion…) abre su sección.
+  const ABIERTA_POR_DEFECTO = ["objetivo", "conferencistas", "programa", "info"];
+  function plegables(c) {
+    const cfg = c.secciones || {};
+    SECCIONES.forEach((id) => {
+      const sec = $(id); if (!sec) return;
+      const head = sec.querySelector(".section-head"); if (!head) return;
+      if (!sec.querySelector(":scope > .cuerpo-seccion")) {
+        const cuerpo = el("div", "cuerpo-seccion"); cuerpo.id = "cuerpo-" + id;
+        while (head.nextSibling) cuerpo.append(head.nextSibling);
+        sec.append(cuerpo);
+        head.classList.add("plegable"); head.setAttribute("role", "button"); head.tabIndex = 0;
+        head.setAttribute("aria-controls", cuerpo.id);
+        const alternar = () => abrirSeccion(id, sec.classList.contains("plegada"));
+        head.addEventListener("click", alternar);
+        head.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alternar(); } });
+      }
+      const k = cfg[id] || {}, abierta = k.abierta === undefined ? ABIERTA_POR_DEFECTO.includes(id) : k.abierta !== false;
+      abrirSeccion(id, abierta);
+    });
+    const h = location.hash.slice(1); if (SECCIONES.includes(h)) abrirSeccion(h, true);
+  }
+  function abrirSeccion(id, abrir) {
+    const sec = $(id); if (!sec) return;
+    sec.classList.toggle("plegada", !abrir);
+    const head = sec.querySelector(".section-head"); if (head) head.setAttribute("aria-expanded", String(abrir));
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest('a[href^="#"]'); if (!a) return;
+    const id = a.getAttribute("href").slice(1); if (SECCIONES.includes(id)) abrirSeccion(id, true);
+  });
+  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (SECCIONES.includes(h)) abrirSeccion(h, true); });
+
+  // ---------- compartir y redes sociales ----------
+  // Botones para compartir la página (sin cuentas ni permisos: cada red abre su propia ventana para publicar) y, en
+  // teléfonos, «Compartir afiche» con el menú del sistema (permite elegir Instagram, WhatsApp, etc. con la imagen 4:5).
+  const REDES = [["instagram", "Instagram"], ["facebook", "Facebook"], ["x", "X"], ["linkedin", "LinkedIn"], ["youtube", "YouTube"]];
+  function compartir(c) {
+    const sec = $("objetivo"); if (!sec) return;
+    let caja = $("c-compartir");
+    if (!caja) { caja = el("div", "compartir"); caja.id = "c-compartir"; (sec.querySelector(".cuerpo-seccion") || sec).append(caja); }
+    caja.replaceChildren();
+    const url = location.origin + "/" + SLUG + "/" + (EN ? "en" : ""), titulo = tr(c.nombre) || document.title;
+    const texto = [titulo, rangoFechas(c.inicio, c.fin), tr(c.lugar)].filter(Boolean).join(" · ");
+    const e = encodeURIComponent;
+    const enlace = (txt, href) => { const a = el("a", "btn-compartir", txt); a.href = href; a.target = "_blank"; a.rel = "noopener"; return a; };
+    caja.append(el("span", "compartir-rotulo", EN ? "Share:" : "Compartir:"),
+      enlace("WhatsApp", `https://wa.me/?text=${e(texto + "\n" + url)}`),
+      enlace("Facebook", `https://www.facebook.com/sharer/sharer.php?u=${e(url)}`),
+      enlace("X", `https://twitter.com/intent/tweet?text=${e(texto)}&url=${e(url)}`),
+      enlace("LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${e(url)}`),
+      (() => { const a = el("a", "btn-compartir", EN ? "Email" : "Correo"); a.href = `mailto:?subject=${e(titulo)}&body=${e(texto + "\n\n" + url)}`; return a; })());
+    const copiar = el("button", "btn-compartir", EN ? "Copy link" : "Copiar enlace"); copiar.type = "button";
+    copiar.onclick = async () => { try { await navigator.clipboard.writeText(url); copiar.textContent = EN ? "Link copied" : "Enlace copiado"; } catch (err) { prompt("", url); } };
+    caja.append(copiar);
+    // Menú del sistema (teléfonos): comparte la imagen del afiche para redes, lista para Instagram
+    const afiche = soloHttp(c.afiche);
+    if (navigator.share && afiche) {
+      const b = el("button", "btn-compartir destacado", EN ? "Share poster…" : "Compartir afiche…"); b.type = "button";
+      b.onclick = async () => {
+        try {
+          const img = /\/afiche\.jpg$/.test(afiche) ? afiche.replace(/afiche\.jpg$/, "afiche-redes.jpg") : afiche;
+          const blob = await (await fetch(img)).blob(), archivo = new File([blob], "afiche.jpg", { type: blob.type || "image/jpeg" });
+          const datos = { title: titulo, text: texto + "\n" + url };
+          if (navigator.canShare && navigator.canShare({ files: [archivo] })) await navigator.share({ ...datos, files: [archivo] }); else await navigator.share({ ...datos, url });
+        } catch (err) { /* cancelado por la persona */ }
+      };
+      caja.append(b);
+    }
+    // Redes del evento (si se ingresaron en el panel): «Síguenos»
+    const r = c.redes || {}, propias = REDES.filter(([k]) => soloHttp(r[k]));
+    if (propias.length) {
+      const sig = el("div", "siguenos"); sig.append(el("span", "compartir-rotulo", EN ? "Follow us:" : "Síguenos:"));
+      propias.forEach(([k, n]) => sig.append(enlace(n, r[k])));
+      caja.append(sig);
+    }
+  }
+
   function dibujar(c, inscritos, esAdmin) {
+    try { plegables(c); } catch (e) { console.error("plegables", e); }
+    try { compartir(c); } catch (e) { console.error("compartir", e); }
     [identidad, portada, objetivo, conferencistas, programa, info, organizacion].forEach((fn) => { try { fn(c); } catch (e) { console.error(fn.name, e); } });
     try { inscripcion(c, esAdmin); } catch (e) { console.error("inscripcion", e); }
     try { participantes(c, inscritos); } catch (e) { console.error("participantes", e); }

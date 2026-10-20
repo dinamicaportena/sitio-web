@@ -43,3 +43,68 @@
 .fila-casillas .casilla{margin:0}
 /* ocho pestañas: en pantallas anchas se reparten en dos líneas en vez de desplazarse */
 @media (min-width: 700px) { #pestanas { flex-wrap: wrap; overflow-x: visible; } }
+
+/* Tablas anchas (comités): desplazamiento horizontal en vez de desbordar la tarjeta; listas desplegables legibles */
+.tabla-desplazable{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabla-desplazable .mini-tabla td input{min-width:60px}
+.mini-tabla td select{min-width:98px}
+.mini-tabla td select:has(option[value="en"]){min-width:58px}
+
+/* Bloques plegables: clic en el título */
+.bloque > h3.bloque-titulo{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px}
+.bloque > h3.bloque-titulo::after{content:"▾";margin-left:auto;color:var(--texto-suave);font-size:14px;transition:transform .15s}
+.bloque > h3.bloque-titulo:hover{color:var(--azul)}
+.bloque.plegado > h3.bloque-titulo{margin-bottom:0}
+.bloque.plegado > h3.bloque-titulo::after{transform:rotate(-90deg)}
+.bloque.plegado > :not(h3){display:none!important}
+
+/* Imágenes: subir archivo y miniatura */
+.fila-imagen{display:flex;align-items:center;gap:10px;margin-top:6px}
+.mini-imagen{max-height:44px;max-width:160px;border:1px solid var(--borde);border-radius:4px;background:#fff;object-fit:contain}
+.celda-imagen{display:flex;align-items:center;gap:6px}
+.celda-imagen .mini-imagen{max-height:30px;max-width:60px}
+.celda-imagen input{flex:1}
+
+/* Secciones de la página: visible + desplegada */
+.sec-casillas{display:flex;flex-wrap:wrap;gap:4px 22px;align-items:center}
+.sec-fila .sub-casilla{font-weight:400;color:var(--texto-suave);font-size:13.5px}
+
+/* Comités: dos columnas (científico | organizador) con fichas desplegables */
+.columnas-comite{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.columnas-comite h4,.comite-unico h4{margin:4px 0 8px;font-size:15px}
+.comite-unico .fichas{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+.comite-unico .fichas .ficha{margin:0}
+@media (max-width:760px){.columnas-comite,.comite-unico .fichas{grid-template-columns:1fr}}
+.ficha{border:1px solid var(--borde);border-radius:6px;background:#fff;margin:0 0 8px}
+.ficha-cab{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer}
+.ficha-cab:hover{background:var(--gris-fondo)}
+.ficha-nombre{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.ficha-nombre strong{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ficha-nombre .sub{font-size:12.5px;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ficha-flecha{color:var(--texto-suave);transition:transform .15s;transform:rotate(-90deg)}
+.ficha.abierta .ficha-flecha{transform:none}
+.ficha .quitar{background:none;border:0;color:var(--texto-suave);font-size:18px;cursor:pointer;line-height:1}
+.ficha .quitar:hover{color:var(--rojo-texto)}
+.ficha-cuerpo{display:none;padding:10px 12px 2px;border-top:1px solid var(--borde)}
+.ficha.abierta .ficha-cuerpo{display:block}
+.ficha-cuerpo .fila2{gap:10px}
+.ficha-cuerpo .campo{margin-bottom:10px}
+.ficha-cab .boton.peq{white-space:nowrap}
+.ficha.arrastrando{opacity:.4}
+.ficha.sobre-arrastre{box-shadow:inset 0 2px 0 var(--azul)}
+.ficha .asa-arrastre{cursor:grab;color:var(--texto-suave)}
+.fichas{margin-bottom:8px}
+
+/* Recursos: afiche automático */
+.casillas-afiche{display:flex;flex-wrap:wrap;gap:4px 22px;margin:4px 0 6px}
+.previas-afiche{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin-top:14px;align-items:start}
+.previas-afiche figure{margin:0}
+.previas-afiche figcaption{font-size:12.5px;color:var(--texto-suave);margin-top:4px;text-align:center}
+.afiche-previa{width:100%;height:auto;border:1px solid var(--borde);border-radius:4px;background:#f4f5f7;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+@media (max-width:640px){.previas-afiche{grid-template-columns:1fr}}
+.acciones-seccion a.boton{text-decoration:none;display:inline-block}
+.logos-recursos{display:flex;flex-wrap:wrap;gap:16px}
+.logos-recursos figure{margin:0;width:170px;text-align:center}
+.logos-recursos img{max-width:160px;max-height:70px;object-fit:contain}
+.logos-recursos .sin-logo{height:70px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--borde);border-radius:4px;color:var(--texto-suave);font-size:13px}
+.logos-recursos figcaption{font-size:12.5px;color:var(--texto-suave);margin-top:4px}
