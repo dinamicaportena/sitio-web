@@ -331,17 +331,19 @@
       const email = String(fila.email || "").trim().toLowerCase();
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
       const a = porCorreo.get(email);
-      if (a) return el("span", { className: "chip ok", textContent: ROL_CHIP[a.rol] || a.rol });
+      const chip = a ? el("span", { className: "chip ok", textContent: ROL_CHIP[a.rol] || a.rol }) : null;
+      if (a && (!esResp() || a.rol !== "colaborador")) return chip;
       if (!esResp()) return null;
-      const b = el("button", { type: "button", className: "boton sec peq", textContent: "Invitar al panel", onclick: async (ev) => {
+      // Sin acceso: «Invitar al panel». Con acceso (colaborador): «Reenviar», con los mismos datos de la ficha.
+      const b = el("button", { type: "button", className: "boton sec peq", textContent: a ? "Reenviar" : "Invitar al panel", title: a ? "Reenviar la invitación al panel" : "", onclick: async (ev) => {
         ev.stopPropagation(); b.disabled = true;
         try {
-          const r = await DP.api(API + "/admins", { method: "POST", body: { email, nombrePersona: fila.nombre || "", comite: tipoComite, saludo: fila.saludo || "", idioma: fila.idioma || "es" } });
-          aviso("aviso-panel", "ok", r.invitacion?.enviado ? `Invitación enviada a ${email}.` : `No se pudo enviar el correo (${r.invitacion?.motivo || "motivo desconocido"}). Comparta este enlace: ${r.invitacion?.enlace}`);
+          const r = await DP.api(API + "/admins", { method: "POST", body: { email, nombrePersona: fila.nombre || "", comite: tipoComite, saludo: fila.saludo || "", idioma: fila.idioma || "es", ...(a ? { reenviar: true } : {}) } });
+          aviso("aviso-panel", "ok", r.invitacion?.enviado ? `Invitación enviada a ${email}.` : `No se pudo enviar el correo (${r.invitacion?.motivo || "motivo desconocido"}). Comparta este enlace: ${r.invitacion?.enlace}`); window.scrollTo({ top: 0, behavior: "smooth" });
           dibujar();
         } catch (e) { b.disabled = false; aviso("aviso-panel", "error", e.message); }
       } });
-      return b;
+      return a ? el("span", { className: "acceso-ficha" }, chip, b) : b;
     };
 
     // Integrantes como fichas desplegables (resumen: nombre, institución y acceso; al abrir, todos los datos). Se reordenan arrastrando.
