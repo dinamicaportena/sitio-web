@@ -15,7 +15,7 @@
     abierta: "Registration open", cerrada: "Registration closed", hasta: (f) => `Registration open until ${f}`,
     sinResultados: "No participants match your search.",
     contacto: "For questions, write to", pagina: "Website", noEncontrado: "This event page does not exist or is not published yet.",
-    enviando: "Sending…", okNuevo: "Thank you! Your registration was received. The organizers will confirm it by email.",
+    enviando: "Sending…", okNuevo: "Thank you! Your registration was received. We have sent you a confirmation email.",
     errGeneral: "The registration could not be sent. Please try again or write to the organizers.",
     errCampos: "Please complete name, institution, country and a valid email, and accept the data policy.",
     errPatro: "To apply for a grant, please give the name and email of the professor supporting your application.",
@@ -25,10 +25,11 @@
     compTitulo: "Complete your registration", compHola: (n) => `${n}, here you can add the data that was pending in your registration.`,
     compTit: "Title", compRes: "Abstract", compLatex: "You may use LaTeX (bold, accents, formulas between $…$, etc.).",
     compAporte: "Would you be able to support student participation with a voluntary registration fee?",
-    compOpc: [["", "I prefer to answer later"], ["si", "Yes, gladly"], ["no", "Not on this occasion"]],
+    compOpc: [["", "— Choose an option —"], ["si", "Yes, gladly"], ["no", "Not on this occasion"]],
+    errAporte: "Please tell us whether you could support student participation with a voluntary registration fee.",
     compGuardar: "Save", compOk: "Thank you! Your data was saved.", compMal: "This link is not valid or has expired.",
     becaTxt: "Grants for students are available, subject to availability. To apply, please give the name and email of a professor who supports your participation.",
-    aporteTxt: "The colloquium has a voluntary registration fee, intended mainly to fund the participation of students. If you can support it, we will send you the amount and payment details later.",
+    aporteTxt: "The colloquium has a voluntary registration fee, intended mainly to fund the participation of students. If you can support it, we will later send you information on the amount and payment method.",
     insCerrada: "Registration is not open at the moment.", irFormulario: "Open the registration form →",
     cafe: "Coffee break", almuerzo: "Lunch", sinTitulo: "Session",
     comiteUnico: "Scientific and Organizing Committee", organizador: "Organizing committee", apoyan: "Supported by",
@@ -42,7 +43,7 @@
     abierta: "Inscripción abierta", cerrada: "Inscripción cerrada", hasta: (f) => `Inscripción abierta hasta el ${f}`,
     sinResultados: "Ningún participante coincide con la búsqueda.",
     contacto: "Para consultas, escriba a", pagina: "Sitio web", noEncontrado: "Esta página de evento no existe o aún no está publicada.",
-    enviando: "Enviando…", okNuevo: "¡Gracias! Su inscripción fue recibida. La organización se la confirmará por correo.",
+    enviando: "Enviando…", okNuevo: "¡Gracias! Su inscripción fue recibida. Le enviamos un correo de confirmación.",
     errGeneral: "No se pudo enviar la inscripción. Intente nuevamente o escriba a la organización.",
     errCampos: "Complete nombre, institución, país y un correo válido, y acepte el uso de los datos.",
     errPatro: "Para solicitar beca, indica el nombre y el correo del profesor o profesora que patrocina tu solicitud.",
@@ -52,10 +53,11 @@
     compTitulo: "Completar tu inscripción", compHola: (n) => `${n}, aquí puedes agregar los datos que quedaron pendientes en tu inscripción.`,
     compTit: "Título", compRes: "Resumen", compLatex: "Puedes usar LaTeX (negrita, acentos, fórmulas entre $…$, etc.).",
     compAporte: "¿Podrías apoyar la participación de estudiantes con una inscripción voluntaria?",
-    compOpc: [["", "Prefiero responder más adelante"], ["si", "Sí, con gusto"], ["no", "En esta ocasión no me es posible"]],
+    compOpc: [["", "— Elige una opción —"], ["si", "Sí, con gusto"], ["no", "En esta ocasión no me es posible"]],
+    errAporte: "Indica si podrías apoyar la participación de estudiantes con una inscripción voluntaria.",
     compGuardar: "Guardar", compOk: "¡Gracias! Tus datos quedaron guardados.", compMal: "El enlace no es válido o ya no está vigente.",
     becaTxt: "La organización ofrece becas para estudiantes, sujetas a disponibilidad. Para solicitarla, indica el nombre y el correo de un profesor o profesora que patrocine tu participación.",
-    aporteTxt: "El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes. Si puedes apoyar, más adelante te enviaremos el monto y la forma de pago.",
+    aporteTxt: "El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes. Si puedes apoyar, más adelante te enviaremos información con el monto y la forma de pago.",
     insCerrada: "La inscripción no está abierta por el momento.", irFormulario: "Abrir el formulario de inscripción →",
     cafe: "Pausa café", almuerzo: "Almuerzo", sinTitulo: "Sesión",
     comiteUnico: "Comité científico y organizador", organizador: "Comité organizador", apoyan: "Apoyan",
@@ -256,7 +258,7 @@
     const ul = el("ul", "part-lista"), msg = el("p", "vacio-nota", T.sinResultados); msg.hidden = true;
     const items = todos.map((p) => {
       const li = el("li"); li.append(document.createTextNode(p.nombre));
-      const inst = [p.institucion, p.pais].filter(Boolean).join(", "); if (inst) li.append(el("span", "inst", inst));
+      const inst = p.institucion || ""; if (inst) li.append(el("span", "inst", inst));   // solo nombre e institución
       li.dataset.t = (p.nombre + " " + inst).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); ul.append(li); return li;
     });
     const filtrar = () => {
@@ -494,6 +496,7 @@
       if (conBeca) Object.assign(cuerpo, { beca: d.beca || "no", patrocinador: (d.patrocinador || "").trim(), patrocinadorEmail: (d.patrocinadorEmail || "").trim() });
       if (conAporte) cuerpo.aporte = d.aporte || "";
       if (!cuerpo.nombre || !cuerpo.institucion || !cuerpo.pais || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cuerpo.email) || !cuerpo.privacidad) return msg("error", T.errCampos);
+      if (conAporte && !cuerpo.aporte) return msg("error", T.errAporte);
       if (conBeca && cuerpo.beca === "si" && (!cuerpo.patrocinador || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cuerpo.patrocinadorEmail))) return msg("error", T.errPatro);
       boton.disabled = true; const antes = boton.textContent; boton.textContent = T.enviando;
       try {

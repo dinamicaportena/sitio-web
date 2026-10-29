@@ -5,6 +5,7 @@
 //                                        resumen de la charla o póster y la respuesta sobre la inscripción voluntaria
 // Un evento en borrador solo lo ve (vista previa) quien tiene permiso sobre él.
 import { json, error, leerJSON, texto, emailValido, sha256 } from "../lib/comun.mjs";
+import { enviarConfirmacion } from "../lib/confirmacion-inscripcion.mjs";
 import { leerRegistro, permiso, contenidoStore, inscStore, validarSlug, leerCodigoCompletar, pendientesInscripcion, NIVELES_APORTE } from "../lib/ev.mjs";
 
 const NIVELES = ["investigador", "postdoc", "doctorado", "magister", "pregrado", "otro"];
@@ -13,10 +14,13 @@ const ESTUDIANTES = ["doctorado", "magister", "pregrado"];
 const APORTES = ["si", "no"];                       // apoyo voluntario: sí / esta vez no («» = responderá más adelante)
 const hoyChile = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });
 
-async function inscritosPublicos(slug) {
+// Lista pública: quienes autorizaron publicar su nombre e institución (casilla del formulario), aprobados por la
+// organización o, si el evento activó «publicar sin esperar la aprobación», todos los no rechazados. Ordenada por nombre.
+async function inscritosPublicos(slug, insc = {}) {
   const s = inscStore(), { blobs } = await s.list({ prefix: slug + "/" });
   const todos = await Promise.all(blobs.map((b) => s.get(b.key, { type: "json" })));
-  return todos.filter((i) => i && i.estado === "aprobada" && i.publicar).map((i) => ({ nombre: i.nombre, institucion: i.institucion, pais: i.pais }))
+  const visible = (i) => i && i.publicar && (i.estado === "aprobada" || (insc.publicarSinAprobar === true && i.estado === "pendiente"));
+  return todos.filter(visible).map((i) => ({ nombre: i.nombre, institucion: i.institucion }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
@@ -77,7 +81,10 @@ export default async (req, context) => {
         patrocinador = { nombre: pn, email: pe };
       }
     }
-    if (insc.aporte === true && NIVELES_APORTE.includes(nivel)) aporte = APORTES.includes(c.aporte) ? c.aporte : "";
+    if (insc.aporte === true && NIVELES_APORTE.includes(nivel)) {
+      aporte = APORTES.includes(c.aporte) ? c.aporte : "";
+      if (!aporte) return error("Indique si podría apoyar la participación de estudiantes con una inscripción voluntaria.");
+    }
     const nueva = { id, nombre, institucion, pais, email, nivel, beca, patrocinador, aporte,
       charla: Boolean(tipoPresentacion), tipoPresentacion, tituloCharla: texto(c.tituloCharla, 250), resumen: texto(c.resumen, 3000), observaciones: texto(c.observaciones, 600), publicar: Boolean(c.publicar),
       suscribir: Boolean(c.suscribir),                           // se suscribe a la lista de Dinámica Porteña cuando se aprueba la inscripción
@@ -86,12 +93,14 @@ export default async (req, context) => {
     // para que nadie pueda cambiar el nombre publicado de otra persona inscribiéndose con su correo.
     if (previa) nueva.anterior = { nombre: previa.nombre, institucion: previa.institucion, pais: previa.pais, estado: previa.estado, publicar: previa.publicar, actualizada: previa.actualizada || previa.creada };
     await s.setJSON(`${slug}/${id}`, nueva);
+    try { await enviarConfirmacion(nueva, guardado.contenido, slug, new URL(req.url).origin); }
+    catch (e) { console.error("Correo de confirmación de inscripción:", e.message); }   // la inscripción queda registrada igual
     return json({ ok: true }, 201);                              // misma respuesta exista o no la inscripción previa
   }
 
   if (req.method !== "GET") return error("Método no permitido.", 405);
   if (!publicado && !p) return error("Este evento aún no está publicado.", 404);
-  let inscritos = []; try { inscritos = await inscritosPublicos(slug); } catch { /* lista vacía */ }
+  let inscritos = []; try { inscritos = await inscritosPublicos(slug, guardado?.contenido?.inscripcion || {}); } catch { /* lista vacía */ }
   const cuerpo = { slug, estado: reg.estado, contenido: guardado?.contenido || null, inscritos, vistaPrevia: !publicado, esAdmin: Boolean(p) };
   return json(cuerpo, 200, publicado && !p
     ? { "Cache-Control": "public, max-age=30", "Netlify-CDN-Cache-Control": "public, durable, max-age=60, stale-while-revalidate=120" } : {});   // cambios visibles en 1–3 minutos

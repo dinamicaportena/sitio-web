@@ -155,6 +155,8 @@
           campo("Formulario externo (opcional)", ins, "formularioExterno", { ph: "https://…", ayuda: "Si lo completa, el sitio mostrará un botón a este enlace en vez del formulario propio." })),
         bi("Texto de la sección", ins, "texto", { area: true }),
         campo("Plazo para enviar el título y el resumen (opcional)", ins, "plazoResumen", { tipo: "date", ayuda: "Vacío: «por confirmar». Se usa también en el recordatorio por correo a quienes propusieron charla o póster sin título o resumen." }),
+        casilla("Publicar en «Participantes» a quienes lo autorizaron, sin esperar la aprobación de la inscripción (las rechazadas nunca se publican)", ins, "publicarSinAprobar"),
+        casilla("No enviar correo de confirmación al inscribirse (por defecto, cada persona recibe un correo con sus datos y, si corresponde, su enlace para completar el título y el resumen)", ins, "sinConfirmacion"),
         casilla("No mostrar el recuadro «Fechas importantes» en la página (inscripción, título y resumen, becas; las fechas sin definir aparecen «por confirmar»)", ins, "ocultarFechas"),
         el("h4", { textContent: "Becas para estudiantes", style: "margin:14px 0 6px" }),
         casilla("Preguntar a los estudiantes si necesitan beca (y, si la piden, el profesor/a que los patrocina y su correo)", ins, "becas"),
@@ -480,7 +482,7 @@
             i.beca === "si" ? el("span", { className: "sub" }, el("span", { className: "chip alerta", textContent: "Solicita beca" }),
               document.createTextNode(` Patrocina: ${i.patrocinador?.nombre || "—"}${i.patrocinador?.email ? " (" + i.patrocinador.email + ")" : ""}`)) : null,
             i.aporte ? el("span", { className: "sub", textContent: "Inscripción voluntaria: " + ({ si: "sí, apoyará", no: "en esta ocasión no", info: "pidió más información" }[i.aporte] || i.aporte) }) : null,
-            pendientesDe(i).length ? el("span", { className: "sub" }, ...pendientesDe(i).map((x) => el("span", { className: "chip alerta", style: "margin-right:4px", textContent: x === "resumen" ? "Falta título o resumen" : "Inscripción voluntaria: responderá más adelante" })),
+            pendientesDe(i).length ? el("span", { className: "sub" }, ...pendientesDe(i).map((x) => el("span", { className: "chip alerta", style: "margin-right:4px", textContent: x === "resumen" ? "Falta título o resumen" : "Inscripción voluntaria: sin respuesta" })),
               i.completada ? document.createTextNode(` (completó datos el ${DP.fechaLarga(i.completada)})`) : null) : null,
             i.suscribir ? el("span", { className: "sub", textContent: "Pidió recibir las novedades de Dinámica Porteña" + (i.suscripcion ? ` (${i.suscripcion})` : " (se suscribe al aprobar la inscripción)") }) : null,
             i.anterior ? el("span", { className: "sub", textContent: `Reenviada por la persona; versión anterior: ${i.anterior.nombre} (${i.anterior.institucion}, ${i.anterior.pais}), ${i.anterior.estado}${i.anterior.publicar ? ", publicable" : ""}.` }) : null),
@@ -559,8 +561,8 @@
   function plantillaRecordatorio(grupo, en) {
     const nombreEv = tx(D.nombre) || tx(D.marca) || (en ? "the event" : "el evento");
     if (grupo === "aporte") return en
-      ? { asunto: `${nombreEv}: voluntary registration`, cuerpo: `Dear {nombre},\n\nThank you for registering for ${nombreEv}. The colloquium has a voluntary registration fee, intended mainly to fund the participation of students. When you registered, you preferred to answer later whether you could support it; you can let us know at this personal link:\n\n{enlace}\n\nThose who are able to support it will receive the amount and payment details later.\n\nBest regards,\nOrganizing committee` }
-      : { asunto: `${nombreEv}: inscripción voluntaria`, cuerpo: `Estimado/a {nombre}:\n\nGracias por inscribirse en el ${nombreEv}. El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes. Al inscribirse prefirió responder más adelante si podría apoyarla; puede indicarlo en este enlace personal:\n\n{enlace}\n\nA quienes puedan apoyar les enviaremos más adelante el monto y la forma de pago.\n\nSaludos cordiales,\nComité organizador` };
+      ? { asunto: `${nombreEv}: voluntary registration`, cuerpo: `Dear {nombre},\n\nThank you for registering for ${nombreEv}. The colloquium has a voluntary registration fee, intended mainly to fund the participation of students. When you registered, you preferred to answer later whether you could support it; you can let us know at this personal link:\n\n{enlace}\n\nThose who are able to support it will later receive information on the amount and payment method.\n\nBest regards,\nOrganizing committee` }
+      : { asunto: `${nombreEv}: inscripción voluntaria`, cuerpo: `Estimado/a {nombre}:\n\nGracias por inscribirse en el ${nombreEv}. El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes. Al inscribirse prefirió responder más adelante si podría apoyarla; puede indicarlo en este enlace personal:\n\n{enlace}\n\nA quienes puedan apoyar les enviaremos más adelante información con el monto y la forma de pago.\n\nSaludos cordiales,\nComité organizador` };
     const plazo = (D.inscripcion || {}).plazoResumen, f = plazo ? fraseFechas(plazo, null, en) : "";
     return en
       ? { asunto: `${nombreEv}: title and abstract of your contribution`, cuerpo: `Dear {nombre},\n\nThank you for registering for ${nombreEv} and for proposing a contribution. We still need its title and/or abstract${f ? `; please send them ${f.replace(/^on /, "by ")}` : ""}. You can add them at this personal link:\n\n{enlace}\n\nBest regards,\nOrganizing committee` }
@@ -589,7 +591,7 @@
       const c = el("input", { type: "checkbox", checked: borrador.estados[k] }); c.onchange = () => { borrador.estados[k] = c.checked; pintarTotal(); };
       return el("label", { className: "casilla" }, c, el("span", { textContent: `${t} (${n[k] || 0})` }));
     }));
-    const grupo = el("select", {}, ...[["", "Todas las inscripciones de esos estados"], ["resumen", "Solo con título o resumen pendiente"], ["aporte", "Solo sin respuesta sobre la inscripción voluntaria"],
+    const grupo = el("select", {}, ...[["", "Todas las inscripciones de esos estados"], ["resumen", "Solo con título o resumen pendiente"], ["aporte", "Solo sin respuesta sobre la inscripción voluntaria (inscripciones antiguas)"],
       ["aporta", "Solo quienes apoyarán con la inscripción voluntaria"], ["beca", "Solo estudiantes que solicitan beca"]].map(([x, t]) => el("option", { value: x, textContent: t })));
     grupo.value = borrador.grupo || ""; grupo.onchange = () => { borrador.grupo = grupo.value; pintarTotal(); };
     estados.append(grupo);
@@ -636,7 +638,7 @@
     v.append(el("p", { className: "nota-ayuda", textContent: "Los correos salen desde la cuenta de Dinámica Porteña, con el nombre del evento como remitente. Las respuestas llegan al correo de contacto del evento (pestaña Organización) o, si no hay, al suyo." }),
       bloque("Escribir un correo",
         el("div", { className: "acciones-seccion", style: "margin-bottom:10px" }, plantillaBtn,
-          recordatorioBtn("resumen", "Plantilla: recordar título y resumen"), (D.inscripcion || {}).aporte ? recordatorioBtn("aporte", "Plantilla: recordar inscripción voluntaria") : null),
+          recordatorioBtn("resumen", "Plantilla: recordar título y resumen"), inscripciones.some((i) => i.estado !== "rechazada" && pendientesDe(i).includes("aporte")) ? recordatorioBtn("aporte", "Plantilla: recordar inscripción voluntaria") : null),
         el("div", { className: "fila2" }, el("div", { className: "campo" }, el("label", { textContent: "Destinatarios" }), tipo), el("div", { className: "campo" }, el("label", { textContent: "Idioma del pie del correo" }), idioma)),
         estados, total,
         el("div", { className: "campo" }, el("label", { textContent: "Asunto" }), asunto),
