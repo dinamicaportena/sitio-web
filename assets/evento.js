@@ -16,6 +16,7 @@
     sinResultados: "No participants match your search.",
     contacto: "For questions, write to", pagina: "Website", noEncontrado: "This event page does not exist or is not published yet.",
     enviando: "Sending…", okNuevo: "Thank you! Your registration was received. We have sent you a confirmation email.",
+    okPrueba: "Test registration saved (marked «prueba» in the panel; delete it before opening registration). The confirmation email has been sent.",
     errGeneral: "The registration could not be sent. Please try again or write to the organizers.",
     errCampos: "Please complete name, institution, country and a valid email, and accept the data policy.",
     errPatro: "To apply for a grant, please give the name and email of the professor supporting your application.",
@@ -44,6 +45,7 @@
     sinResultados: "Ningún participante coincide con la búsqueda.",
     contacto: "Para consultas, escriba a", pagina: "Sitio web", noEncontrado: "Esta página de evento no existe o aún no está publicada.",
     enviando: "Enviando…", okNuevo: "¡Gracias! Su inscripción fue recibida. Le enviamos un correo de confirmación.",
+    okPrueba: "Inscripción de prueba registrada (marcada «prueba» en el panel; bórrala antes de abrir la inscripción). Se envió el correo de confirmación.",
     errGeneral: "No se pudo enviar la inscripción. Intente nuevamente o escriba a la organización.",
     errCampos: "Complete nombre, institución, país y un correo válido, y acepte el uso de los datos.",
     errPatro: "Para solicitar beca, indica el nombre y el correo del profesor o profesora que patrocina tu solicitud.",
@@ -271,7 +273,7 @@
 
   // Bloques opcionales del formulario según la situación académica: beca (estudiantes) y apoyo voluntario (investigadores
   // y postdoctorados). Se activan y se redactan en el panel (pestaña General → Inscripción).
-  let insCfg = {};
+  let insCfg = {}, enBorrador = false;
   const ESTUDIANTES = ["doctorado", "magister", "pregrado"], APORTAN = ["investigador", "postdoc"];
   const hoyCl = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });
   const venceDia = (f) => Boolean(f) && hoyCl() > f;                 // el plazo incluye el día indicado
@@ -297,11 +299,14 @@
     const pasado = i.fechaLimite && new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" }) > i.fechaLimite;
     if (!i.abierta || pasado) {
       if (esAdmin && !externo) {        // administradores: ven y pueden opinar sobre los campos del formulario aunque aún no esté abierto
-        t.prepend(el("p", "aviso-preview", EN ? "Preview: registration is not open to the public yet; this form cannot be submitted." : "Vista previa: la inscripción todavía no está abierta al público; este formulario no se puede enviar."));
+        t.prepend(el("p", "aviso-preview", EN ? "Preview: registration is not open to the public yet." + (enBorrador ? " As an administrator you can send a test registration (marked «prueba» in the panel)." : " This form cannot be submitted.")
+          : "Vista previa: la inscripción todavía no está abierta al público." + (enBorrador ? " Como administrador/a puedes enviar una inscripción de prueba (queda marcada «prueba» en el panel)." : " Este formulario no se puede enviar.")));
         f.hidden = false; return;
       }
       f.hidden = true; if (!tr(i.texto)) t.append(el("p", "vacio-nota", T.insCerrada)); return;
     }
+    if (enBorrador && esAdmin) t.prepend(el("p", "aviso-preview", EN ? "Preview: the event is not published yet. As an administrator you can send a test registration (marked «prueba» in the panel) to check the form and the confirmation email."
+      : "Vista previa: el evento aún no está publicado. Como administrador/a puedes enviar una inscripción de prueba (queda marcada «prueba» en el panel) para revisar el formulario y el correo de confirmación."));
     if (externo) { f.replaceChildren(); const a = el("a", "btn", T.irFormulario); a.href = externo; a.target = "_blank"; a.rel = "noopener"; f.append(a); return; }
     f.hidden = false;
     fechasImportantes(i, t);
@@ -503,7 +508,7 @@
         const r = await fetch("/api/evento/" + SLUG + "/inscripcion", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || T.errGeneral);
-        f.reset(); campoT.hidden = true; campoR.hidden = true; bloquesInscripcion(); msg("ok", T.okNuevo);
+        f.reset(); campoT.hidden = true; campoR.hidden = true; bloquesInscripcion(); msg("ok", j.prueba ? T.okPrueba : T.okNuevo);
       } catch (e) { msg("error", e.message && !/Failed to fetch|NetworkError/.test(e.message) ? e.message : T.errGeneral); }
       boton.disabled = false; boton.textContent = antes;
     });
@@ -575,6 +580,7 @@
     if (!d || !d.contenido) return noDisponible(estado === 404);
     $("c-preview").hidden = !d.vistaPrevia;
     if (d.vistaPrevia) noIndexar();
+    enBorrador = Boolean(d.vistaPrevia);
     dibujar(d.contenido, d.inscritos || [], Boolean(d.esAdmin));
     completar();
   }

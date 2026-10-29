@@ -16,10 +16,10 @@ const hoyChile = () => new Date().toLocaleDateString("en-CA", { timeZone: "Ameri
 
 // Lista pública: quienes autorizaron publicar su nombre e institución (casilla del formulario), aprobados por la
 // organización o, si el evento activó «publicar sin esperar la aprobación», todos los no rechazados. Ordenada por nombre.
-async function inscritosPublicos(slug, insc = {}) {
+async function inscritosPublicos(slug, insc = {}, conPruebas = false) {
   const s = inscStore(), { blobs } = await s.list({ prefix: slug + "/" });
   const todos = await Promise.all(blobs.map((b) => s.get(b.key, { type: "json" })));
-  const visible = (i) => i && i.publicar && (i.estado === "aprobada" || (insc.publicarSinAprobar === true && i.estado === "pendiente"));
+  const visible = (i) => i && i.publicar && (!i.prueba || conPruebas) && (i.estado === "aprobada" || (insc.publicarSinAprobar === true && i.estado === "pendiente"));
   return todos.filter(visible).map((i) => ({ nombre: i.nombre, institucion: i.institucion }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
@@ -56,13 +56,17 @@ export default async (req, context) => {
 
   if (new URL(req.url).pathname.endsWith("/inscripcion")) {
     if (req.method !== "POST") return error("Método no permitido.", 405);
-    if (!publicado) return error("La inscripción no está disponible.", 403);
+    // Inscripción de prueba: con el evento aún en borrador, un administrador (con sesión iniciada) puede enviar el
+    // formulario para revisarlo de punta a punta, incluido el correo de confirmación. Queda marcada «prueba» en el panel
+    // y nunca aparece en la lista pública de participantes.
+    const prueba = !publicado && Boolean(p);
+    if (!publicado && !prueba) return error("La inscripción no está disponible.", 403);
     const c = await leerJSON(req);
     if (!c) return error("Solicitud no válida.");
     if (c.web) return json({ ok: true });                       // campo trampa para robots
-    const insc = guardado?.contenido?.inscripcion;
-    if (!insc || insc.abierta !== true) return error("La inscripción está cerrada.", 403);
-    if (insc.fechaLimite && hoyChile() > insc.fechaLimite) return error("El plazo de inscripción ha terminado.", 403);
+    const insc = guardado?.contenido?.inscripcion || {};
+    if (!prueba && insc.abierta !== true) return error("La inscripción está cerrada.", 403);
+    if (!prueba && insc.fechaLimite && hoyChile() > insc.fechaLimite) return error("El plazo de inscripción ha terminado.", 403);
     const nombre = texto(c.nombre, 120), institucion = texto(c.institucion, 160), pais = texto(c.pais, 80), email = texto(c.email, 160).toLowerCase();
     if (!nombre || !institucion || !pais) return error("Complete nombre, institución y país.");
     if (!emailValido(email)) return error("Ingrese un correo electrónico válido.");
@@ -88,19 +92,19 @@ export default async (req, context) => {
     const nueva = { id, nombre, institucion, pais, email, nivel, beca, patrocinador, aporte,
       charla: Boolean(tipoPresentacion), tipoPresentacion, tituloCharla: texto(c.tituloCharla, 250), resumen: texto(c.resumen, 3000), observaciones: texto(c.observaciones, 600), publicar: Boolean(c.publicar),
       suscribir: Boolean(c.suscribir),                           // se suscribe a la lista de Dinámica Porteña cuando se aprueba la inscripción
-      idioma: c.idioma === "en" ? "en" : "es", estado: "pendiente", creada: previa?.creada || ahora, actualizada: ahora };
+      idioma: c.idioma === "en" ? "en" : "es", estado: "pendiente", ...(prueba ? { prueba: true } : {}), creada: previa?.creada || ahora, actualizada: ahora };
     // Si el correo ya estaba inscrito, la nueva versión vuelve a revisión (no hereda la aprobación) y se guarda la anterior,
     // para que nadie pueda cambiar el nombre publicado de otra persona inscribiéndose con su correo.
     if (previa) nueva.anterior = { nombre: previa.nombre, institucion: previa.institucion, pais: previa.pais, estado: previa.estado, publicar: previa.publicar, actualizada: previa.actualizada || previa.creada };
     await s.setJSON(`${slug}/${id}`, nueva);
     try { await enviarConfirmacion(nueva, guardado.contenido, slug, new URL(req.url).origin); }
     catch (e) { console.error("Correo de confirmación de inscripción:", e.message); }   // la inscripción queda registrada igual
-    return json({ ok: true }, 201);                              // misma respuesta exista o no la inscripción previa
+    return json({ ok: true, ...(prueba ? { prueba: true } : {}) }, 201);   // misma respuesta exista o no la inscripción previa
   }
 
   if (req.method !== "GET") return error("Método no permitido.", 405);
   if (!publicado && !p) return error("Este evento aún no está publicado.", 404);
-  let inscritos = []; try { inscritos = await inscritosPublicos(slug, guardado?.contenido?.inscripcion || {}); } catch { /* lista vacía */ }
+  let inscritos = []; try { inscritos = await inscritosPublicos(slug, guardado?.contenido?.inscripcion || {}, !publicado && Boolean(p)); } catch { /* lista vacía */ }   // vista previa: incluye las pruebas
   const cuerpo = { slug, estado: reg.estado, contenido: guardado?.contenido || null, inscritos, vistaPrevia: !publicado, esAdmin: Boolean(p) };
   return json(cuerpo, 200, publicado && !p
     ? { "Cache-Control": "public, max-age=30", "Netlify-CDN-Cache-Control": "public, durable, max-age=60, stale-while-revalidate=120" } : {});   // cambios visibles en 1–3 minutos

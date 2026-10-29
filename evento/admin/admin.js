@@ -472,7 +472,7 @@
         acc.append(b("Eliminar", "peligro", async () => { if (!confirm(`¿Eliminar la inscripción de ${i.nombre}? Esta acción no se puede deshacer.`)) return; try { await DP.api(API + "/inscripciones/" + i.id, { method: "DELETE" }); inscripciones = inscripciones.filter((x) => x !== i); actualizarPendientes(); dibujar(); } catch (e) { aviso("aviso-panel", "error", e.message); } }));
         const pub = el("input", { type: "checkbox", checked: Boolean(i.publicar), title: "Aparece en la lista pública (si está aprobada)" }); pub.onchange = () => cambiar(i, { publicar: pub.checked });
         tb.append(el("tr", {},
-          el("td", {}, el("strong", { textContent: i.nombre }), el("span", { className: "sub", textContent: i.email })),
+          el("td", {}, el("strong", { textContent: i.nombre }), i.prueba ? el("span", { className: "chip alerta", style: "margin-left:6px", textContent: "Prueba" }) : null, el("span", { className: "sub", textContent: i.email })),
           el("td", {}, document.createTextNode(i.institucion || ""), el("span", { className: "sub", textContent: [i.pais, NIVELES[i.nivel]].filter(Boolean).join(" · ") })),
           el("td", {}, i.tipoPresentacion ? el("span", {}, el("span", { className: "chip", textContent: TIPO_PRES_LABEL[i.tipoPresentacion] || "Charla/póster" }),
               i.tituloCharla ? el("span", { className: "sub", textContent: i.tituloCharla }) : null,
