@@ -151,9 +151,20 @@
         bi("Objetivo", D, "objetivo", { area: true, alto: true, ayuda: "Una línea en blanco separa los párrafos. Las direcciones web se convierten en enlaces." })),
       bloque("Inscripción",
         casilla("La inscripción está abierta (muestra el formulario en el sitio)", ins, "abierta"),
-        el("div", { className: "fila2" }, campo("Fecha límite (opcional)", ins, "fechaLimite", { tipo: "date" }),
+        el("div", { className: "fila2" }, campo("Fecha límite de inscripción (opcional)", ins, "fechaLimite", { tipo: "date", ayuda: "Vacío: la página la muestra «por confirmar». El formulario se cierra al terminar ese día." }),
           campo("Formulario externo (opcional)", ins, "formularioExterno", { ph: "https://…", ayuda: "Si lo completa, el sitio mostrará un botón a este enlace en vez del formulario propio." })),
-        bi("Texto de la sección", ins, "texto", { area: true })),
+        bi("Texto de la sección", ins, "texto", { area: true }),
+        campo("Plazo para enviar el título y el resumen (opcional)", ins, "plazoResumen", { tipo: "date", ayuda: "Vacío: «por confirmar». Se usa también en el recordatorio por correo a quienes propusieron charla o póster sin título o resumen." }),
+        casilla("No mostrar el recuadro «Fechas importantes» en la página (inscripción, título y resumen, becas; las fechas sin definir aparecen «por confirmar»)", ins, "ocultarFechas"),
+        el("h4", { textContent: "Becas para estudiantes", style: "margin:14px 0 6px" }),
+        casilla("Preguntar a los estudiantes si necesitan beca (y, si la piden, el profesor/a que los patrocina y su correo)", ins, "becas"),
+        el("div", { className: "fila2" },
+          campo("Plazo para postular a becas (opcional)", ins, "plazoBecas", { tipo: "date", ayuda: "Vacío: «por confirmar». Pasada esa fecha, el formulario deja de ofrecer la beca." }),
+          campo("Comunicación de resultados de becas (opcional)", ins, "resultadoBecas", { tipo: "date", ayuda: "Vacío: «por confirmar»." })),
+        bi("Texto sobre las becas (qué cubren)", ins, "textoBeca", { area: true, ph: "Vacío: «La organización ofrece becas para estudiantes, sujetas a disponibilidad…»" }),
+        el("h4", { textContent: "Inscripción voluntaria", style: "margin:14px 0 6px" }),
+        casilla("Preguntar a investigadores y postdoctorados si pueden apoyar con una inscripción voluntaria", ins, "aporte"),
+        bi("Texto sobre la inscripción voluntaria (monto, cómo pagar)", ins, "textoAporte", { area: true, ph: "Vacío: «El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes.»" })),
       bloque("Contacto y redes sociales", campo("Correo de contacto del evento", cont, "email", { tipo: "email" }),
         el("p", { className: "nota-ayuda", textContent: "Cuentas del evento o del grupo en redes sociales (dirección completa, https://…). Se muestran en la página como «Síguenos»; vacío = no se muestra." }),
         (() => { const r = (D.redes = D.redes || {}); return el("div", { className: "fila2" },
@@ -410,20 +421,45 @@
     try { const nueva = await DP.api(API + "/inscripciones/" + i.id, { method: "PATCH", body: datos }); Object.assign(i, nueva); actualizarPendientes(); dibujar(); }
     catch (e) { aviso("aviso-panel", "error", e.message); }
   }
+  // Datos pendientes de una inscripción (misma regla que el servidor): título/resumen de la propuesta y respuesta
+  // sobre la inscripción voluntaria (investigadores y postdoctorados que respondieron «más adelante»)
+  const pendientesDe = (i) => { const p = [], ins = D.inscripcion || {};
+    if (i.tipoPresentacion && (!String(i.tituloCharla || "").trim() || !String(i.resumen || "").trim())) p.push("resumen");
+    if (ins.aporte === true && ["investigador", "postdoc"].includes(i.nivel) && !i.aporte) p.push("aporte");
+    return p; };
+  const enGrupo = (i, g) => !g || (g === "aporta" ? i.aporte === "si" : g === "beca" ? i.beca === "si" : pendientesDe(i).includes(g));
+  // Prepara un recordatorio en la pestaña Correos (inscritos de un grupo, con plantilla y enlace personal {enlace})
+  function irARecordatorio(grupo) {
+    const p = plantillaRecordatorio(grupo, borrador.idioma === "en");
+    Object.assign(borrador, { tipo: "inscritos", grupo, asunto: p.asunto, cuerpo: p.cuerpo });
+    borrador.estados = { aprobada: true, pendiente: true, rechazada: false };
+    vista = "correos"; dibujar();
+  }
   let filtroEstado = "todas", filtroTexto = "";
   function vInscripciones() {
     const v = el("div"), cuenta = (e) => inscripciones.filter((i) => i.estado === e).length;
     const resumen = el("div", { className: "resumen-insc" });
-    [["Total", inscripciones.length], ["Pendientes", cuenta("pendiente")], ["Aprobadas", cuenta("aprobada")], ["Rechazadas", cuenta("rechazada")], ["Con charla/póster", inscripciones.filter((i) => i.charla).length]]
+    [["Total", inscripciones.length], ["Pendientes", cuenta("pendiente")], ["Aprobadas", cuenta("aprobada")], ["Rechazadas", cuenta("rechazada")], ["Con charla/póster", inscripciones.filter((i) => i.charla).length],
+     ...(inscripciones.some((i) => i.beca) ? [["Solicitan beca", inscripciones.filter((i) => i.beca === "si").length]] : []),
+     ...(inscripciones.some((i) => i.aporte) ? [["Apoyarían con inscripción", inscripciones.filter((i) => i.aporte === "si").length]] : []),
+     ["Con datos pendientes", inscripciones.filter((i) => i.estado !== "rechazada" && pendientesDe(i).length).length]]
       .forEach(([l, n]) => resumen.append(el("div", { className: "stat" }, el("div", { className: "n", textContent: n }), el("div", { className: "l", textContent: l }))));
-    const sel = el("select", {}, ...[["todas", "Todas"], ["pendiente", "Pendientes"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"]].map(([x, t]) => el("option", { value: x, textContent: t })));
+    // Aviso de datos pendientes, con acceso directo al recordatorio por correo
+    const nRes = inscripciones.filter((i) => i.estado !== "rechazada" && pendientesDe(i).includes("resumen")).length;
+    const nApo = inscripciones.filter((i) => i.estado !== "rechazada" && pendientesDe(i).includes("aporte")).length;
+    const avisoPend = (nRes || nApo) ? el("div", { className: "aviso info", style: "margin:0 0 14px" },
+      el("div", { textContent: [nRes ? `${nRes} inscripción(es) con charla o póster sin título o resumen` : "", nApo ? `${nApo} investigador(es)/postdoc sin respuesta sobre la inscripción voluntaria` : ""].filter(Boolean).join(" · ") + "." }),
+      el("div", { className: "acciones-seccion", style: "margin-top:8px" },
+        nRes ? el("button", { type: "button", className: "boton peq", textContent: "Escribir recordatorio: título y resumen", onclick: () => irARecordatorio("resumen") }) : null,
+        nApo ? el("button", { type: "button", className: "boton sec peq", textContent: "Escribir recordatorio: inscripción voluntaria", onclick: () => irARecordatorio("aporte") }) : null)) : null;
+    const sel = el("select", {}, ...[["todas", "Todas"], ["pendiente", "Pendientes"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"], ["datos", "Con datos pendientes"]].map(([x, t]) => el("option", { value: x, textContent: t })));
     sel.value = filtroEstado; sel.onchange = () => { filtroEstado = sel.value; dibujar(); };
     const q = el("input", { type: "search", placeholder: "Buscar por nombre, institución o país", value: filtroTexto }); q.oninput = () => { filtroTexto = q.value; pintarFilas(); };
     const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
     const tb = el("tbody");
     function pintarFilas() {
       tb.replaceChildren();
-      const lista = inscripciones.filter((i) => (filtroEstado === "todas" || i.estado === filtroEstado) && norm([i.nombre, i.institucion, i.pais, i.email].join(" ")).includes(norm(filtroTexto)));
+      const lista = inscripciones.filter((i) => (filtroEstado === "todas" || i.estado === filtroEstado || (filtroEstado === "datos" && i.estado !== "rechazada" && pendientesDe(i).length)) && norm([i.nombre, i.institucion, i.pais, i.email].join(" ")).includes(norm(filtroTexto)));
       if (!lista.length) tb.append(el("tr", {}, el("td", { colSpan: 5, className: "vacio", textContent: inscripciones.length ? "Ninguna inscripción coincide con el filtro." : "Aún no hay inscripciones." })));
       lista.forEach((i) => {
         const b = (t, c, fn) => el("button", { type: "button", className: "boton " + c, textContent: t, onclick: fn });
@@ -441,6 +477,11 @@
               i.resumen ? el("span", { className: "sub", title: i.resumen, textContent: i.resumen.length > 140 ? i.resumen.slice(0, 140) + "…" : i.resumen }) : null)
             : i.charla ? el("span", {}, el("span", { className: "chip", textContent: "Charla/póster" }), el("span", { className: "sub", textContent: i.tituloCharla || "" })) : document.createTextNode("—"),
             i.observaciones ? el("span", { className: "sub", textContent: "Obs.: " + i.observaciones }) : null,
+            i.beca === "si" ? el("span", { className: "sub" }, el("span", { className: "chip alerta", textContent: "Solicita beca" }),
+              document.createTextNode(` Patrocina: ${i.patrocinador?.nombre || "—"}${i.patrocinador?.email ? " (" + i.patrocinador.email + ")" : ""}`)) : null,
+            i.aporte ? el("span", { className: "sub", textContent: "Inscripción voluntaria: " + ({ si: "sí, apoyará", no: "en esta ocasión no", info: "pidió más información" }[i.aporte] || i.aporte) }) : null,
+            pendientesDe(i).length ? el("span", { className: "sub" }, ...pendientesDe(i).map((x) => el("span", { className: "chip alerta", style: "margin-right:4px", textContent: x === "resumen" ? "Falta título o resumen" : "Inscripción voluntaria: responderá más adelante" })),
+              i.completada ? document.createTextNode(` (completó datos el ${DP.fechaLarga(i.completada)})`) : null) : null,
             i.suscribir ? el("span", { className: "sub", textContent: "Pidió recibir las novedades de Dinámica Porteña" + (i.suscripcion ? ` (${i.suscripcion})` : " (se suscribe al aprobar la inscripción)") }) : null,
             i.anterior ? el("span", { className: "sub", textContent: `Reenviada por la persona; versión anterior: ${i.anterior.nombre} (${i.anterior.institucion}, ${i.anterior.pais}), ${i.anterior.estado}${i.anterior.publicar ? ", publicable" : ""}.` }) : null),
           el("td", {}, el("span", { className: "chip " + (i.estado === "aprobada" ? "ok" : i.estado === "rechazada" ? "no" : "alerta"), textContent: i.estado }), el("label", { className: "sub" }, pub, document.createTextNode(" pública"))),
@@ -448,9 +489,10 @@
       });
     }
     const csv = () => {
-      const cols = ["nombre", "email", "institucion", "pais", "nivel", "tipoPresentacion", "tituloCharla", "resumen", "observaciones", "publicar", "estado", "creada"];
+      const cols = ["nombre", "email", "institucion", "pais", "nivel", "tipoPresentacion", "tituloCharla", "resumen", "observaciones", "beca", "patrocinador", "patrocinadorEmail", "aporte", "publicar", "estado", "creada"];
       const esc = (x) => '"' + String(x ?? "").replace(/"/g, '""') + '"';
-      descargar(`inscripciones-${SLUG}.csv`, "﻿" + [cols.join(","), ...inscripciones.map((i) => cols.map((c) => esc(i[c])).join(","))].join("\n"), "text/csv");
+      const valor = (i, c) => c === "patrocinador" ? i.patrocinador?.nombre : c === "patrocinadorEmail" ? i.patrocinador?.email : i[c];
+      descargar(`inscripciones-${SLUG}.csv`, "﻿" + [cols.join(","), ...inscripciones.map((i) => cols.map((c) => esc(valor(i, c))).join(","))].join("\n"), "text/csv");
     };
     const copiar = async () => { const l = inscripciones.filter((i) => i.estado === "aprobada").map((i) => i.email).join(", "); try { await navigator.clipboard.writeText(l); aviso("aviso-panel", "ok", "Correos de las inscripciones aprobadas copiados."); } catch { aviso("aviso-panel", "error", "No se pudo copiar al portapapeles."); } };
     const alta = el("div", { className: "bloque oculto" });
@@ -470,7 +512,7 @@
           catch (e) { aviso("aviso-panel", "error", e.message); }
         } }),
         el("button", { type: "button", className: "boton sec peq", textContent: "Cancelar", onclick: () => alta.classList.add("oculto") })));
-    v.append(resumen, alta,
+    v.append(resumen, avisoPend, alta,
       el("div", { className: "herramientas" }, el("button", { type: "button", className: "boton peq", textContent: "+ Agregar inscripción", onclick: () => alta.classList.toggle("oculto") }), sel, q,
         el("button", { type: "button", className: "boton sec peq", textContent: "Descargar CSV", onclick: csv }),
         el("button", { type: "button", className: "boton sec peq", textContent: "Copiar correos de aprobados", onclick: copiar }),
@@ -482,7 +524,7 @@
 
   // ---------- correos ----------
   // A los inscritos (los envía el responsable) o a la lista de Dinámica Porteña (queda por aprobar por un administrador central).
-  const borrador = { tipo: "inscritos", estados: { aprobada: true, pendiente: false, rechazada: false }, asunto: "", cuerpo: "", idioma: "es" };
+  const borrador = { tipo: "inscritos", grupo: "", estados: { aprobada: true, pendiente: false, rechazada: false }, asunto: "", cuerpo: "", idioma: "es" };
   const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const MESES_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   function rangoFechasSimple(inicio, fin, en) {
@@ -513,21 +555,49 @@
       : `Estimados/as:\n\nLes escribimos para contarles que ${nombreEv} se realizará ${fechas}${lugar ? `, en el ${lugar}` : ""}.\n\nGuarden la fecha. Pronto se publicará más información en el sitio del evento:\n\n${enlace}\n\nSaludos cordiales,\nComité organizador`;
     return { asunto, cuerpo };
   }
+  // Recordatorios a inscritos con datos pendientes; {nombre} y {enlace} se reemplazan para cada persona
+  function plantillaRecordatorio(grupo, en) {
+    const nombreEv = tx(D.nombre) || tx(D.marca) || (en ? "the event" : "el evento");
+    if (grupo === "aporte") return en
+      ? { asunto: `${nombreEv}: voluntary registration`, cuerpo: `Dear {nombre},\n\nThank you for registering for ${nombreEv}. The colloquium has a voluntary registration fee, intended mainly to fund the participation of students. When you registered, you preferred to answer later whether you could support it; you can let us know at this personal link:\n\n{enlace}\n\nThose who are able to support it will receive the amount and payment details later.\n\nBest regards,\nOrganizing committee` }
+      : { asunto: `${nombreEv}: inscripción voluntaria`, cuerpo: `Estimado/a {nombre}:\n\nGracias por inscribirse en el ${nombreEv}. El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes. Al inscribirse prefirió responder más adelante si podría apoyarla; puede indicarlo en este enlace personal:\n\n{enlace}\n\nA quienes puedan apoyar les enviaremos más adelante el monto y la forma de pago.\n\nSaludos cordiales,\nComité organizador` };
+    const plazo = (D.inscripcion || {}).plazoResumen, f = plazo ? fraseFechas(plazo, null, en) : "";
+    return en
+      ? { asunto: `${nombreEv}: title and abstract of your contribution`, cuerpo: `Dear {nombre},\n\nThank you for registering for ${nombreEv} and for proposing a contribution. We still need its title and/or abstract${f ? `; please send them ${f.replace(/^on /, "by ")}` : ""}. You can add them at this personal link:\n\n{enlace}\n\nBest regards,\nOrganizing committee` }
+      : { asunto: `${nombreEv}: título y resumen de su presentación`, cuerpo: `Estimado/a {nombre}:\n\nGracias por inscribirse en el ${nombreEv} y por proponer una presentación. Aún nos falta su título y/o resumen${f ? `; le pedimos enviarlos a más tardar ${f.replace(/^el /, "el ")}` : ""}. Puede agregarlos en este enlace personal:\n\n{enlace}\n\nSaludos cordiales,\nComité organizador` };
+  }
   const ESTADO_MSJ = { enviado: ["Enviado", "ok"], "por-aprobar": ["Por aprobar", "alerta"], rechazado: ["No aprobado", "no"] };
   async function vCorreos() {
     const v = el("div");
     let info; try { info = await DP.api(API + "/mensajes"); } catch (e) { if (e.estado === 401) sesionVencida(); return el("div", { className: "aviso error", textContent: e.message }); }
     const n = info.inscritos, resultado = el("div");
-    const cuantos = () => borrador.tipo === "lista" ? info.lista : Object.entries(borrador.estados).filter(([, x]) => x).reduce((a, [k]) => a + (n[k] || 0), 0);
+    // Comités: con «un solo comité» hay una sola opción (científico y organizador)
+    const com = info.comites || { cientifico: 0, organizador: 0, unico: false };
+    const esComite = () => ["cientifico", "organizador", "comites"].includes(borrador.tipo);
+    if (com.unico && (borrador.tipo === "organizador" || borrador.tipo === "comites")) borrador.tipo = "cientifico";
+    const NOMBRE_COMITE = { cientifico: com.unico ? "Comité científico y organizador" : "Comité científico", organizador: "Comité organizador", comites: "Ambos comités" };
+    const cuantos = () => borrador.tipo === "lista" ? info.lista : esComite() ? (com[borrador.tipo] || 0)
+      : borrador.grupo ? inscripciones.filter((i) => i.email && borrador.estados[i.estado] && enGrupo(i, borrador.grupo)).length
+      : Object.entries(borrador.estados).filter(([, x]) => x).reduce((a, [k]) => a + (n[k] || 0), 0);
     const total = el("p", { className: "nota-ayuda" });
     const pintarTotal = () => { total.textContent = borrador.tipo === "lista"
       ? `${info.lista} suscriptores de la lista de Dinámica Porteña. El correo quedará por aprobar: un administrador del sitio lo revisa antes de enviarlo, y usted recibirá un aviso.`
-      : `${cuantos()} destinatario(s). Cada inscrito recibe el correo por separado (nadie ve los demás correos), con una nota que indica que lo recibe por estar inscrito en el evento.`; };
+      : esComite()
+        ? `${cuantos()} integrante(s) con correo (pestaña Organización). Se envía un solo correo con todos en «Para», visibles entre sí, para que puedan usar «Responder a todos». Usted va en copia y las respuestas le llegan a usted.`
+        : `${cuantos()} destinatario(s). Cada inscrito recibe el correo por separado (nadie ve los demás correos), con una nota que indica que lo recibe por estar inscrito en el evento.`; };
     const estados = el("div", { className: "fila-casillas" }, ...[["aprobada", "Aprobadas"], ["pendiente", "Pendientes"], ["rechazada", "Rechazadas"]].map(([k, t]) => {
       const c = el("input", { type: "checkbox", checked: borrador.estados[k] }); c.onchange = () => { borrador.estados[k] = c.checked; pintarTotal(); };
       return el("label", { className: "casilla" }, c, el("span", { textContent: `${t} (${n[k] || 0})` }));
     }));
-    const tipo = el("select", {}, el("option", { value: "inscritos", textContent: "Inscritos de este evento" }), el("option", { value: "lista", textContent: "Lista de divulgación de Dinámica Porteña (requiere aprobación)" }));
+    const grupo = el("select", {}, ...[["", "Todas las inscripciones de esos estados"], ["resumen", "Solo con título o resumen pendiente"], ["aporte", "Solo sin respuesta sobre la inscripción voluntaria"],
+      ["aporta", "Solo quienes apoyarán con la inscripción voluntaria"], ["beca", "Solo estudiantes que solicitan beca"]].map(([x, t]) => el("option", { value: x, textContent: t })));
+    grupo.value = borrador.grupo || ""; grupo.onchange = () => { borrador.grupo = grupo.value; pintarTotal(); };
+    estados.append(grupo);
+    const tipo = el("select", {}, el("option", { value: "inscritos", textContent: "Inscritos de este evento" }),
+      el("option", { value: "cientifico", textContent: `${NOMBRE_COMITE.cientifico} (${com.cientifico || 0})` }),
+      com.unico ? null : el("option", { value: "organizador", textContent: `${NOMBRE_COMITE.organizador} (${com.organizador || 0})` }),
+      com.unico ? null : el("option", { value: "comites", textContent: `Ambos comités (${com.comites || 0})` }),
+      el("option", { value: "lista", textContent: "Lista de divulgación de Dinámica Porteña (requiere aprobación)" }));
     tipo.value = borrador.tipo; tipo.onchange = () => { borrador.tipo = tipo.value; estados.classList.toggle("oculto", borrador.tipo !== "inscritos"); pintarTotal(); };
     estados.classList.toggle("oculto", borrador.tipo !== "inscritos"); pintarTotal();
     const asunto = el("input", { type: "text", maxLength: 200, value: borrador.asunto }); asunto.oninput = () => { borrador.asunto = asunto.value; };
@@ -541,17 +611,23 @@
       borrador.asunto = asunto.value = p.asunto; borrador.cuerpo = cuerpo.value = p.cuerpo;
       pintarTotal();
     } });
+    const recordatorioBtn = (g, texto) => el("button", { type: "button", className: "boton sec peq", textContent: texto, onclick: () => {
+      if ((borrador.asunto || borrador.cuerpo) && !confirm("Esto reemplaza el asunto y el texto escritos. ¿Continuar?")) return;
+      irARecordatorio(g);
+    } });
     const cuerpoEnvio = (prueba) => ({ prueba, asunto: borrador.asunto, cuerpo: borrador.cuerpo, idioma: borrador.idioma,
-      destino: { tipo: borrador.tipo, estados: Object.entries(borrador.estados).filter(([, x]) => x).map(([k]) => k) } });
+      destino: { tipo: borrador.tipo, pendiente: borrador.tipo === "inscritos" ? borrador.grupo || "" : "", estados: Object.entries(borrador.estados).filter(([, x]) => x).map(([k]) => k) } });
     const enviarBtn = el("button", { type: "button", className: "boton", textContent: "Enviar", disabled: !info.puedeEnviar });
     enviarBtn.onclick = async () => {
       const k = cuantos();
-      if (!confirm(borrador.tipo === "lista" ? `¿Pedir el envío de «${borrador.asunto}» a la lista de Dinámica Porteña (${k} suscriptores)? Un administrador del sitio debe aprobarlo.` : `¿Enviar «${borrador.asunto}» a ${k} inscrito(s)? No se puede deshacer.`)) return;
+      if (!confirm(borrador.tipo === "lista" ? `¿Pedir el envío de «${borrador.asunto}» a la lista de Dinámica Porteña (${k} suscriptores)? Un administrador del sitio debe aprobarlo.`
+        : esComite() ? `¿Enviar «${borrador.asunto}» a ${borrador.tipo === "comites" ? "ambos comités" : "el " + NOMBRE_COMITE[borrador.tipo].toLowerCase()} (${k} integrante(s), visibles entre sí)? No se puede deshacer.`
+        : `¿Enviar «${borrador.asunto}» a ${k} inscrito(s)? No se puede deshacer.`)) return;
       enviarBtn.disabled = true;
       try {
         const m = await DP.api(API + "/mensajes", { method: "POST", body: cuerpoEnvio(false) });
         Object.assign(borrador, { asunto: "", cuerpo: "" }); await dibujarVista();
-        aviso("aviso-panel", "ok", m.estado === "por-aprobar" ? "Solicitud enviada: el correo quedó por aprobar por un administrador de Dinámica Porteña." : `Correo en envío a ${m.total} destinatario(s).`);
+        aviso("aviso-panel", "ok", m.estado === "por-aprobar" ? "Solicitud enviada: el correo quedó por aprobar por un administrador de Dinámica Porteña." : esComite() ? `Correo enviado a ${m.total} integrante(s), con usted en copia.` : `Correo en envío a ${m.total} destinatario(s).`);
       } catch (e) { enviarBtn.disabled = false; if (e.estado === 401) return sesionVencida(); aviso("aviso-panel", "error", e.message); }
     };
     const pruebaBtn = el("button", { type: "button", className: "boton sec", textContent: "Enviarme una prueba", onclick: async () => {
@@ -559,11 +635,12 @@
       catch (e) { if (e.estado === 401) return sesionVencida(); aviso("aviso-panel", "error", e.message); } } });
     v.append(el("p", { className: "nota-ayuda", textContent: "Los correos salen desde la cuenta de Dinámica Porteña, con el nombre del evento como remitente. Las respuestas llegan al correo de contacto del evento (pestaña Organización) o, si no hay, al suyo." }),
       bloque("Escribir un correo",
-        el("div", { className: "acciones-seccion", style: "margin-bottom:10px" }, plantillaBtn),
+        el("div", { className: "acciones-seccion", style: "margin-bottom:10px" }, plantillaBtn,
+          recordatorioBtn("resumen", "Plantilla: recordar título y resumen"), (D.inscripcion || {}).aporte ? recordatorioBtn("aporte", "Plantilla: recordar inscripción voluntaria") : null),
         el("div", { className: "fila2" }, el("div", { className: "campo" }, el("label", { textContent: "Destinatarios" }), tipo), el("div", { className: "campo" }, el("label", { textContent: "Idioma del pie del correo" }), idioma)),
         estados, total,
         el("div", { className: "campo" }, el("label", { textContent: "Asunto" }), asunto),
-        el("div", { className: "campo" }, el("label", { textContent: "Texto" }), cuerpo, el("div", { className: "ayuda", textContent: "Texto simple: deje una línea en blanco entre párrafos. Las direcciones web (https://…) quedan como enlaces." })),
+        el("div", { className: "campo" }, el("label", { textContent: "Texto" }), cuerpo, el("div", { className: "ayuda", textContent: "Texto simple: deje una línea en blanco entre párrafos. Las direcciones web (https://…) quedan como enlaces. En los correos a inscritos, {nombre} se reemplaza por el nombre de cada persona y {enlace} por su enlace personal para completar el título, el resumen o la respuesta sobre la inscripción voluntaria." })),
         el("div", { className: "acciones-seccion" }, pruebaBtn, enviarBtn),
         info.puedeEnviar ? null : el("p", { className: "vacio", textContent: "Solo el responsable del evento puede enviar correos; usted puede enviarse una prueba y pedirle que lo envíe." })),
       resultado);

@@ -1,0 +1,47 @@
+SUBIDA 2026-10-29 — Correos a los comités, portada más baja, becas, fechas y datos pendientes de la inscripción
+=====================================================================================
+1. Correos a los comités (pestaña «Correos», panel del evento y panel central):
+   «Comité científico», «Comité organizador» y «Ambos comités». Es UN solo correo con
+   todos los integrantes visibles en «Para» («Responder a todos»); quien escribe va en
+   copia y como «Responder a». Con «Un solo comité» hay una sola opción.
+2. Portada del evento más baja: el banner mide como máximo 460 px y nunca deja fuera de
+   la pantalla el menú de secciones (Objetivo · … · Organización).
+3. Formulario de inscripción (se activan en el panel: General → Inscripción):
+   - Estudiantes (pregrado, magíster, doctorado): «¿Necesitas una beca?»; si responde
+     que sí, nombre y correo del profesor/a que patrocina (obligatorios).
+   - Investigadores y postdoctorados: texto sobre la inscripción voluntaria y la
+     pregunta «¿Podrías apoyar la participación de estudiantes…?».
+   Los textos de ambos bloques se escriben en el panel. Las respuestas se ven en
+   Inscripciones y salen en el CSV.
+4. Datos pendientes: charla/póster sin título o resumen, e investigadores que eligieron
+   «Prefiero responder más adelante» sobre la inscripción voluntaria.
+   - Inscripciones: aviso con el número de pendientes, filtro «Con datos pendientes» y
+     botones «Escribir recordatorio».
+   - Correos: destinatarios por grupo (pendientes de título/resumen, sin respuesta sobre
+     la inscripción voluntaria, quienes apoyarán, estudiantes que piden beca) y
+     plantillas de recordatorio. En el texto, {nombre} y {enlace} se reemplazan para cada
+     persona; {enlace} es su enlace personal para completar los datos en la página.
+5. Fechas importantes (General → Inscripción, todas opcionales): fecha límite de
+   inscripción, plazo de título y resumen, plazo para postular a becas y fecha de
+   resultados de becas. La página muestra un recuadro «Fechas importantes»; las que no
+   estén definidas aparecen «por confirmar» (el recuadro se puede ocultar). Pasado el
+   plazo de becas, el formulario deja de ofrecer la beca.
+
+Archivos (11), con estas rutas en la raíz del repositorio:
+  admin/correos.js
+  assets/evento.css
+  assets/evento.js
+  evento/admin/admin.js
+  evento/index.html
+  evento/index-en.html
+  netlify/functions/admin-mensajes.mjs
+  netlify/functions/ev-admin.mjs
+  netlify/functions/ev-publico.mjs
+  netlify/lib/ev.mjs
+  netlify/lib/mensajes.mjs
+
+Cómo subir: GitHub → dinamicaportena/sitio-web → main → Add file → Upload files;
+arrastrar el CONTENIDO de esta carpeta (admin, assets, evento, netlify), no la carpeta
+ni este LEEME; verificar que la lista muestre los 11 archivos sin prefijo → Commit.
+Después: panel del evento → General → Inscripción → activar las dos casillas nuevas y
+escribir los textos (fechas de alojamiento, monto/forma de la inscripción voluntaria).

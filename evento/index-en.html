@@ -129,8 +129,22 @@
               <option value="charla">Talk</option>
               <option value="poster">Poster</option>
             </select></div>
-          <div class="campo" id="i-titulo-campo" hidden><label for="i-titulo">Proposed title</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"><div class="ayuda">You may use LaTeX (bold, accents, formulas between $…$, etc.).</div></div>
+          <div class="campo" id="i-titulo-campo" hidden><p class="nota-form">If you do not have the title or abstract yet, you can still register: we will send you a link to complete them later.</p><label for="i-titulo">Proposed title</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"><div class="ayuda">You may use LaTeX (bold, accents, formulas between $…$, etc.).</div></div>
           <div class="campo" id="i-resumen-campo" hidden><label for="i-resumen">Proposed abstract</label><textarea id="i-resumen" name="resumen" maxlength="3000"></textarea><div class="ayuda">You may use LaTeX (bold, accents, formulas between $…$, etc.).</div></div>
+          <div id="i-beca-bloque" class="bloque-form" hidden>
+            <div class="campo"><label for="i-beca">Do you need a grant to attend?</label>
+              <select id="i-beca" name="beca"><option value="no">No</option><option value="si">Yes, I apply for a grant</option></select>
+              <div class="ayuda" id="i-beca-texto"></div></div>
+            <div class="fila2" id="i-patrocinio" hidden>
+              <div class="campo"><label for="i-patro">Professor supporting your application</label><input type="text" id="i-patro" name="patrocinador" maxlength="120"></div>
+              <div class="campo"><label for="i-patro-email">Professor's email</label><input type="email" id="i-patro-email" name="patrocinadorEmail" maxlength="160"><div class="ayuda">Not published; the organizers may contact them to confirm the support.</div></div>
+            </div>
+          </div>
+          <div id="i-aporte-bloque" class="bloque-form" hidden>
+            <p class="nota-form" id="i-aporte-texto"></p>
+            <div class="campo"><label for="i-aporte">Would you be able to support student participation with a voluntary registration fee?</label>
+              <select id="i-aporte" name="aporte"><option value="">I prefer to answer later</option><option value="si">Yes, gladly</option><option value="no">Not on this occasion</option></select></div>
+          </div>
           <div class="campo"><label for="i-obs">Remarks (optional)</label><textarea id="i-obs" name="observaciones" maxlength="600"></textarea><div class="ayuda">For example, accessibility or dietary requirements.</div></div>
           <label class="casilla"><input type="checkbox" id="i-publicar" name="publicar"> <span>I authorize my name and institution to appear in the public list of participants.</span></label>
           <label class="casilla"><input type="checkbox" id="i-suscribir" name="suscribir"> <span>I would like to receive news from Dinámica Porteña (seminar and events) by email. I can unsubscribe at any time.</span></label>

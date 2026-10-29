@@ -40,7 +40,11 @@
     }
     // --- escribir ---
     const tipo = el("select", { id: "co-tipo" }, el("option", { value: "lista", textContent: `Lista de divulgación de Dinámica Porteña (${info.lista} suscriptores)` }),
-      el("option", { value: "inscritos", textContent: "Inscritos de una página de evento" }), el("option", { value: "correos", textContent: "Correos puntuales" }));
+      el("option", { value: "inscritos", textContent: "Inscritos de una página de evento" }),
+      el("option", { value: "cientifico", textContent: "Comité científico de una página de evento" }),
+      el("option", { value: "organizador", textContent: "Comité organizador de una página de evento" }),
+      el("option", { value: "comites", textContent: "Ambos comités de una página de evento" }),
+      el("option", { value: "correos", textContent: "Correos puntuales" }));
     tipo.value = b.tipo;
     const evento = el("select", { id: "co-evento" }, el("option", { value: "", textContent: "— elija el evento —" }), ...info.eventos.map((e) => el("option", { value: e.slug, textContent: e.nombre })));
     evento.value = b.slug;
@@ -55,15 +59,19 @@
     }
     const correos = el("textarea", { id: "co-correos", value: b.correos, placeholder: "Un correo por línea, o separados por comas", rows: 4 }); correos.oninput = () => { b.correos = correos.value; pintarTotal(); };
     function pintarTotal() {
+      const comite = ["cientifico", "organizador", "comites"].includes(b.tipo);
       const n = b.tipo === "lista" ? info.lista : b.tipo === "inscritos" ? (ev() ? Object.entries(b.estados).filter(([, x]) => x).reduce((a, [k]) => a + (ev().inscritos[k] || 0), 0) : 0)
+        : comite ? (ev()?.comites?.[b.tipo] || 0)
         : (b.correos.match(/[^\s,;<>()"]+@[^\s,;<>()"]+\.[^\s,;<>()"]+/g) || []).length;
       total.textContent = b.tipo === "lista" ? `${n} destinatarios. Cada suscriptor recibe el correo por separado, con su enlace personal para darse de baja.`
         : b.tipo === "inscritos" ? (ev() ? `${n} destinatario(s). Cada inscrito lo recibe por separado, con una nota que indica que lo recibe por estar inscrito en el evento.` : "Elija el evento.")
+        : comite ? (ev() ? `${n} integrante(s) con correo${ev().comites?.unico ? " (este evento tiene un solo comité científico y organizador)" : ""}. Un solo correo con todos en «Para», visibles entre sí para «Responder a todos»; usted va en copia y las respuestas le llegan a usted.` : "Elija el evento.")
         : `${n} correo(s). Cada destinatario lo recibe por separado.`;
     }
-    const filaEvento = el("div", {}, el("div", { className: "campo" }, el("label", { htmlFor: "co-evento", textContent: "Evento" }), evento), el("div", { className: "campo" }, el("label", { textContent: "Inscripciones" }), estados));
+    const filaEstados = el("div", { className: "campo" }, el("label", { textContent: "Inscripciones" }), estados);
+    const filaEvento = el("div", {}, el("div", { className: "campo" }, el("label", { htmlFor: "co-evento", textContent: "Evento" }), evento), filaEstados);
     const filaCorreos = el("div", { className: "campo" }, el("label", { htmlFor: "co-correos", textContent: "Correos" }), correos);
-    const visibles = () => { filaEvento.classList.toggle("oculto", b.tipo !== "inscritos"); filaCorreos.classList.toggle("oculto", b.tipo !== "correos"); pintarEstados(); pintarTotal(); };
+    const visibles = () => { filaEvento.classList.toggle("oculto", !["inscritos", "cientifico", "organizador", "comites"].includes(b.tipo)); filaEstados.classList.toggle("oculto", b.tipo !== "inscritos"); filaCorreos.classList.toggle("oculto", b.tipo !== "correos"); pintarEstados(); pintarTotal(); };
     tipo.onchange = () => { b.tipo = tipo.value; visibles(); };
     evento.onchange = () => { b.slug = evento.value; visibles(); };
     const asunto = el("input", { type: "text", id: "co-asunto", maxLength: 200, value: b.asunto }); asunto.oninput = () => { b.asunto = asunto.value; };
@@ -76,7 +84,7 @@
     enviarBtn.onclick = async () => {
       if (!confirm(`¿Enviar «${b.asunto}»? ${total.textContent.split(".")[0]}. No se puede deshacer.`)) return;
       enviarBtn.disabled = true;
-      try { const m = await DP.api("/api/admin/mensajes", { method: "POST", body: cuerpoEnvio(false) }); Object.assign(b, { asunto: "", cuerpo: "", correos: "" }); await cargar(); aviso("ok", `Correo en envío a ${m.total} destinatario(s). El avance se ve en la pestaña «Envíos».`); }
+      try { const m = await DP.api("/api/admin/mensajes", { method: "POST", body: cuerpoEnvio(false) }); Object.assign(b, { asunto: "", cuerpo: "", correos: "" }); await cargar(); aviso("ok", m.destino && ["cientifico", "organizador", "comites"].includes(m.destino) ? `Correo enviado a ${m.total} integrante(s) del comité, con usted en copia.` : `Correo en envío a ${m.total} destinatario(s). El avance se ve en la pestaña «Envíos».`); }
       catch (e) { enviarBtn.disabled = false; aviso("error", e.message); }
     };
     v.append(el("h2", { className: "grupo-titulo", textContent: "Escribir un correo" }),

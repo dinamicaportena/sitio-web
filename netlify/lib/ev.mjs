@@ -346,3 +346,25 @@ export function origenPublico(origen) {
   if (/^https?:\/\/[^/]+$/.test(fija)) return fija;
   return "https://dinamicaportena.cl";
 }
+
+// ---------- Datos pendientes de una inscripción y enlace personal para completarlos ----------
+// Pendientes: título/resumen de la charla o póster propuestos, y la respuesta sobre la inscripción voluntaria
+// (investigadores y postdoctorados que eligieron «Prefiero responder más adelante», si el evento la pide).
+export const NIVELES_APORTE = ["investigador", "postdoc"];
+export function pendientesInscripcion(i, insc = {}) {
+  const p = [];
+  if (i?.tipoPresentacion && (!String(i.tituloCharla || "").trim() || !String(i.resumen || "").trim())) p.push("resumen");
+  if (insc.aporte === true && NIVELES_APORTE.includes(i?.nivel) && !i?.aporte) p.push("aporte");
+  return p;
+}
+// Firma del enlace personal (no se guarda: se recalcula); sirve solo para completar esos datos de esa inscripción
+export const firmaCompletar = (slug, id) => firmar(`completar:${slug}/${id}`).slice(0, 32);
+export function enlaceCompletar(origen, slug, id, idioma = "es") {
+  return `${origenPublico(origen)}/${slug}/${idioma === "en" ? "en" : ""}?completar=${id}.${firmaCompletar(slug, id)}#inscripcion`;
+}
+export function leerCodigoCompletar(slug, codigo) {
+  const [id, firma] = String(codigo || "").split(".");
+  if (!id || !firma || !/^[a-zA-Z0-9_-]{6,40}$/.test(id)) return null;
+  const a = Buffer.from(firma), b = Buffer.from(firmaCompletar(slug, id));
+  return a.length === b.length && timingSafeEqual(a, b) ? id : null;
+}

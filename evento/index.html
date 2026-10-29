@@ -129,8 +129,22 @@
               <option value="charla">Charla</option>
               <option value="poster">Póster</option>
             </select></div>
-          <div class="campo" id="i-titulo-campo" hidden><label for="i-titulo">Título propuesto</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"><div class="ayuda">Puede usar LaTeX (negrita, acentos, fórmulas entre $…$, etc.).</div></div>
+          <div class="campo" id="i-titulo-campo" hidden><p class="nota-form">Si aún no tienes el título o el resumen, puedes inscribirte igual: más adelante te enviaremos un enlace para completarlos.</p><label for="i-titulo">Título propuesto</label><input type="text" id="i-titulo" name="tituloCharla" maxlength="250"><div class="ayuda">Puede usar LaTeX (negrita, acentos, fórmulas entre $…$, etc.).</div></div>
           <div class="campo" id="i-resumen-campo" hidden><label for="i-resumen">Resumen propuesto</label><textarea id="i-resumen" name="resumen" maxlength="3000"></textarea><div class="ayuda">Puede usar LaTeX (negrita, acentos, fórmulas entre $…$, etc.).</div></div>
+          <div id="i-beca-bloque" class="bloque-form" hidden>
+            <div class="campo"><label for="i-beca">¿Necesitas una beca para participar?</label>
+              <select id="i-beca" name="beca"><option value="no">No</option><option value="si">Sí, solicito beca</option></select>
+              <div class="ayuda" id="i-beca-texto"></div></div>
+            <div class="fila2" id="i-patrocinio" hidden>
+              <div class="campo"><label for="i-patro">Profesor/a que patrocina tu solicitud</label><input type="text" id="i-patro" name="patrocinador" maxlength="120"></div>
+              <div class="campo"><label for="i-patro-email">Correo del profesor/a</label><input type="email" id="i-patro-email" name="patrocinadorEmail" maxlength="160"><div class="ayuda">No se publica; la organización podría contactarle para confirmar el patrocinio.</div></div>
+            </div>
+          </div>
+          <div id="i-aporte-bloque" class="bloque-form" hidden>
+            <p class="nota-form" id="i-aporte-texto"></p>
+            <div class="campo"><label for="i-aporte">¿Podrías apoyar la participación de estudiantes con una inscripción voluntaria?</label>
+              <select id="i-aporte" name="aporte"><option value="">Prefiero responder más adelante</option><option value="si">Sí, con gusto</option><option value="no">En esta ocasión no me es posible</option></select></div>
+          </div>
           <div class="campo"><label for="i-obs">Observaciones (opcional)</label><textarea id="i-obs" name="observaciones" maxlength="600"></textarea><div class="ayuda">Por ejemplo, requerimientos de accesibilidad o alimentación.</div></div>
           <label class="casilla"><input type="checkbox" id="i-publicar" name="publicar"> <span>Autorizo que mi nombre e institución aparezcan en la lista pública de participantes.</span></label>
           <label class="casilla"><input type="checkbox" id="i-suscribir" name="suscribir"> <span>Deseo recibir las novedades de Dinámica Porteña (seminario y eventos) en mi correo. Puedo darme de baja en cualquier momento.</span></label>

@@ -3,12 +3,12 @@
 //   PUT      /api/evadmin/:slug/estado           { estado?: "publicado"|"borrador", enSitio?: boolean } (responsable o central)
 //   GET/POST /api/evadmin/:slug/inscripciones    lista / alta manual (ignora plazo y estado)
 //   PATCH/DELETE /api/evadmin/:slug/inscripciones/:id
-//   GET/POST /api/evadmin/:slug/mensajes        correos a los inscritos (responsable o central) o a la lista de Dinámica Porteña
+//   GET/POST /api/evadmin/:slug/mensajes        correos a los inscritos o a los comités (responsable o central) o a la lista de Dinámica Porteña
 //                                                (queda por aprobar por un administrador central); { prueba: true } lo envía solo a quien escribe
 //   GET/POST/DELETE /api/evadmin/:slug/admins    lista / invitar { email, reenviar? } / quitar { email } (invitar y quitar: responsable o central)
 import { json, error, leerJSON, texto, emailValido, sha256, tokenAleatorio } from "../lib/comun.mjs";
 import { leerRegistro, registroStore, contenidoStore, inscStore, permiso, puedeAdministrar, validarContenido, validarSlug, correo, invitarAdmin, filaComite, guardarArchivoEvento, origenPublico } from "../lib/ev.mjs";
-import { limpiarMensaje, crearMensaje, enviarPrueba, listarMensajes, resumenMensaje, conteoInscritos, suscribirDesdeEvento } from "../lib/mensajes.mjs";
+import { limpiarMensaje, crearMensaje, enviarPrueba, listarMensajes, resumenMensaje, conteoInscritos, conteoComites, suscribirDesdeEvento } from "../lib/mensajes.mjs";
 import { correosActivos } from "../lib/suscriptores.mjs";
 
 const NIVELES = ["investigador", "postdoc", "doctorado", "magister", "pregrado", "otro"];
@@ -93,13 +93,13 @@ export default async (req, context) => {
   // ---- correos ----
   if (recurso === "mensajes") {
     if (req.method === "GET") {
-      const [mensajes, lista, inscritos] = await Promise.all([listarMensajes({ slug }), correosActivos(), conteoInscritos(slug)]);
-      return json({ mensajes: mensajes.map(resumenMensaje), lista: lista.length, inscritos, puedeEnviar: puedeAdministrar(p) });
+      const [mensajes, lista, inscritos, comites] = await Promise.all([listarMensajes({ slug }), correosActivos(), conteoInscritos(slug), conteoComites(slug)]);
+      return json({ mensajes: mensajes.map(resumenMensaje), lista: lista.length, inscritos, comites, puedeEnviar: puedeAdministrar(p) });
     }
     if (req.method === "POST") {
       const c = await leerJSON(req); if (!c) return error("Solicitud no válida.");
       try {
-        const datos = limpiarMensaje({ ...c, destino: { ...(c.destino || {}), slug } }, { permitidos: ["inscritos", "lista"] });
+        const datos = limpiarMensaje({ ...c, destino: { ...(c.destino || {}), slug } }, { permitidos: ["inscritos", "cientifico", "organizador", "comites", "lista"] });
         const contacto = correo((await contenidoStore().get(slug, { type: "json" }))?.contenido?.contacto?.email);
         const responderA = emailValido(contacto) ? contacto : p.email;      // las respuestas llegan al contacto del evento
         if (c.prueba) { await enviarPrueba({ ...datos, slug, responderA }, p.email, origen); return json({ ok: true, prueba: p.email }); }

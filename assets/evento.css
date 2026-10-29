@@ -26,7 +26,8 @@ section[id]{scroll-margin-top:56px}
 .hero.evento.banner-con-titulo{
   background-image:var(--banner),linear-gradient(to right,var(--banner-izq,#0353a4) 50%,var(--banner-der,#fff) 50%);
   background-size:contain,100% 100%;background-repeat:no-repeat;background-position:center;
-  aspect-ratio:var(--banner-ratio,2.53);max-height:620px;width:100%;border-bottom:0;
+  /* alto máximo: el de la imagen, pero sin superar 460 px ni dejar fuera de la pantalla el menú de secciones que va debajo */
+  aspect-ratio:var(--banner-ratio,2.53);max-height:max(260px,min(460px,calc(100vh - 230px)));width:100%;border-bottom:0;
   display:flex;align-items:flex-end
 }
 .hero.evento.banner-con-titulo .wrap{width:100%;max-width:none;padding:0 0 4% 5%;box-sizing:border-box}
@@ -197,3 +198,15 @@ a.sponsor.solo-logo:hover{opacity:.8}
 .btn-compartir.destacado:hover{opacity:.9;color:#fff}
 .siguenos{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex-basis:100%;margin-top:4px}
 @media print{.compartir{display:none}}
+/* Inscripción: becas para estudiantes y apoyo voluntario (según la situación académica elegida) */
+.form-card .bloque-form{border-left:3px solid var(--azul,#1a4269);background:var(--gris-fondo,#f5f7fa);padding:12px 14px 2px;margin:4px 0 16px;border-radius:0 6px 6px 0}
+.form-card .nota-form{font-size:14.5px;margin:0 0 12px;color:var(--texto)}
+.form-card.completar{margin:0 0 22px;border-left:4px solid var(--rojo,#c8102e)}
+.form-card.completar h3{margin:0 0 6px}
+/* Fechas importantes de la inscripción */
+.fechas-importantes{border:1px solid var(--borde,#dde3ea);border-radius:6px;padding:12px 16px;margin:6px 0 18px;max-width:560px}
+.fechas-importantes h3{font-size:15px;margin:0 0 8px}
+.fechas-importantes dl{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;margin:0;font-size:14.5px}
+.fechas-importantes dt{color:var(--texto-suave,#5a6470)}
+.fechas-importantes dd{margin:0;font-weight:500}
+.fechas-importantes dd.por-confirmar{font-weight:400;font-style:italic;color:var(--texto-suave,#5a6470)}

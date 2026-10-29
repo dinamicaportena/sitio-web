@@ -18,6 +18,17 @@
     enviando: "Sending…", okNuevo: "Thank you! Your registration was received. The organizers will confirm it by email.",
     errGeneral: "The registration could not be sent. Please try again or write to the organizers.",
     errCampos: "Please complete name, institution, country and a valid email, and accept the data policy.",
+    errPatro: "To apply for a grant, please give the name and email of the professor supporting your application.",
+    fImp: "Key dates", fInsc: "Registration", fRes: "Title and abstract of talks and posters", fBecaPost: "Grant applications", fBecaRes: "Grant results",
+    fHasta: (x) => `until ${x}`, fPorConf: "to be confirmed", becaCerrada: "The deadline to apply for grants has passed.",
+    becaPlazos: (p, r) => `Applications: ${p}. Results: ${r}.`,
+    compTitulo: "Complete your registration", compHola: (n) => `${n}, here you can add the data that was pending in your registration.`,
+    compTit: "Title", compRes: "Abstract", compLatex: "You may use LaTeX (bold, accents, formulas between $…$, etc.).",
+    compAporte: "Would you be able to support student participation with a voluntary registration fee?",
+    compOpc: [["", "I prefer to answer later"], ["si", "Yes, gladly"], ["no", "Not on this occasion"]],
+    compGuardar: "Save", compOk: "Thank you! Your data was saved.", compMal: "This link is not valid or has expired.",
+    becaTxt: "Grants for students are available, subject to availability. To apply, please give the name and email of a professor who supports your participation.",
+    aporteTxt: "The colloquium has a voluntary registration fee, intended mainly to fund the participation of students. If you can support it, we will send you the amount and payment details later.",
     insCerrada: "Registration is not open at the moment.", irFormulario: "Open the registration form →",
     cafe: "Coffee break", almuerzo: "Lunch", sinTitulo: "Session",
     comiteUnico: "Scientific and Organizing Committee", organizador: "Organizing committee", apoyan: "Supported by",
@@ -34,6 +45,17 @@
     enviando: "Enviando…", okNuevo: "¡Gracias! Su inscripción fue recibida. La organización se la confirmará por correo.",
     errGeneral: "No se pudo enviar la inscripción. Intente nuevamente o escriba a la organización.",
     errCampos: "Complete nombre, institución, país y un correo válido, y acepte el uso de los datos.",
+    errPatro: "Para solicitar beca, indica el nombre y el correo del profesor o profesora que patrocina tu solicitud.",
+    fImp: "Fechas importantes", fInsc: "Inscripción", fRes: "Título y resumen de charlas y pósteres", fBecaPost: "Postulación a becas", fBecaRes: "Resultados de becas",
+    fHasta: (x) => `hasta el ${x}`, fPorConf: "por confirmar", becaCerrada: "El plazo para postular a becas ya terminó.",
+    becaPlazos: (p, r) => `Postulación: ${p}. Resultados: ${r}.`,
+    compTitulo: "Completar tu inscripción", compHola: (n) => `${n}, aquí puedes agregar los datos que quedaron pendientes en tu inscripción.`,
+    compTit: "Título", compRes: "Resumen", compLatex: "Puedes usar LaTeX (negrita, acentos, fórmulas entre $…$, etc.).",
+    compAporte: "¿Podrías apoyar la participación de estudiantes con una inscripción voluntaria?",
+    compOpc: [["", "Prefiero responder más adelante"], ["si", "Sí, con gusto"], ["no", "En esta ocasión no me es posible"]],
+    compGuardar: "Guardar", compOk: "¡Gracias! Tus datos quedaron guardados.", compMal: "El enlace no es válido o ya no está vigente.",
+    becaTxt: "La organización ofrece becas para estudiantes, sujetas a disponibilidad. Para solicitarla, indica el nombre y el correo de un profesor o profesora que patrocine tu participación.",
+    aporteTxt: "El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes. Si puedes apoyar, más adelante te enviaremos el monto y la forma de pago.",
     insCerrada: "La inscripción no está abierta por el momento.", irFormulario: "Abrir el formulario de inscripción →",
     cafe: "Pausa café", almuerzo: "Almuerzo", sinTitulo: "Sesión",
     comiteUnico: "Comité científico y organizador", organizador: "Comité organizador", apoyan: "Apoyan",
@@ -245,8 +267,29 @@
     q.addEventListener("input", filtrar); filtrar(); cont.append(barra, ul, msg);
   }
 
+  // Bloques opcionales del formulario según la situación académica: beca (estudiantes) y apoyo voluntario (investigadores
+  // y postdoctorados). Se activan y se redactan en el panel (pestaña General → Inscripción).
+  let insCfg = {};
+  const ESTUDIANTES = ["doctorado", "magister", "pregrado"], APORTAN = ["investigador", "postdoc"];
+  const hoyCl = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });
+  const venceDia = (f) => Boolean(f) && hoyCl() > f;                 // el plazo incluye el día indicado
+  const plazo = (f) => (f ? T.fHasta(fechaCorta(f)) : T.fPorConf);
+  const becasCerradas = () => venceDia(insCfg.plazoBecas);
+  function bloquesInscripcion() {
+    const nivel = $("i-nivel") ? $("i-nivel").value : "", bb = $("i-beca-bloque"), ba = $("i-aporte-bloque");
+    if (bb) {
+      bb.hidden = !(insCfg.becas === true && ESTUDIANTES.includes(nivel));
+      const cerrada = becasCerradas();
+      $("i-beca").hidden = cerrada; $("i-beca").previousElementSibling.hidden = cerrada;
+      $("i-beca-texto").textContent = cerrada ? T.becaCerrada
+        : `${tr(insCfg.textoBeca) || T.becaTxt} ${T.becaPlazos(plazo(insCfg.plazoBecas), insCfg.resultadoBecas ? fechaCorta(insCfg.resultadoBecas) : T.fPorConf)}`;
+      $("i-patrocinio").hidden = bb.hidden || cerrada || $("i-beca").value !== "si";
+    }
+    if (ba) { ba.hidden = !(insCfg.aporte === true && APORTAN.includes(nivel)); $("i-aporte-texto").textContent = tr(insCfg.textoAporte) || T.aporteTxt; }
+  }
   function inscripcion(c, esAdmin) {
     const i = c.inscripcion || {}, t = $("c-inscripcion-texto"), f = $("c-inscripcion-form");
+    insCfg = i; bloquesInscripcion();
     t.replaceChildren(); parrafos(t, tr(i.texto));
     const externo = soloHttp(i.formularioExterno);
     const pasado = i.fechaLimite && new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" }) > i.fechaLimite;
@@ -259,6 +302,16 @@
     }
     if (externo) { f.replaceChildren(); const a = el("a", "btn", T.irFormulario); a.href = externo; a.target = "_blank"; a.rel = "noopener"; f.append(a); return; }
     f.hidden = false;
+    fechasImportantes(i, t);
+  }
+  // Fechas importantes de la inscripción (las que aún no se definen aparecen «por confirmar»; se pueden ocultar en el panel)
+  function fechasImportantes(i, cont) {
+    if (i.ocultarFechas === true) return;
+    const filas = [[T.fInsc, plazo(i.fechaLimite)], [T.fRes, plazo(i.plazoResumen)]];
+    if (i.becas === true) filas.push([T.fBecaPost, plazo(i.plazoBecas)], [T.fBecaRes, i.resultadoBecas ? fechaCorta(i.resultadoBecas) : T.fPorConf]);
+    const caja = el("div", "fechas-importantes"); caja.append(el("h3", "", T.fImp));
+    const dl = el("dl"); filas.forEach(([k, v]) => dl.append(el("dt", "", k), el("dd", v === T.fPorConf ? "por-confirmar" : "", v)));
+    caja.append(dl); cont.append(caja);
   }
 
   function info(c) {
@@ -429,6 +482,7 @@
     const f = $("form-insc"); if (!f) return;
     const tipoPres = $("i-tipo"), campoT = $("i-titulo-campo"), campoR = $("i-resumen-campo"), aviso = $("insc-aviso"), boton = $("i-enviar");
     tipoPres.addEventListener("change", () => { const con = Boolean(tipoPres.value); campoT.hidden = !con; campoR.hidden = !con; });
+    ["i-nivel", "i-beca"].forEach((id) => $(id) && $(id).addEventListener("change", bloquesInscripcion));
     const msg = (tipo, m) => { aviso.replaceChildren(); if (m) { const d = el("div", "aviso " + tipo, m); aviso.append(d); d.scrollIntoView({ block: "nearest" }); } };
     f.addEventListener("submit", async (ev) => {
       ev.preventDefault(); msg("", "");
@@ -436,13 +490,17 @@
       const cuerpo = { nombre: (d.nombre || "").trim(), email: (d.email || "").trim(), institucion: (d.institucion || "").trim(), pais: (d.pais || "").trim(),
         nivel: d.nivel, tipoPresentacion: tipoPres.value, tituloCharla: d.tituloCharla || "", resumen: d.resumen || "", observaciones: d.observaciones || "",
         publicar: $("i-publicar").checked, suscribir: $("i-suscribir") ? $("i-suscribir").checked : false, privacidad: $("i-priv").checked, web: d.web || "", idioma: L };
+      const conBeca = $("i-beca-bloque") && !$("i-beca-bloque").hidden && !$("i-beca").hidden, conAporte = $("i-aporte-bloque") && !$("i-aporte-bloque").hidden;
+      if (conBeca) Object.assign(cuerpo, { beca: d.beca || "no", patrocinador: (d.patrocinador || "").trim(), patrocinadorEmail: (d.patrocinadorEmail || "").trim() });
+      if (conAporte) cuerpo.aporte = d.aporte || "";
       if (!cuerpo.nombre || !cuerpo.institucion || !cuerpo.pais || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cuerpo.email) || !cuerpo.privacidad) return msg("error", T.errCampos);
+      if (conBeca && cuerpo.beca === "si" && (!cuerpo.patrocinador || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cuerpo.patrocinadorEmail))) return msg("error", T.errPatro);
       boton.disabled = true; const antes = boton.textContent; boton.textContent = T.enviando;
       try {
         const r = await fetch("/api/evento/" + SLUG + "/inscripcion", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || T.errGeneral);
-        f.reset(); campoT.hidden = true; campoR.hidden = true; msg("ok", T.okNuevo);
+        f.reset(); campoT.hidden = true; campoR.hidden = true; bloquesInscripcion(); msg("ok", T.okNuevo);
       } catch (e) { msg("error", e.message && !/Failed to fetch|NetworkError/.test(e.message) ? e.message : T.errGeneral); }
       boton.disabled = false; boton.textContent = antes;
     });
@@ -469,6 +527,43 @@
     document.querySelectorAll("main .col-section, .hero.evento, .subnav").forEach((e) => { e.hidden = true; });
     const x = $("c-error"); x.textContent = T.noEncontrado; x.hidden = false;
   }
+  // ---------- completar datos pendientes con el enlace personal (…/?completar=<código>, enviado por correo) ----------
+  async function completar() {
+    const codigo = new URLSearchParams(location.search).get("completar"); if (!codigo) return;
+    const antes = $("c-inscripcion-texto"); if (!antes) return;
+    const caja = el("div", "form-card completar"); antes.parentNode.insertBefore(caja, antes);
+    const api = "/api/evento/" + encodeURIComponent(SLUG) + "/completar";
+    let d; try { const r = await fetch(api + "?c=" + encodeURIComponent(codigo)); d = r.ok ? await r.json() : null; } catch (e) { d = null; }
+    if (!d) { caja.append(el("div", "aviso error", T.compMal)); return; }
+    caja.append(el("h3", "", T.compTitulo), el("p", "", T.compHola(d.nombre)));
+    const campo = (rot, ctl, ayuda) => { const c = el("div", "campo"); const l = el("label", "", rot); c.append(l, ctl); if (ayuda) c.append(el("div", "ayuda", ayuda)); return c; };
+    let tit, res, apo;
+    if (d.tipoPresentacion) {
+      tit = el("input"); tit.type = "text"; tit.maxLength = 250; tit.value = d.tituloCharla;
+      res = el("textarea"); res.maxLength = 3000; res.value = d.resumen; res.rows = 6;
+      caja.append(campo(T.compTit, tit, T.compLatex), campo(T.compRes, res, T.compLatex));
+    }
+    if (d.preguntaAporte) {
+      apo = el("select"); T.compOpc.forEach(([v, t]) => { const o = el("option", "", t); o.value = v; apo.append(o); }); apo.value = d.aporte;
+      const txt = tr(insCfg.textoAporte) || T.aporteTxt;
+      caja.append(el("p", "nota-form", txt), campo(T.compAporte, apo));
+    }
+    const msg = el("div"), b = el("button", "btn", T.compGuardar); b.type = "button";
+    b.onclick = async () => {
+      b.disabled = true; msg.replaceChildren();
+      try {
+        const cuerpo = { c: codigo }; if (tit) Object.assign(cuerpo, { tituloCharla: tit.value, resumen: res.value }); if (apo) cuerpo.aporte = apo.value;
+        const r = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+        const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || T.errGeneral);
+        msg.append(el("div", "aviso ok", T.compOk));
+      } catch (e) { msg.append(el("div", "aviso error", e.message || T.errGeneral)); }
+      b.disabled = false;
+    };
+    caja.append(b, msg);
+    const sec = document.getElementById("inscripcion"); if (sec) { sec.hidden = false; if (sec.tagName === "DETAILS") sec.open = true; }
+    caja.scrollIntoView({ block: "start" });
+  }
+
   async function arrancar() {
     enlacesIdioma(); formulario(); barraAnclas();
     let d = null;
@@ -478,6 +573,7 @@
     $("c-preview").hidden = !d.vistaPrevia;
     if (d.vistaPrevia) noIndexar();
     dibujar(d.contenido, d.inscritos || [], Boolean(d.esAdmin));
+    completar();
   }
   arrancar();
 })();
