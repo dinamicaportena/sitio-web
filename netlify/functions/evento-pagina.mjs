@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { leerRegistro, contenidoStore } from "../lib/ev.mjs";
+import { leerRegistro, contenidoStore, origenPublico } from "../lib/ev.mjs";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const PLANTILLA = {
@@ -36,11 +36,13 @@ const nombre = tr(c.nombre, lang) || "Evento";
 const titulo = `${nombre} — Dinámica Porteña`;
 const desc = String(tr(c.objetivo, lang) || "").split(/\n{2,}/)[0].slice(0, 200) ||
 (lang === "en" ? "Event page of the Dinámica Porteña group." : "Página de evento del grupo Dinámica Porteña.");
-const origen = new URL(req.url).origin;
+const origen = origenPublico();                       // siempre https://dinamicaportena.cl (no …netlify.app)
+const pagina = `${origen}/${slug}${lang === "en" ? "/en" : ""}`;
 html = sustituir(html, /<title>[^<]*<\/title>/, `<title>${esc(titulo)}</title>`);
 html = sustituir(html, /(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`);
 html = sustituir(html, /(<meta property="og:title" content=")[^"]*(")/, `$1${esc(titulo)}$2`);
 html = sustituir(html, /(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`);
+html = html.replace("</head>", `<meta property="og:url" content="${esc(pagina)}">\n<link rel="canonical" href="${esc(pagina)}">\n</head>`);
 if (c.afiche) {
 const img = esc(urlAbs(c.afiche, origen));
 html = sustituir(html, /(<meta name="twitter:card" content=")[^"]*(")/, `$1summary_large_image$2`);

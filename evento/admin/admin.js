@@ -551,7 +551,7 @@
     const nombreEv = tx(D.nombre) || tx(D.marca) || (en ? "the event" : "el evento");
     const fechas = fraseFechas(D.inicio, D.fin, en), lugar = tx(D.lugar);
     const asunto = `Save the date — ${nombreEv}`;
-    const enlace = `${location.origin}/${SLUG}/${en ? "en" : ""}`;
+    const enlace = `https://dinamicaportena.cl/${SLUG}${en ? "/en" : ""}`;
     const cuerpo = en
       ? `Dear colleagues,\n\nWe are writing to let you know that ${nombreEv} will take place ${fechas}${lugar ? `, at ${lugar}` : ""}.\n\nSave the date. More information will be published soon on the event's website:\n\n${enlace}\n\nBest regards,\nOrganizing committee`
       : `Estimados/as:\n\nLes escribimos para contarles que ${nombreEv} se realizará ${fechas}${lugar ? `, en el ${lugar}` : ""}.\n\nGuarden la fecha. Pronto se publicará más información en el sitio del evento:\n\n${enlace}\n\nSaludos cordiales,\nComité organizador`;

@@ -5,6 +5,9 @@
   const EN = (document.documentElement.lang || "es").toLowerCase().startsWith("en");
   const L = EN ? "en" : "es";
   const SLUG = (location.pathname.split("/").filter(Boolean)[0] || "").toLowerCase();
+  // Dirección pública para compartir: siempre dinamicaportena.cl, aunque la página se abra desde …netlify.app
+  // (solo en pruebas locales se usa la dirección del navegador).
+  const ORIGEN_PUBLICO = /^(localhost|127\.|\[::1\])/.test(location.hostname) ? location.origin : "https://dinamicaportena.cl";
   const T = EN ? {
     porConfirmar: "To be confirmed", fechasPC: "Dates to be confirmed",
     sinConf: "The list of speakers will be announced soon.", sinProg: "The program will be published soon.",
@@ -469,7 +472,7 @@
     let caja = $("c-compartir");
     if (!caja) { caja = el("div", "compartir"); caja.id = "c-compartir"; (sec.querySelector(".cuerpo-seccion") || sec).append(caja); }
     caja.replaceChildren();
-    const url = location.origin + "/" + SLUG + "/" + (EN ? "en" : ""), titulo = tr(c.nombre) || document.title;
+    const url = ORIGEN_PUBLICO + "/" + SLUG + (EN ? "/en" : ""), titulo = tr(c.nombre) || document.title;
     const texto = [titulo, rangoFechas(c.inicio, c.fin), tr(c.lugar)].filter(Boolean).join(" · ");
     const e = encodeURIComponent;
     const enlace = (txt, href) => { const a = el("a", "btn-compartir", txt); a.href = href; a.target = "_blank"; a.rel = "noopener"; return a; };

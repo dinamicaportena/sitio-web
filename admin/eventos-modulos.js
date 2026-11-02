@@ -33,7 +33,7 @@
     $("evm-nombre").oninput = () => { if (!tocado) $("evm-slug").value = slugDe($("evm-nombre").value); ayudaSlug(); };
     $("evm-crear").onclick = crear;
   }
-  const ayudaSlug = () => { const s = $("evm-slug").value.trim(); $("evm-slug-ayuda").textContent = s ? `Quedará en ${location.origin}/${s}/` : "Se propone a partir del nombre; solo letras minúsculas sin tildes, números y guiones."; };
+  const ayudaSlug = () => { const s = $("evm-slug").value.trim(); $("evm-slug-ayuda").textContent = s ? `Quedará en https://dinamicaportena.cl/${s}` : "Se propone a partir del nombre; solo letras minúsculas sin tildes, números y guiones."; };
 
   function mostrarInvitacion(inv, email) {
     if (!inv) return;
