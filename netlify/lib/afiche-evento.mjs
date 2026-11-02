@@ -232,16 +232,64 @@ export async function svgAficheEvento(c, { formato = "carta", origen, slug }) {
     xLogosFin = xr - Math.max(ancho(l1, fT, t1), ancho(l2, fS, t2)) - W * 0.04;
   }
   if (P.logos) {
-    const logos = (await Promise.all((c.auspiciantes || []).filter((a) => a && a.logo).slice(0, 6).map((a) => imagen(a.logo, origen)))).filter(Boolean);
-    if (logos.length) {
-      let altoL = pieAlto * 0.5; const gap = W * 0.035, disp = xLogosFin - M;
-      const total = (h) => logos.reduce((t, l) => t + l.w * h / l.h, 0) + gap * (logos.length - 1);
-      while (altoL > pieAlto * 0.2 && total(altoL) > disp) altoL *= 0.95;
-      let x = M; const yL = pieY + (pieAlto - altoL) / 2;
-      for (const l of logos) { const w = l.w * altoL / l.h; s += `<image x="${x.toFixed(1)}" y="${yL.toFixed(1)}" width="${w.toFixed(1)}" height="${altoL.toFixed(1)}" xlink:href="${l.uri}" href="${l.uri}"/>`; x += w + gap; }
-    }
+    const logos = (await Promise.all((c.auspiciantes || []).filter((a) => a && a.logo).slice(0, 12).map((a) => imagen(a.logo, origen)))).filter(Boolean).map(recortar);
+    if (logos.length) s += filaLogos(logos, { x0: M, x1: xLogosFin, y0: pieY + pieAlto * 0.1, y1: pieY + pieAlto * 0.9, maxAlto: pieAlto * 0.5, gap: W * 0.03 });
   }
   return s + "</svg>";
+}
+
+// ---------- logos del pie ----------
+// Se recorta el margen blanco o transparente de cada logo (así un escudo con mucho borde no se ve diminuto) y se reparten
+// en una, dos o tres filas, eligiendo la distribución que permita logos más grandes sin salirse del espacio ni montarse
+// sobre el texto de inscripción y el QR.
+function recortar(img) {
+  try {
+    const esc = Math.min(1, 400 / Math.max(img.w, img.h)), w = Math.max(1, Math.round(img.w * esc)), h = Math.max(1, Math.round(img.h * esc));
+    const r = new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}"><image width="${w}" height="${h}" preserveAspectRatio="none" xlink:href="${img.uri}" href="${img.uri}"/></svg>`,
+      { fitTo: { mode: "original" }, font: { loadSystemFonts: false } }).render();
+    const px = r.pixels; let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const k = (y * w + x) * 4;
+      if (px[k + 3] > 24 && !(px[k] > 236 && px[k + 1] > 236 && px[k + 2] > 236)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) return { ...img, bx: 0, by: 0, bw: img.w, bh: img.h };
+    const pad = 1;
+    x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+    return { ...img, bx: x0 / esc, by: y0 / esc, bw: (x1 - x0 + 1) / esc, bh: (y1 - y0 + 1) / esc };
+  } catch { return { ...img, bx: 0, by: 0, bw: img.w, bh: img.h }; }
+}
+// Factor de alto según la proporción: los logos muy anchos (con nombre al lado) van algo más bajos que los escudos,
+// para que todos se perciban de un tamaño parecido.
+const factorAlto = (l) => Math.min(1, Math.pow(2.2 / (l.bw / l.bh), 0.35));
+function filaLogos(logos, { x0, x1, y0, y1, maxAlto, gap }) {
+  const disp = x1 - x0, altoDisp = y1 - y0, rel = (l) => factorAlto(l) * l.bw / l.bh;   // ancho por unidad de alto
+  let mejor = null;
+  for (let filas = 1; filas <= Math.min(3, logos.length); filas++) {
+    // reparte en orden, equilibrando el ancho de cada fila
+    const tot = logos.reduce((t, l) => t + rel(l), 0), grupos = [[]]; let acum = 0;
+    logos.forEach((l, i) => {
+      const g = grupos[grupos.length - 1];
+      if (g.length && grupos.length < filas && acum + rel(l) / 2 > tot * grupos.length / filas && logos.length - i >= filas - grupos.length) grupos.push([]);
+      grupos[grupos.length - 1].push(l); acum += rel(l);
+    });
+    const sep = altoDisp * 0.12;
+    let h = Math.min(maxAlto, (altoDisp - sep * (grupos.length - 1)) / grupos.length);
+    for (const g of grupos) h = Math.min(h, (disp - gap * (g.length - 1)) / g.reduce((t, l) => t + rel(l), 0));
+    if (!mejor || h > mejor.h * 1.12) mejor = { h, grupos, sep };
+  }
+  const { h, grupos, sep } = mejor, altoTot = h * grupos.length + sep * (grupos.length - 1);
+  let s = "", y = y0 + (altoDisp - altoTot) / 2;
+  for (const g of grupos) {
+    let x = x0;
+    for (const l of g) {
+      const hl = h * factorAlto(l), wl = hl * l.bw / l.bh, yl = y + (h - hl) / 2;
+      s += `<svg x="${x.toFixed(1)}" y="${yl.toFixed(1)}" width="${wl.toFixed(1)}" height="${hl.toFixed(1)}" viewBox="${l.bx.toFixed(1)} ${l.by.toFixed(1)} ${l.bw.toFixed(1)} ${l.bh.toFixed(1)}" preserveAspectRatio="none">`
+         + `<image x="0" y="0" width="${l.w}" height="${l.h}" preserveAspectRatio="none" xlink:href="${l.uri}" href="${l.uri}"/></svg>`;
+      x += wl + gap;
+    }
+    y += h + sep;
+  }
+  return s;
 }
 
 // ---------- conversión ----------

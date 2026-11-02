@@ -208,5 +208,7 @@ a.sponsor.solo-logo:hover{opacity:.8}
 .fechas-importantes h3{font-size:15px;margin:0 0 8px}
 .fechas-importantes dl{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;margin:0;font-size:14.5px}
 .fechas-importantes dt{color:var(--texto-suave,#5a6470)}
-.fechas-importantes dd{margin:0;font-weight:500}
+.fechas-importantes dd{margin:0;font-weight:700}
+.fechas-importantes dd.plazo,strong.fecha.plazo{color:var(--rojo,#c8102e);font-weight:700}
+strong.fecha{font-weight:700}
 .fechas-importantes dd.por-confirmar{font-weight:400;font-style:italic;color:var(--texto-suave,#5a6470)}

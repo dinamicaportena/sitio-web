@@ -89,15 +89,38 @@
     return `${fechaCorta(i)} ${EN ? "–" : "al"} ${fechaCorta(f)}`;
   }
   // Texto en párrafos (línea en blanco = párrafo nuevo); los enlaces http(s) se vuelven clicables.
-  function parrafos(contenedor, texto) {
+  function parrafos(contenedor, texto, fechas = false) {
     String(texto || "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean).forEach((p) => {
       const n = el("p");
       p.split(/(https?:\/\/[^\s<>"']+)/g).forEach((trozo, i) => {
         if (i % 2) { const a = el("a", "", trozo); a.href = trozo; a.target = "_blank"; a.rel = "noopener"; n.append(a); }
+        else if (fechas) conFechas(n, trozo);
         else n.append(document.createTextNode(trozo));
       });
       contenedor.append(n);
     });
+  }
+  // Textos del formulario: las fechas se destacan en negrita y, si son un plazo («hasta el…», «antes del…», «plazo…»), en rojo.
+  const DIAS_ES = "(?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)", DIAS_EN = "(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
+  const MES_ES = "(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)";
+  const MES_EN = "(?:January|February|March|April|May|June|July|August|September|October|November|December)";
+  const RE_FECHA = new RegExp([
+    `(?:${DIAS_ES},?\\s+)?\\d{1,2}(?!\\d)(?:\\s*(?:,|y|al|a|-|–)\\s*(?:${DIAS_ES}\\s+)?\\d{1,2}(?!\\d))*\\s+de\\s+${MES_ES}(?:\\s+(?:de|del)\\s+\\d{4})?`,
+    `(?:${DIAS_EN},?\\s+)?${MES_EN}\\s+\\d{1,2}(?!\\d)(?:\\s*(?:,|and|-|–|to)\\s*\\d{1,2}(?!\\d))*(?:,?\\s+\\d{4})?`,
+    `(?:${DIAS_EN},?\\s+)?\\d{1,2}(?!\\d)(?:\\s*(?:,|and|-|–|to)\\s*(?:${DIAS_EN}\\s+)?\\d{1,2}(?!\\d))*\\s+${MES_EN}(?:\\s+\\d{4})?`,
+  ].join("|"), "gi");
+  const RE_PLAZO = /(hasta|antes|plazo|l[ií]mite|cierre|cierra|vence|until|before|deadline|by|closes?)\b[^.;:]{0,25}$/i;
+  function fechaDestacada(txt, esPlazo) { return el("strong", esPlazo ? "fecha plazo" : "fecha", txt); }
+  function conFechas(nodo, texto) {
+    let ult = 0; texto = String(texto || "");
+    for (const m of texto.matchAll(RE_FECHA)) {
+      const antes = texto.slice(ult, m.index);
+      if (antes) nodo.append(document.createTextNode(antes));
+      nodo.append(fechaDestacada(m[0], RE_PLAZO.test(texto.slice(Math.max(0, m.index - 40), m.index))));
+      ult = m.index + m[0].length;
+    }
+    if (ult < texto.length) nodo.append(document.createTextNode(texto.slice(ult)));
+    return nodo;
   }
   // Igual intérprete que el resto del sitio (\textbf, acentos, ~, --, $…$, etc.); si no cargó, texto plano.
   const escribirTexto = (elemento, fuente, opts) => { if (window.DPTexto) DPTexto.escribir(elemento, fuente, opts); else elemento.textContent = fuente || ""; };
@@ -285,16 +308,23 @@
       bb.hidden = !(insCfg.becas === true && ESTUDIANTES.includes(nivel));
       const cerrada = becasCerradas();
       $("i-beca").hidden = cerrada; $("i-beca").previousElementSibling.hidden = cerrada;
-      $("i-beca-texto").textContent = cerrada ? T.becaCerrada
-        : `${tr(insCfg.textoBeca) || T.becaTxt} ${T.becaPlazos(plazo(insCfg.plazoBecas), insCfg.resultadoBecas ? fechaCorta(insCfg.resultadoBecas) : T.fPorConf)}`;
+      const bt = $("i-beca-texto"); bt.replaceChildren();
+      if (cerrada) bt.textContent = T.becaCerrada;
+      else {
+        conFechas(bt, (tr(insCfg.textoBeca) || T.becaTxt) + " ");
+        // «Postulación: hasta el X. Resultados: Y.» — el plazo en negrita y rojo; la fecha de resultados en negrita
+        const [p1, p2, p3] = T.becaPlazos("\u0001", "\u0002").split(/\u0001|\u0002/);
+        bt.append(p1, insCfg.plazoBecas ? el("span", "", T.fHasta("")) : "", insCfg.plazoBecas ? fechaDestacada(fechaCorta(insCfg.plazoBecas), true) : el("em", "", T.fPorConf),
+          p2, insCfg.resultadoBecas ? fechaDestacada(fechaCorta(insCfg.resultadoBecas), false) : el("em", "", T.fPorConf), p3);
+      }
       $("i-patrocinio").hidden = bb.hidden || cerrada || $("i-beca").value !== "si";
     }
-    if (ba) { ba.hidden = !(insCfg.aporte === true && APORTAN.includes(nivel)); $("i-aporte-texto").textContent = tr(insCfg.textoAporte) || T.aporteTxt; }
+    if (ba) { ba.hidden = !(insCfg.aporte === true && APORTAN.includes(nivel)); const at = $("i-aporte-texto"); at.replaceChildren(); conFechas(at, tr(insCfg.textoAporte) || T.aporteTxt); }
   }
   function inscripcion(c, esAdmin) {
     const i = c.inscripcion || {}, t = $("c-inscripcion-texto"), f = $("c-inscripcion-form");
     insCfg = i; bloquesInscripcion();
-    t.replaceChildren(); parrafos(t, tr(i.texto));
+    t.replaceChildren(); parrafos(t, tr(i.texto), true);
     const externo = soloHttp(i.formularioExterno);
     const pasado = i.fechaLimite && new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" }) > i.fechaLimite;
     if (!i.abierta || pasado) {
@@ -314,10 +344,10 @@
   // Fechas importantes de la inscripción (las que aún no se definen aparecen «por confirmar»; se pueden ocultar en el panel)
   function fechasImportantes(i, cont) {
     if (i.ocultarFechas === true) return;
-    const filas = [[T.fInsc, plazo(i.fechaLimite)], [T.fRes, plazo(i.plazoResumen)]];
-    if (i.becas === true) filas.push([T.fBecaPost, plazo(i.plazoBecas)], [T.fBecaRes, i.resultadoBecas ? fechaCorta(i.resultadoBecas) : T.fPorConf]);
+    const filas = [[T.fInsc, plazo(i.fechaLimite), true], [T.fRes, plazo(i.plazoResumen), true]];
+    if (i.becas === true) filas.push([T.fBecaPost, plazo(i.plazoBecas), true], [T.fBecaRes, i.resultadoBecas ? fechaCorta(i.resultadoBecas) : T.fPorConf]);
     const caja = el("div", "fechas-importantes"); caja.append(el("h3", "", T.fImp));
-    const dl = el("dl"); filas.forEach(([k, v]) => dl.append(el("dt", "", k), el("dd", v === T.fPorConf ? "por-confirmar" : "", v)));
+    const dl = el("dl"); filas.forEach(([k, v, esPlazo]) => dl.append(el("dt", "", k), el("dd", v === T.fPorConf ? "por-confirmar" : esPlazo ? "plazo" : "", v)));
     caja.append(dl); cont.append(caja);
   }
 
@@ -554,7 +584,7 @@
     if (d.preguntaAporte) {
       apo = el("select"); T.compOpc.forEach(([v, t]) => { const o = el("option", "", t); o.value = v; apo.append(o); }); apo.value = d.aporte;
       const txt = tr(insCfg.textoAporte) || T.aporteTxt;
-      caja.append(el("p", "nota-form", txt), campo(T.compAporte, apo));
+      caja.append(conFechas(el("p", "nota-form"), txt), campo(T.compAporte, apo));
     }
     const msg = el("div"), b = el("button", "btn", T.compGuardar); b.type = "button";
     b.onclick = async () => {
