@@ -557,6 +557,48 @@
       : `Estimados/as:\n\nLes escribimos para contarles que ${nombreEv} se realizará ${fechas}${lugar ? `, en el ${lugar}` : ""}.\n\nGuarden la fecha. Pronto se publicará más información en el sitio del evento:\n\n${enlace}\n\nSaludos cordiales,\nComité organizador`;
     return { asunto, cuerpo };
   }
+  // Plantilla «Inscripciones abiertas»: anuncio para la lista de Dinámica Porteña (o para quien se elija), con las fechas, los plazos,
+  // las becas y la inscripción voluntaria según lo configurado en General → Inscripción. Lo que aún no está definido se omite.
+  function plantillaInscripcionAbierta(en) {
+    const txl = (v) => (typeof v === "string" ? v : (v && (en ? v.en || v.es : v.es || v.en)) || "").trim();
+    const nombreEv = txl(D.nombre) || txl(D.marca) || (en ? "the event" : "el evento");
+    // Afiche: enlace de descarga (el automático, en PDF para imprimir y en imagen para redes; o el archivo subido)
+    const auto = D.afiche === "/api/evento/" + SLUG + "/afiche.jpg", base = "https://dinamicaportena.cl";
+    const afiche = !D.afiche ? null : auto ? { pdf: `${base}/api/evento/${SLUG}/afiche.pdf`, redes: `${base}/api/evento/${SLUG}/afiche-redes.jpg` }
+      : { pdf: /^https?:\/\//.test(D.afiche) ? D.afiche : base + D.afiche };
+    const fechas = fraseFechas(D.inicio, D.fin, en), lugar = txl(D.lugar), ins = D.inscripcion || {};
+    const enlace = `https://dinamicaportena.cl/${SLUG}${en ? "/en" : ""}#inscripcion`;
+    const hasta = (f) => (f ? fraseFechas(f, null, en).replace(/^(on|el) /, "") : "");
+    const p = [];
+    if (en) {
+      p.push(`We are pleased to announce that registration is now open for the ${nombreEv}${fechas ? `, which will take place ${fechas}` : ""}${lugar ? ` at ${lugar}` : ""}.`);
+      p.push(`You can register on the event's website:\n\n${enlace}`);
+      const pl = [];
+      if (ins.fechaLimite) pl.push(`Registration will remain open until ${hasta(ins.fechaLimite)}.`);
+      pl.push(`Those who wish to give a talk or present a poster can indicate it in the form${ins.plazoResumen ? ` and send the title and abstract by ${hasta(ins.plazoResumen)}` : ""}; the title and abstract can also be added later.`);
+      p.push(pl.join(" "));
+      if (ins.becas === true) {
+        p.push(`A limited number of grants for students is available, subject to availability. To apply, students should indicate in the form the name and email of a professor who supports their participation.${ins.plazoBecas ? ` The deadline to apply is ${hasta(ins.plazoBecas)}.` : ""}`);
+      }
+      if (ins.aporte === true) p.push("The colloquium has a voluntary registration fee, intended mainly to fund the participation of students.");
+      if (afiche) p.push(`Download the poster here:\n\n${afiche.pdf}${afiche.redes ? `\n\nVersion for social media:\n\n${afiche.redes}` : ""}`);
+      p.push("We would be grateful if you could share this announcement with colleagues and students who may be interested.");
+      return { asunto: `Registration open — ${nombreEv}`, cuerpo: `Dear colleagues,\n\n${p.join("\n\n")}\n\nBest regards,\nOrganizing committee\n${nombreEv}` };
+    }
+    p.push(`Nos complace informarles que ya están abiertas las inscripciones para el ${nombreEv}${fechas ? `, que se realizará ${fechas}` : ""}${lugar ? ` en el ${lugar}` : ""}.`);
+    p.push(`La inscripción se realiza en el sitio del evento:\n\n${enlace}`);
+    const pl = [];
+    if (ins.fechaLimite) pl.push(`El formulario estará abierto hasta el ${hasta(ins.fechaLimite)}.`);
+    pl.push(`Quienes deseen presentar una charla o un póster pueden indicarlo en el formulario${ins.plazoResumen ? ` y enviar el título y el resumen hasta el ${hasta(ins.plazoResumen)}` : ""}; el título y el resumen también se pueden completar más adelante.`);
+    p.push(pl.join(" "));
+    if (ins.becas === true) {
+      p.push(`La organización ofrece un número limitado de becas para estudiantes, sujetas a disponibilidad. Para postular, los estudiantes deben indicar en el formulario el nombre y el correo de un profesor o profesora que patrocine su participación.${ins.plazoBecas ? ` El plazo para postular es el ${hasta(ins.plazoBecas)}.` : ""}`);
+    }
+    if (ins.aporte === true) p.push("El coloquio cuenta con una inscripción voluntaria, destinada fundamentalmente a financiar la participación de estudiantes.");
+    if (afiche) p.push(`Descargue aquí el afiche:\n\n${afiche.pdf}${afiche.redes ? `\n\nVersión para redes sociales:\n\n${afiche.redes}` : ""}`);
+    p.push("Les agradeceremos difundir este anuncio entre colegas y estudiantes que puedan estar interesados.");
+    return { asunto: `Inscripciones abiertas — ${nombreEv}`, cuerpo: `Estimados/as:\n\n${p.join("\n\n")}\n\nSaludos cordiales,\nComité organizador\n${nombreEv}` };
+  }
   // Recordatorios a inscritos con datos pendientes; {nombre} y {enlace} se reemplazan para cada persona
   function plantillaRecordatorio(grupo, en) {
     const nombreEv = tx(D.nombre) || tx(D.marca) || (en ? "the event" : "el evento");
@@ -613,6 +655,13 @@
       borrador.asunto = asunto.value = p.asunto; borrador.cuerpo = cuerpo.value = p.cuerpo;
       pintarTotal();
     } });
+    const inscripcionBtn = el("button", { type: "button", className: "boton sec peq", textContent: "Usar plantilla: Inscripciones abiertas", onclick: () => {
+      if ((borrador.asunto || borrador.cuerpo) && !confirm("Esto reemplaza el asunto y el texto escritos. ¿Continuar?")) return;
+      const p = plantillaInscripcionAbierta(idioma.value === "en");
+      borrador.tipo = "lista"; tipo.value = "lista"; estados.classList.add("oculto");
+      borrador.asunto = asunto.value = p.asunto; borrador.cuerpo = cuerpo.value = p.cuerpo;
+      pintarTotal();
+    } });
     const recordatorioBtn = (g, texto) => el("button", { type: "button", className: "boton sec peq", textContent: texto, onclick: () => {
       if ((borrador.asunto || borrador.cuerpo) && !confirm("Esto reemplaza el asunto y el texto escritos. ¿Continuar?")) return;
       irARecordatorio(g);
@@ -637,7 +686,7 @@
       catch (e) { if (e.estado === 401) return sesionVencida(); aviso("aviso-panel", "error", e.message); } } });
     v.append(el("p", { className: "nota-ayuda", textContent: "Los correos salen desde la cuenta de Dinámica Porteña, con el nombre del evento como remitente. Las respuestas llegan al correo de contacto del evento (pestaña Organización) o, si no hay, al suyo." }),
       bloque("Escribir un correo",
-        el("div", { className: "acciones-seccion", style: "margin-bottom:10px" }, plantillaBtn,
+        el("div", { className: "acciones-seccion", style: "margin-bottom:10px" }, plantillaBtn, inscripcionBtn,
           recordatorioBtn("resumen", "Plantilla: recordar título y resumen"), inscripciones.some((i) => i.estado !== "rechazada" && pendientesDe(i).includes("aporte")) ? recordatorioBtn("aporte", "Plantilla: recordar inscripción voluntaria") : null),
         el("div", { className: "fila2" }, el("div", { className: "campo" }, el("label", { textContent: "Destinatarios" }), tipo), el("div", { className: "campo" }, el("label", { textContent: "Idioma del pie del correo" }), idioma)),
         estados, total,
