@@ -153,6 +153,11 @@ a.sponsor:hover{border-color:var(--azul);color:var(--azul)}
 .sponsor.solo-logo img{height:76px;width:auto;max-width:240px;object-fit:contain}
 a.sponsor.solo-logo:hover{opacity:.8}
 @media (max-width:640px){.sponsor.solo-logo img{height:48px;max-width:180px}}
+/* «Apoyan» con logos: grilla pareja; cada logo con superficie parecida (alto = √(área / proporción), sin pasar su celda) */
+.sponsors.grilla-logos{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:22px 28px;align-items:center;justify-items:center;max-width:820px}
+.sponsors.grilla-logos .sponsor.solo-logo{padding:4px;width:100%;justify-content:center}
+.sponsors.grilla-logos .sponsor.solo-logo img{--area:11000;height:60px;height:calc(sqrt(var(--area) / var(--asp,2.5)) * 1px);max-height:78px;width:auto;max-width:100%;object-fit:contain}
+@media (max-width:640px){.sponsors.grilla-logos{gap:16px 18px}.sponsors.grilla-logos .sponsor.solo-logo img{--area:5000;max-height:58px}}
 .subtitulo-seccion{font-size:18px;margin:24px 0 10px}
 .contacto-evento{margin:30px 0 6px;padding-top:14px;border-top:1px solid var(--borde)}
 

@@ -354,6 +354,38 @@
     caja.append(dl); cont.append(caja);
   }
 
+  // Logos de «Apoyan»: grilla de columnas iguales, con filas equilibradas (p. ej. 6 logos = 2 filas de 3, no 4 + 2).
+  // A cada logo se le recorta el margen blanco o transparente y se le da una superficie parecida a la de los demás,
+  // para que un escudo y un logo apaisado se vean de tamaño similar.
+  function columnasLogos(w) {
+    if (!w.clientWidth) return;                               // sección cerrada: se calcula al abrirla
+    const n = w.children.length, max = Math.max(1, Math.floor((w.clientWidth + 28) / (innerWidth <= 640 ? 150 : 190)));
+    const filas = Math.ceil(n / max), cols = Math.ceil(n / filas);
+    w.style.setProperty("--cols", cols);
+  }
+  function equilibrarLogo(im) {
+    if (im.dataset.ok) return; im.dataset.ok = "1";
+    let iw = im.naturalWidth, ih = im.naturalHeight;
+    try {
+      const esc = Math.min(1, 600 / Math.max(iw, ih)), cw = Math.round(iw * esc), ch = Math.round(ih * esc);
+      const cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+      const g = cv.getContext("2d"); g.drawImage(im, 0, 0, cw, ch);
+      const px = g.getImageData(0, 0, cw, ch).data; let x0 = cw, y0 = ch, x1 = -1, y1 = -1;
+      for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+        const k = (y * cw + x) * 4;
+        if (px[k + 3] > 24 && !(px[k] > 236 && px[k + 1] > 236 && px[k + 2] > 236)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+      if (x1 >= 0 && (x0 > 2 || y0 > 2 || x1 < cw - 3 || y1 < ch - 3)) {
+        const bx = x0 / esc, by = y0 / esc, bw = (x1 - x0 + 1) / esc, bh = (y1 - y0 + 1) / esc;
+        const out = document.createElement("canvas"); out.width = Math.round(bw); out.height = Math.round(bh);
+        out.getContext("2d").drawImage(im, bx, by, bw, bh, 0, 0, out.width, out.height);
+        im.src = out.toDataURL("image/png"); iw = out.width; ih = out.height;     // vuelve a llamar onload, ya marcado
+      }
+    } catch (e) { /* logo de otro sitio: se usa tal cual */ }
+    im.style.setProperty("--asp", (iw / ih).toFixed(3));
+    im.classList.add("equilibrado");
+  }
+
   function info(c) {
     const cont = $("c-info"), items = (c.info || []).filter((x) => x && (tr(x.titulo) || tr(x.texto)));
     cont.replaceChildren();
@@ -413,16 +445,21 @@
     $("t-auspiciantes").hidden = !aus.length; a.hidden = !aus.length;
     if (aus.length) {
       const w = el("div", "sponsors");
+      if (aus.every((x) => soloHttp(x.logo) || /^assets\//.test(x.logo || ""))) w.classList.add("grilla-logos");
       aus.forEach((x) => {
         const u = soloHttp(x.url), n = el(u ? "a" : "div", "sponsor");
         if (u) { n.href = u; n.target = "_blank"; n.rel = "noopener"; }
         // Con logo, se muestra solo el logo (el nombre queda como texto alternativo y al pasar el mouse); sin logo, el nombre
         if (soloHttp(x.logo) || /^assets\//.test(x.logo || "")) {
-          const im = el("img"); im.src = x.logo; im.alt = x.nombre; n.title = x.nombre; n.classList.add("solo-logo"); n.append(im);
+          const im = el("img"); im.alt = x.nombre; n.title = x.nombre; n.classList.add("solo-logo"); n.append(im);
+          im.onload = () => equilibrarLogo(im); im.src = x.logo;
         } else n.append(document.createTextNode(x.nombre));
         w.append(n);
       });
       a.append(w);
+      if (w.classList.contains("grilla-logos")) {     // se recalcula cuando la sección se abre o cambia el ancho
+        if (window.ResizeObserver) new ResizeObserver(() => columnasLogos(w)).observe(w); else columnasLogos(w);
+      }
     }
     const email = (c.contacto && c.contacto.email) || "";
     if (email) { k.append(document.createTextNode(T.contacto + " ")); const l = el("a", "", email); l.href = "mailto:" + email; k.append(l, document.createTextNode(".")); }

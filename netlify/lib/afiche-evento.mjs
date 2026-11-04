@@ -233,7 +233,7 @@ export async function svgAficheEvento(c, { formato = "carta", origen, slug }) {
   }
   if (P.logos) {
     const logos = (await Promise.all((c.auspiciantes || []).filter((a) => a && a.logo).slice(0, 12).map((a) => imagen(a.logo, origen)))).filter(Boolean).map(recortar);
-    if (logos.length) s += filaLogos(logos, { x0: M, x1: xLogosFin, y0: pieY + pieAlto * 0.1, y1: pieY + pieAlto * 0.9, maxAlto: pieAlto * 0.5, gap: W * 0.03 });
+    if (logos.length) s += filaLogos(logos, { x0: M, x1: xLogosFin, y0: pieY + pieAlto * 0.12, y1: pieY + pieAlto * 0.88, maxAlto: pieAlto * 0.5, gap: W * 0.02 });
   }
   return s + "</svg>";
 }
@@ -258,36 +258,37 @@ function recortar(img) {
     return { ...img, bx: x0 / esc, by: y0 / esc, bw: (x1 - x0 + 1) / esc, bh: (y1 - y0 + 1) / esc };
   } catch { return { ...img, bx: 0, by: 0, bw: img.w, bh: img.h }; }
 }
-// Factor de alto según la proporción: los logos muy anchos (con nombre al lado) van algo más bajos que los escudos,
-// para que todos se perciban de un tamaño parecido.
-const factorAlto = (l) => Math.min(1, Math.pow(2.2 / (l.bw / l.bh), 0.35));
-function filaLogos(logos, { x0, x1, y0, y1, maxAlto, gap }) {
-  const disp = x1 - x0, altoDisp = y1 - y0, rel = (l) => factorAlto(l) * l.bw / l.bh;   // ancho por unidad de alto
+// Los logos se ordenan en una grilla de celdas iguales (una, dos o tres filas; la última fila, si queda incompleta, se centra).
+// Cada logo se centra en su celda y se escala para que todos tengan aproximadamente la misma superficie visible
+// (así un escudo y un logo apaisado con el nombre al lado se perciben de tamaño parecido), sin salirse de su celda.
+export function filaLogos(logos, { x0, x1, y0, y1, maxAlto, gap }) {
+  const disp = x1 - x0, altoDisp = y1 - y0, n = logos.length;
   let mejor = null;
-  for (let filas = 1; filas <= Math.min(3, logos.length); filas++) {
-    // reparte en orden, equilibrando el ancho de cada fila
-    const tot = logos.reduce((t, l) => t + rel(l), 0), grupos = [[]]; let acum = 0;
-    logos.forEach((l, i) => {
-      const g = grupos[grupos.length - 1];
-      if (g.length && grupos.length < filas && acum + rel(l) / 2 > tot * grupos.length / filas && logos.length - i >= filas - grupos.length) grupos.push([]);
-      grupos[grupos.length - 1].push(l); acum += rel(l);
-    });
-    const sep = altoDisp * 0.12;
-    let h = Math.min(maxAlto, (altoDisp - sep * (grupos.length - 1)) / grupos.length);
-    for (const g of grupos) h = Math.min(h, (disp - gap * (g.length - 1)) / g.reduce((t, l) => t + rel(l), 0));
-    if (!mejor || h > mejor.h * 1.12) mejor = { h, grupos, sep };
+  for (let filas = 1; filas <= Math.min(3, n); filas++) {
+    const cols = Math.ceil(n / filas); if (filas > 1 && Math.ceil(n / (filas - 1)) === cols) continue;   // misma grilla
+    const sep = altoDisp * 0.1, celdaW = (disp - gap * (cols - 1)) / cols, celdaH = Math.min(maxAlto, (altoDisp - sep * (filas - 1)) / filas);
+    if (celdaW <= 0 || celdaH <= 0) continue;
+    // superficie máxima de cada logo dentro de su celda; la común es la mediana (los que no alcanzan quedan en su máximo)
+    const max = logos.map((l) => { const e = Math.min(celdaW / l.bw, celdaH / l.bh); return e * e * l.bw * l.bh; });
+    const orden = [...max].sort((a, b) => a - b), area = orden[Math.floor((n - 1) / 2)];
+    const puntaje = area * (1 - 0.04 * (filas - 1));     // a igualdad, menos filas
+    if (!mejor || puntaje > mejor.puntaje) mejor = { puntaje, filas, cols, sep, celdaW, celdaH, area };
   }
-  const { h, grupos, sep } = mejor, altoTot = h * grupos.length + sep * (grupos.length - 1);
+  if (!mejor) return "";
+  const { filas, cols, sep, celdaW, celdaH, area } = mejor;
+  const altoTot = celdaH * filas + sep * (filas - 1);
   let s = "", y = y0 + (altoDisp - altoTot) / 2;
-  for (const g of grupos) {
-    let x = x0;
-    for (const l of g) {
-      const hl = h * factorAlto(l), wl = hl * l.bw / l.bh, yl = y + (h - hl) / 2;
-      s += `<svg x="${x.toFixed(1)}" y="${yl.toFixed(1)}" width="${wl.toFixed(1)}" height="${hl.toFixed(1)}" viewBox="${l.bx.toFixed(1)} ${l.by.toFixed(1)} ${l.bw.toFixed(1)} ${l.bh.toFixed(1)}" preserveAspectRatio="none">`
+  for (let f = 0; f < filas; f++) {
+    const fila = logos.slice(f * cols, (f + 1) * cols);
+    let x = x0 + (cols - fila.length) * (celdaW + gap) / 2;          // fila incompleta: centrada
+    for (const l of fila) {
+      const e = Math.min(Math.sqrt(area / (l.bw * l.bh)), celdaW / l.bw, celdaH / l.bh);
+      const wl = l.bw * e, hl = l.bh * e, xl = x + (celdaW - wl) / 2, yl = y + (celdaH - hl) / 2;
+      s += `<svg x="${xl.toFixed(1)}" y="${yl.toFixed(1)}" width="${wl.toFixed(1)}" height="${hl.toFixed(1)}" viewBox="${l.bx.toFixed(1)} ${l.by.toFixed(1)} ${l.bw.toFixed(1)} ${l.bh.toFixed(1)}" preserveAspectRatio="none">`
          + `<image x="0" y="0" width="${l.w}" height="${l.h}" preserveAspectRatio="none" xlink:href="${l.uri}" href="${l.uri}"/></svg>`;
-      x += wl + gap;
+      x += celdaW + gap;
     }
-    y += h + sep;
+    y += celdaH + sep;
   }
   return s;
 }
