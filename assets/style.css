@@ -312,3 +312,6 @@ footer.site p{margin:0;font-size:12.5px;color:var(--texto-suave)}
 .foto-expositor{width:88px;height:88px;border-radius:50%;object-fit:cover;flex:none;border:1px solid var(--borde)}
 .seminar-card .expositor-foto{margin:0 0 10px}
 .seminar-card .expositor-foto .expositor{margin:0}
+
+/* Portada y Seminario: las tarjetas escritas en la página se ocultan mientras llegan las charlas publicadas desde el panel */
+.charlas-cargando .seminar-card,.charlas-cargando #home-talk-label,.charlas-cargando #seminar-label,.charlas-cargando #seminar-label-en{visibility:hidden}

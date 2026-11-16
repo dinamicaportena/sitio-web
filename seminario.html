@@ -28,6 +28,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<!-- Mientras se cargan las charlas publicadas desde el panel, no se muestran las tarjetas escritas en esta página (que pueden ser
+     antiguas); si el servicio no responde en 4 segundos, se muestran igual. -->
+<script>document.documentElement.classList.add("charlas-cargando");setTimeout(function(){document.documentElement.classList.remove("charlas-cargando")},4000);</script>
 </head>
 <body>
 <header class="site">

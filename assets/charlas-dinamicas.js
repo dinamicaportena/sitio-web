@@ -242,5 +242,5 @@
     const nodos = [...portada(publicadas), ...seminario(publicadas), ...(conHistoria ? reconstruirArchivo(todas) : archivo(publicadas))];
     formulas(nodos);
     if (!cifrasListas && publicadas.length) cifras(publicadas);
-  }).catch(() => {});
+  }).catch(() => {}).finally(() => document.documentElement.classList.remove("charlas-cargando"));   // ver <head> de cada página
 })();
