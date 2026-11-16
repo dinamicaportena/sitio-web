@@ -29,10 +29,23 @@ const F = {
 };
 const cap = (f, tam) => (f.tables.os2?.sCapHeight || f.unitsPerEm * 0.7) / f.unitsPerEm * tam;   // alto de mayúscula
 function ancho(txt, f, tam, esp = 0) { let w = 0; for (const c of txt) w += f.getAdvanceWidth(c, tam); return w + esp * Math.max(0, [...txt].length - 1); }
+// Datos «d» del trazado con un decimal. No se usa Path.toPathData de opentype.js: su redondeo produce «NaN» cuando la
+// parte decimal de una coordenada es diminuta (p. ej. 1e-13), y el visor deja de dibujar el resto del texto desde ahí.
+const num = (v) => { const r = Math.round(v * 10) / 10; return Object.is(r, -0) ? "0" : String(r); };
+function datosTrazado(path) {
+  let d = "";
+  for (const c of path.commands) {
+    if (c.type === "M" || c.type === "L") d += c.type + num(c.x) + " " + num(c.y);
+    else if (c.type === "Q") d += "Q" + num(c.x1) + " " + num(c.y1) + " " + num(c.x) + " " + num(c.y);
+    else if (c.type === "C") d += "C" + num(c.x1) + " " + num(c.y1) + " " + num(c.x2) + " " + num(c.y2) + " " + num(c.x) + " " + num(c.y);
+    else if (c.type === "Z") d += "Z";
+  }
+  return d;
+}
 function trazo(txt, x, y, f, tam, color, esp = 0) {
   let d = "";
-  if (!esp) d = f.getPath(txt, x, y, tam).toPathData(1);
-  else for (const c of txt) { d += f.getPath(c, x, y, tam).toPathData(1); x += f.getAdvanceWidth(c, tam) + esp; }
+  if (!esp) d = datosTrazado(f.getPath(txt, x, y, tam));
+  else for (const c of txt) { d += datosTrazado(f.getPath(c, x, y, tam)); x += f.getAdvanceWidth(c, tam) + esp; }
   return d ? `<path d="${d}" fill="${color}"/>` : "";
 }
 // Tamaño para que «txt» tenga mayúsculas de alto «alto», reducido si no cabe en «max»
